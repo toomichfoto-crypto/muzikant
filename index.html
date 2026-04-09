@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1e293b">
-    <title>Muzikant v18.4</title>
+    <title>Muzikant v18.5</title>
     <link rel="manifest" href="manifest.json">
     <style>
         :root {
@@ -70,21 +70,49 @@
             background: var(--card-bg); color: var(--text); font-size: 16px; 
         }
 
-        /* OPRAVA: Wrapper pro bezpečné scrollování textu pod panelem */
+        /* NOVÝ SYSTÉM ZALAMOVÁNÍ TEXTU A AKORDŮ */
         #displayAreaWrapper {
-            width: 100%; overflow-x: auto; 
+            width: 100%; 
             border-radius: 10px; border: 1px solid var(--border); 
             background: var(--card-bg);
+            /* Padding 80px vpravo zaručí, že text nezaleze pod ovládací panel */
+            padding: 15px 80px 40px 15px; 
+            box-sizing: border-box;
         }
-        #displayArea { 
-            font-size: 20px; line-height: 1.7; 
-            white-space: pre; 
-            font-family: 'Consolas', 'Monaco', monospace; 
-            padding: 20px 90px 40px 20px; /* 90px right padding clears the panel */
-            display: inline-block; min-width: 100%;
-        }
-        .chord { color: var(--chord); font-weight: bold; }
         
+        #displayArea { 
+            font-size: var(--player-font-size, 20px);
+        }
+        
+        .line-wrapper {
+            display: flex;
+            flex-wrap: wrap; /* ZALOMENÍ: Umožní řádku přeskočit na další, když není místo */
+            margin-bottom: 10px;
+            min-height: 1.5em; /* Zachování prázdných řádků */
+        }
+        
+        .segment {
+            display: flex;
+            flex-direction: column; /* Akord bude přesně nad svým úsekem textu */
+            white-space: pre-wrap; /* Vynutí vnitřní mezery, ale dovolí wrap uvnitř dlouhých slov */
+            word-break: break-word;
+        }
+
+        .chord { 
+            color: var(--chord); 
+            font-weight: bold; 
+            font-family: 'Consolas', 'Monaco', monospace; 
+            min-height: 1.2em; /* Místo pro akord (udrží svislé zarovnání textu) */
+            line-height: 1.2;
+        }
+        
+        .lyric {
+            font-family: 'Consolas', 'Monaco', monospace;
+            line-height: 1.4;
+            min-height: 1.4em;
+        }
+        
+        /* Ovládací panel rychlosti */
         .scroll-panel { position: fixed; right: 10px; top: 50%; transform: translateY(-50%); background: var(--card-bg); border-radius: 40px; width: 60px; display: flex; flex-direction: column; align-items: center; padding: 20px 0; gap: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); z-index: 100; border: 1px solid var(--border); }
         .speed-slider { appearance: none; width: 140px; height: 10px; background: var(--border); border-radius: 5px; transform: rotate(-90deg); margin: 60px 0; }
         .play-btn { width: 50px; height: 50px; border-radius: 50%; border: none; background: var(--primary); color: white; font-size: 20px; }
@@ -114,7 +142,7 @@
     </div>
 
     <div class="top-nav">
-        <div class="app-title">🎸 Muzikant v18.4</div>
+        <div class="app-title">🎸 Muzikant v18.5</div>
         <div class="nav-icons">
             <button class="nav-btn" id="themeToggle">🌓</button>
             <button class="nav-btn" id="nav-add">➕</button>
@@ -166,22 +194,24 @@
         </div>
 
         <div id="view-player" class="view">
-            <div style="display:flex; justify-content:space-between; margin-bottom:15px; flex-wrap:wrap; gap:10px;">
-                <div style="display:flex; gap:8px;">
-                    <button class="btn btn-blue" id="backFromPlayerBtn">← Zpět</button>
-                    <button class="btn btn-blue" id="toggleEditBtn" style="background:#eab308">✏️ Upravit</button>
-                    <button class="btn btn-green" id="saveEditBtn" style="display:none;">💾 Uložit úpravy</button>
-                    <div class="font-controls">
-                        <button class="font-btn" id="fontMinusBtn">A-</button>
-                        <button class="font-btn" id="fontPlusBtn">A+</button>
-                    </div>
+            
+            <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:15px; align-items:center;">
+                <button class="btn btn-blue" id="backFromPlayerBtn">← Zpět</button>
+                <button class="btn btn-blue" id="toggleEditBtn" style="background:#eab308">✏️ Upravit</button>
+                <button class="btn btn-green" id="saveEditBtn" style="display:none;">💾 Uložit</button>
+                
+                <button class="btn btn-green" id="fixKeyBtn" title="Uložit tóninu jako výchozí" style="padding: 12px 18px;">💾</button>
+                
+                <div class="font-controls" style="margin-left: auto; display:flex; gap:5px;">
+                    <button class="font-btn" id="fontMinusBtn">A-</button>
+                    <button class="font-btn" id="fontPlusBtn">A+</button>
                 </div>
-                <button class="btn btn-green" id="fixKeyBtn">📌 Uložit tuto tóninu jako výchozí</button>
             </div>
             
             <div id="playerViewContent">
                 <div id="keyButtons" style="display:flex; flex-wrap:wrap; gap:5px; margin-bottom:15px;"></div>
                 <h1 id="displayTitle" style="margin:10px 0;"></h1>
+                
                 <div id="displayAreaWrapper">
                     <div id="displayArea"></div>
                 </div>
@@ -212,8 +242,10 @@
     let db = { songs: [], playlists: [] };
     const DB_KEY = 'muzikant_db_v17'; 
     const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B', 'H'];
-    // Aktualizovaný regex pro bezpečné nalezení všech not v akordu (i lomených)
-    const chordRegex = /(^|\s|\[)([A-H][#b]?(?:m|maj|min|dim|sus|add|aug|2|4|5|6|7|9|11|13|Δ|\+)*)(?=\s|\]|$)/g;
+    
+    // Spolehlivý regex pro všechny akordy (i s lomenými basy /G)
+    const CHORD_REGEX_STR = "(^|\\s|\\[)([A-H][#b]?(?:m|mi|maj|min|dim|sus|add|aug|2|4|5|6|7|9|11|13|Δ|\\+)*(?:\\/[A-H][#b]?)?)(?=\\s|\\]|$)";
+    const CHORD_FIND_REGEX = /([A-H][#b]?(?:m|mi|maj|min|dim|sus|add|aug|2|4|5|6|7|9|11|13|Δ|\+)*(?:\/[A-H][#b]?)?)/g;
 
     let currentSongIndex = null, activePlaylistIdx = null, targetKeyIndex = 0;
     let lastView = 'library', isEditMode = false, isScrolling = false, scrollPos = 0, lastTime = 0;
@@ -283,30 +315,99 @@
 
     function openPlayer(idx, fromView) {
         currentSongIndex = idx; lastView = fromView;
-        targetKeyIndex = db.songs[idx].baseKey || 0; // Krok 1: Výchozí tónina se načte
+        targetKeyIndex = db.songs[idx].baseKey || 0;
         document.getElementById('scrollContainer').scrollTop = 0;
-        document.getElementById('displayAreaWrapper').scrollLeft = 0;
         isEditMode = false; toggleEditUI(false); 
         showView('player'); renderPlayer();
     }
 
+    // NOVÉ: Analýza jestli je řádek tvořen převážně jen akordy
+    function isChordLine(line) {
+        if(line.trim().length === 0) return false;
+        // Vymaže platné akordy a mezery. Pokud zbyde nic (nebo jen takty |), je to akordový řádek
+        let stripped = line.replace(new RegExp(CHORD_REGEX_STR, 'g'), '').replace(/\s/g, '').replace(/[\|\-\/]/g, '');
+        return stripped.length === 0;
+    }
+
+    // NOVÉ: Spojení řádku akordů s řádkem textu do úseků (segments) pro wrap
+    function mergeChordAndLyric(chordLine, lyricLine, fromKey, toKey) {
+        let match;
+        let chords = [];
+        
+        while ((match = CHORD_FIND_REGEX.exec(chordLine)) !== null) {
+            chords.push({ chord: match[0], index: match.index });
+        }
+        
+        if(chords.length === 0) {
+            return `<span class="segment"><span class="chord">&nbsp;</span><span class="lyric">${lyricLine}</span></span>`;
+        }
+
+        let html = '';
+        let maxLen = Math.max(lyricLine.length, chordLine.length);
+        let paddedLyric = lyricLine.padEnd(maxLen, ' ');
+
+        for (let j = 0; j < chords.length; j++) {
+            let currentChordIdx = chords[j].index;
+            let nextChordIdx = (j + 1 < chords.length) ? chords[j+1].index : maxLen;
+            
+            // Pokud je před prvním akordem text, přidá se jako prázdný segment
+            if (j === 0 && currentChordIdx > 0) {
+                let preText = paddedLyric.substring(0, currentChordIdx);
+                html += `<span class="segment"><span class="chord">&nbsp;</span><span class="lyric">${preText}</span></span>`;
+            }
+            
+            let segmentText = paddedLyric.substring(currentChordIdx, nextChordIdx);
+            let transposedChord = transposeChord(chords[j].chord, fromKey, toKey);
+            
+            html += `<span class="segment"><span class="chord">${transposedChord}</span><span class="lyric">${segmentText}</span></span>`;
+        }
+        return html;
+    }
+
+    // NOVÉ: Zpracování celého textu písně napříč styly zápisu
+    function renderPlayerText(lyrics, fromKey, toKey) {
+        const lines = lyrics.split('\n');
+        let resultHTML = '';
+        
+        for (let i = 0; i < lines.length; i++) {
+            let line = lines[i];
+            let isChord = isChordLine(line);
+            
+            if (isChord) {
+                // Zjistíme, jestli pod akordy následuje řádek textu
+                if (i + 1 < lines.length && !isChordLine(lines[i+1]) && lines[i+1].trim().length > 0) {
+                    let chordLine = line;
+                    let lyricLine = lines[i+1];
+                    i++; // Přeskočí řádek textu, protože už ho zpracujeme teď
+                    resultHTML += `<div class="line-wrapper">${mergeChordAndLyric(chordLine, lyricLine, fromKey, toKey)}</div>`;
+                } else {
+                    // Jen akordy (např. v mezihře)
+                    resultHTML += `<div class="line-wrapper">${mergeChordAndLyric(line, '', fromKey, toKey)}</div>`;
+                }
+            } else {
+                // Běžný text
+                if (line.trim() === '') {
+                    resultHTML += `<div class="line-wrapper" style="min-height: 1.5em;"></div>`;
+                } else {
+                    resultHTML += `<div class="line-wrapper"><span class="segment"><span class="chord">&nbsp;</span><span class="lyric">${line}</span></span></div>`;
+                }
+            }
+        }
+        return resultHTML;
+    }
+
     function renderPlayer() {
         const song = db.songs[currentSongIndex];
-        const lines = (song.lyrics || "").split('\n');
         
-        // Krok 2: Posun z Výchozí tóniny (baseKey) do Cílové (targetKeyIndex)
-        document.getElementById('displayArea').innerHTML = lines.map(line => {
-            return line.replace(chordRegex, (match, prefix, chord) => {
-                return prefix + `<span class="chord">${transposeChord(chord, song.baseKey || 0, targetKeyIndex)}</span>`;
-            });
-        }).join('\n');
-        
+        // Zobrazí formátovaný text
+        document.getElementById('displayArea').innerHTML = renderPlayerText(song.lyrics || "", song.baseKey || 0, targetKeyIndex);
         document.getElementById('displayTitle').innerText = song.title || "";
-        document.getElementById('displayArea').style.fontSize = currentFontSize + 'px';
+        
+        // Kaskádový font na všechny vnitřní elementy
+        document.getElementById('displayArea').style.setProperty('--player-font-size', currentFontSize + 'px');
         renderKeyButtons();
     }
 
-    // OPRAVA 2: Spolehlivá transpozice všech tónů uvnitř akordu (řeší basové lomené akordy)
     function transposeChord(chord, fromKey, toKey) {
         let diff = toKey - fromKey;
         return chord.replace(/([A-H][#b]?)/g, m => {
@@ -331,14 +432,13 @@
         });
     }
 
-    // OPRAVA 3: Uložit transponovanou verzi jako novou výchozí
     function fixCurrentKey() {
         const song = db.songs[currentSongIndex];
-        // Přepíše zdrojový text transponovanými akordy
         song.lyrics = song.lyrics.split('\n').map(line => {
-            return line.replace(chordRegex, (match, prefix, chord) => prefix + transposeChord(chord, song.baseKey || 0, targetKeyIndex));
+            return line.replace(new RegExp(CHORD_REGEX_STR, 'g'), (match, prefix, chord) => {
+                return prefix + transposeChord(chord, song.baseKey || 0, targetKeyIndex);
+            });
         }).join('\n');
-        // Nastaví novou tóninu jako výchozí
         song.baseKey = targetKeyIndex;
         saveData(); notify("Uloženo jako výchozí tónina!"); renderPlayer();
     }
@@ -347,7 +447,7 @@
         currentFontSize += delta;
         if(currentFontSize < 10) currentFontSize = 10;
         if(currentFontSize > 50) currentFontSize = 50;
-        document.getElementById('displayArea').style.fontSize = currentFontSize + 'px';
+        document.getElementById('displayArea').style.setProperty('--player-font-size', currentFontSize + 'px');
     }
 
     function toggleEditUI(showEdit) {
@@ -372,7 +472,7 @@
             const song = db.songs[currentSongIndex];
             document.getElementById('editTitleInput').value = song.title;
             document.getElementById('editArea').value = song.lyrics;
-            document.getElementById('editBaseKey').value = song.baseKey || 0; // Předvyplní aktuální výchozí tóninu
+            document.getElementById('editBaseKey').value = song.baseKey || 0;
         } else {
             toggleEditUI(false); renderPlayer();
         }
@@ -385,7 +485,7 @@
         db.songs[currentSongIndex].title = t;
         db.songs[currentSongIndex].lyrics = l;
         db.songs[currentSongIndex].baseKey = bKey;
-        targetKeyIndex = bKey; // Po uložení se rovnou zobrazí v nové výchozí tónině
+        targetKeyIndex = bKey; 
         saveData(); notify("Uloženo"); isEditMode = false; toggleEditUI(false); renderPlayer();
     }
 
