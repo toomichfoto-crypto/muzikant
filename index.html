@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1e293b">
-    <title>Muzikant v19.5</title>
+    <title>Muzikant v19.6</title>
     <style>
         :root {
             --bg: #f8fafc; --text: #1e293b; --card-bg: #ffffff; --nav-bg: #1e293b;
@@ -123,7 +123,7 @@
     </div>
 
     <div class="top-nav" id="mainHeader">
-        <div class="app-title">🎸 Muzikant v19.5</div>
+        <div class="app-title">🎸 Muzikant v19.6</div>
         <div class="nav-icons">
             <button class="nav-btn" id="themeToggle">🌓</button>
             <button class="nav-btn" id="nav-add">➕</button>
@@ -138,7 +138,7 @@
             <h1>Nová píseň</h1>
             <input type="text" id="titleInput" placeholder="Název písně">
             <div style="display:flex; gap:10px; align-items:center; margin-bottom:10px; background:var(--card-bg); padding:10px; border-radius:8px; border:1px solid var(--border);">
-                <label style="font-weight:bold;">Výchozí tónina:</label>
+                <label style="font-weight:bold;">Výchozí tónina textu:</label>
                 <select id="addBaseKey"></select>
             </div>
             <textarea id="lyricsInput" style="height: 300px;" placeholder="Sem vlož text a akordy..."></textarea>
@@ -171,7 +171,7 @@
                 <button class="btn btn-blue" id="backFromPlayerBtn">← Zpět</button>
                 <button class="btn btn-blue" id="toggleEditBtn" style="background:#eab308">✏️</button>
                 <button class="btn btn-green" id="saveEditBtn" style="display:none;">💾 Uložit text</button>
-                <button class="btn btn-green" id="fixKeyBtn" title="Uložit aktuální tóninu jako výchozí">💾 Tóninu</button>
+                <button class="btn btn-green" id="fixKeyBtn" title="Uložit aktuální tóninu pro příští hraní">💾 Tóninu</button>
                 <div class="font-controls" style="margin-left: auto;">
                     <button class="font-btn" id="fontMinusBtn">A-</button>
                     <button class="font-btn" id="fontPlusBtn">A+</button>
@@ -188,6 +188,10 @@
             
             <div id="playerEditContent" style="display:none;">
                 <input type="text" id="editTitleInput" placeholder="Název písně">
+                <div style="display:flex; gap:10px; align-items:center; margin-bottom:10px; background:var(--card-bg); padding:10px; border-radius:8px; border:1px solid var(--border);">
+                    <label style="font-weight:bold;">Tónina zapsaného textu:</label>
+                    <select id="editBaseKey"></select>
+                </div>
                 <textarea id="editArea" style="height: 400px; font-family: monospace;" placeholder="Text s akordy..."></textarea>
             </div>
         </div>
@@ -214,8 +218,6 @@
     const mainHeader = document.getElementById('mainHeader');
     
     scrollContainer.onscroll = () => {
-        // Pokud sjedeme dolů o víc než 50px, lišta se schová.
-        // Objeví se až když vyjedeme úplně nahoru.
         if (scrollContainer.scrollTop > 50) {
             mainHeader.classList.add('hidden');
         } else {
@@ -288,7 +290,8 @@
             `;
             card.onclick = () => { 
                 currentSongIndex = sIdx; 
-                targetKeyIndex = song.baseKey || 0; 
+                // Zde se načte preferovaná tónina, pokud existuje. Pokud ne, načte se původní.
+                targetKeyIndex = song.preferredKey !== undefined ? song.preferredKey : (song.baseKey || 0); 
                 showView('player'); 
                 renderPlayer(); 
             };
@@ -302,11 +305,8 @@
 
     function deleteSong(i) { 
         confirmAction = () => { 
-            // Odstranění z playlistů
             db.playlists.forEach(pl => { pl.songIds = pl.songIds.filter(id => id !== i); });
-            // Odstranění samotné písně
             db.songs.splice(i, 1); 
-            // Přečíslování ID v playlistech (jelikož používáme index)
             db.playlists.forEach(pl => {
                 pl.songIds = pl.songIds.map(id => id > i ? id - 1 : id);
             });
@@ -367,7 +367,7 @@
         
         pl.songIds.forEach((songIdx, itemIdx) => {
             const song = db.songs[songIdx];
-            if(!song) return; // Ochrana proti chybám
+            if(!song) return; 
             const card = document.createElement('div'); card.className = 'card';
             card.innerHTML = `
                 <b style="flex-grow:1;">${itemIdx + 1}. ${song.title}</b>
@@ -375,7 +375,7 @@
             `;
             card.onclick = () => { 
                 currentSongIndex = songIdx; 
-                targetKeyIndex = song.baseKey || 0; 
+                targetKeyIndex = song.preferredKey !== undefined ? song.preferredKey : (song.baseKey || 0); 
                 showView('player'); 
                 renderPlayer(); 
             };
@@ -442,6 +442,12 @@
             const song = db.songs[currentSongIndex];
             document.getElementById('editTitleInput').value = song.title;
             document.getElementById('editArea').value = song.lyrics;
+            
+            // Naplnění výběru tónin do editace a nastavení aktuální
+            const keys = notes.map((n, i) => `<option value="${i}">${n}</option>`).join('');
+            document.getElementById('editBaseKey').innerHTML = keys;
+            document.getElementById('editBaseKey').value = song.baseKey || 0;
+            
         } else {
             viewContent.style.display = 'block';
             editContent.style.display = 'none';
@@ -455,16 +461,18 @@
         const song = db.songs[currentSongIndex];
         song.title = document.getElementById('editTitleInput').value;
         song.lyrics = document.getElementById('editArea').value;
+        song.baseKey = parseInt(document.getElementById('editBaseKey').value); // Uloží opravu původní tóniny
         saveData();
         renderPlayer();
-        document.getElementById('toggleEditBtn').click(); // Vypne edit mód
+        document.getElementById('toggleEditBtn').click();
         notify('Změny uloženy');
     };
 
     document.getElementById('fixKeyBtn').onclick = () => {
-        db.songs[currentSongIndex].baseKey = targetKeyIndex;
+        // Zde ukládáme POUZE do preferredKey, nepřepisujeme baseKey jako dřív!
+        db.songs[currentSongIndex].preferredKey = targetKeyIndex;
         saveData();
-        notify('Tónina uložena jako výchozí');
+        notify('Tónina uložena pro příště');
     };
 
 
@@ -522,6 +530,7 @@
 
     function renderPlayer() {
         const song = db.songs[currentSongIndex];
+        // Při renderování se teď vždycky spolehlivě odrazíme od bezpečně uložené baseKey
         document.getElementById('displayArea').innerHTML = renderPlayerText(song.lyrics || "", song.baseKey || 0, targetKeyIndex);
         document.getElementById('displayTitle').innerText = song.title || "";
         document.getElementById('displayArea').style.fontSize = currentFontSize + 'px';
