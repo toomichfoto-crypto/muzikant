@@ -7,59 +7,40 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1e293b">
-    <title>Muzikant v18.2</title>
+    <title>Muzikant v18.3</title>
     <link rel="manifest" href="manifest.json">
     <style>
-        /* Definice barevných proměnných */
         :root {
-            --bg: #f8fafc;
-            --text: #1e293b;
-            --card-bg: #ffffff;
-            --nav-bg: #1e293b;
-            --nav-text: #ffffff;
-            --primary: #2563eb;
-            --accent: #059669;
-            --chord: #0000ff;
-            --border: #e2e8f0;
-            --muted: #64748b;
+            --bg: #f8fafc; --text: #1e293b; --card-bg: #ffffff; --nav-bg: #1e293b;
+            --nav-text: #ffffff; --primary: #2563eb; --accent: #059669; --chord: #2563eb;
+            --border: #e2e8f0; --muted: #64748b;
         }
 
-        /* Tmavý režim */
         [data-theme="dark"] {
-            --bg: #0f172a;
-            --text: #f1f5f9;
-            --card-bg: #1e293b;
-            --nav-bg: #020617;
-            --nav-text: #f8fafc;
-            --primary: #3b82f6;
-            --accent: #10b981;
-            --chord: #60a5fa;
-            --border: #334155;
-            --muted: #94a3b8;
+            --bg: #0f172a; --text: #f1f5f9; --card-bg: #1e293b; --nav-bg: #020617;
+            --nav-text: #f8fafc; --primary: #3b82f6; --accent: #10b981; --chord: #60a5fa;
+            --border: #334155; --muted: #94a3b8;
         }
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { 
-            font-family: -apple-system, sans-serif; 
-            background: var(--bg); 
-            color: var(--text);
+            font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text);
             margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; 
             transition: background 0.3s, color 0.3s;
         }
         
         #errorBox { display: none; background: #ef4444; color: white; padding: 15px; font-weight: bold; z-index: 9999; }
 
-        /* Pevná horní navigace */
+        /* OPRAVA 3: Zvětšený horní okraj lišty (padding-top z 15px na 25px) */
         .top-nav { 
             display: flex; justify-content: space-between; align-items: center; 
             background: var(--nav-bg); color: var(--nav-text); 
-            padding: env(safe-area-inset-top) 15px 10px 15px; 
+            padding: 25px 15px 15px 15px; 
             z-index: 1000; flex-shrink: 0; box-shadow: 0 2px 10px rgba(0,0,0,0.3); 
         }
         .app-title { font-weight: bold; font-size: 1rem; display: flex; align-items: center; gap: 8px;}
         .nav-icons { display: flex; gap: 6px; align-items: center; }
         
-        /* Tlačítka s animací stisku */
         .nav-btn { 
             background: #334155; color: white; border: none; 
             font-size: 18px; width: 42px; height: 42px; border-radius: 10px; 
@@ -68,11 +49,8 @@
         }
         .nav-btn:active { transform: scale(0.9); }
         .nav-btn.active { background: var(--primary); border: 2px solid white; }
-        
-        /* Tlačítko Dark Mode */
         #themeToggle { background: transparent; border: 1px solid #475569; font-size: 20px; }
 
-        /* Hlavní obsah */
         .main-content { flex-grow: 1; overflow-y: auto; padding: 15px; position: relative; -webkit-overflow-scrolling: touch; }
         .view { display: none; max-width: 900px; margin: 0 auto; padding-bottom: 120px; }
         .view.active { display: block; }
@@ -96,17 +74,17 @@
             background: var(--card-bg); color: var(--text); font-size: 16px; 
         }
         
+        /* OPRAVA 2: Padding-right 80px zajišťuje, že text nezaleze pod ovládání rychlosti */
         #displayArea { 
             font-size: 20px; line-height: 1.7; 
-            white-space: pre; /* Vypne vynucené zalomení řádků -> horizontální posuvník */
+            white-space: pre; 
             font-family: 'Consolas', 'Monaco', monospace; 
-            background: var(--card-bg); padding: 20px; 
+            background: var(--card-bg); padding: 20px 80px 30px 20px; 
             border-radius: 10px; border: 1px solid var(--border); 
-            overflow-x: auto; /* Povolí horizontální posuvník */
+            overflow-x: auto; 
         }
         .chord { color: var(--chord); font-weight: bold; }
         
-        /* Ovládací panely */
         .scroll-panel { position: fixed; right: 10px; top: 50%; transform: translateY(-50%); background: var(--card-bg); border-radius: 40px; width: 60px; display: flex; flex-direction: column; align-items: center; padding: 20px 0; gap: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); z-index: 100; border: 1px solid var(--border); }
         .speed-slider { appearance: none; width: 140px; height: 10px; background: var(--border); border-radius: 5px; transform: rotate(-90deg); margin: 60px 0; }
         .play-btn { width: 50px; height: 50px; border-radius: 50%; border: none; background: var(--primary); color: white; font-size: 20px; transition: transform 0.1s; }
@@ -139,7 +117,7 @@
     </div>
 
     <div class="top-nav">
-        <div class="app-title">🎸 Muzikant v18.2</div>
+        <div class="app-title">🎸 Muzikant v18.3</div>
         <div class="nav-icons">
             <button class="nav-btn" id="themeToggle" title="Přepnout režim">🌓</button>
             <button class="nav-btn" id="nav-add">➕</button>
@@ -173,7 +151,6 @@
 
             <hr style="border: 0; border-top: 1px solid var(--border); margin: 40px 0;">
             <h3>Systém a záloha</h3>
-            <p style="color:var(--muted);">Pro bezpečný přenos dat (např. do jiné verze aplikace) použijte export.</p>
             <div style="display:flex; flex-direction:column; gap:10px; max-width: 300px;">
                 <button class="btn btn-gray" style="width:100%" id="exportFullDbBtn">📤 Exportovat celou databázi</button>
                 <button class="btn btn-gray" style="width:100%; background:#d1d5db; color:#1f2937;" onclick="document.getElementById('importFullDbFile').click()">📥 Importovat ze zálohy</button>
@@ -222,15 +199,25 @@
     </div>
 
 <script>
-    // --- CHYBY ---
     window.onerror = (m, u, l) => {
         document.getElementById('errorBox').style.display = 'block';
         document.getElementById('errorText').innerText = m + " (řádek " + l + ")";
     };
 
-    // --- DATA ---
     let db = { songs: [], playlists: [] };
-    const DB_KEY = 'muzikant_db_v17'; // Zůstáváme u klíče v17 pro zachování dat
+    const DB_KEY = 'muzikant_db_v17'; 
+    const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B', 'H'];
+    const chordRegex = /(^|\s|\[)([A-H][#b]?(?:m|maj|min|dim|sus|add|aug|2|4|5|6|7|9|11|13|Δ|\+)*)(?=\s|\]|$)/g;
+
+    // Pomocná funkce pro nalezení prvního akordu
+    function detectFirstChordIndex(lyrics) {
+        const match = (lyrics || "").match(/(?:^|\s|\[)([A-H][#b]?)(?:m|maj|min|dim|sus|add|aug|2|4|5|6|7|9|11|13|Δ|\+)*?(?=\s|\]|$)/);
+        if(match && match[1]) {
+            let idx = notes.indexOf(match[1].replace('Bb','B'));
+            if(idx !== -1) return idx;
+        }
+        return 0; // Fallback na C
+    }
 
     function loadData() {
         try {
@@ -239,11 +226,21 @@
                 const parsed = JSON.parse(saved);
                 db.songs = parsed.songs || [];
                 db.playlists = parsed.playlists || [];
+                
+                // OPRAVA 1: Migrace starých písní - automatické přiřazení správné tóniny podle prvního akordu
+                let needsSave = false;
+                db.songs.forEach(s => {
+                    if(s.baseKey === undefined || s.baseKey === 0) {
+                        let detected = detectFirstChordIndex(s.lyrics);
+                        if(detected !== 0 && s.baseKey !== detected) {
+                            s.baseKey = detected;
+                            needsSave = true;
+                        }
+                    }
+                });
+                if(needsSave) saveData();
             }
-            // Načtení motivu
-            if(localStorage.getItem('muzikant_theme') === 'dark') {
-                document.body.setAttribute('data-theme', 'dark');
-            }
+            if(localStorage.getItem('muzikant_theme') === 'dark') document.body.setAttribute('data-theme', 'dark');
         } catch(e) { console.error("Data load error", e); }
     }
 
@@ -252,7 +249,6 @@
         localStorage.setItem(DB_KEY, JSON.stringify(db));
     }
 
-    // --- BARVY (DARK MODE) ---
     function toggleTheme() {
         const isDark = document.body.getAttribute('data-theme') === 'dark';
         if (isDark) {
@@ -264,15 +260,9 @@
         }
     }
 
-    // --- GLOBÁLNÍ PROMĚNNÉ ---
     let currentSongIndex = null, activePlaylistIdx = null, targetKeyIndex = 0;
     let lastView = 'library', isEditMode = false, isScrolling = false, scrollPos = 0, lastTime = 0;
     let currentFontSize = 20, confirmAction = null;
-
-    // Tónová řada (respektuje české B/H)
-    const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B', 'H'];
-    // Spolehlivý Regex pro akordy (respektuje český tón H)
-    const chordRegex = /(^|\s|\[)([A-H][#b]?(?:m|maj|min|dim|sus|add|aug|2|4|5|6|7|9|11|13|Δ|\+)*)(?=\s|\]|$)/g;
 
     function notify(msg) {
         const t = document.getElementById('toast'); t.innerText = msg;
@@ -282,15 +272,11 @@
     function showView(viewId) {
         document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
         document.querySelectorAll('.nav-btn').forEach(n => n.classList.remove('active'));
-        
         let targetView = document.getElementById('view-' + viewId);
         if(targetView) targetView.classList.add('active');
-        
         let targetNavBtn = document.getElementById('nav-' + viewId);
         if(targetNavBtn) targetNavBtn.classList.add('active');
-        
         document.getElementById('scrollPanel').style.display = (viewId === 'player') ? 'flex' : 'none';
-
         if(viewId === 'library') renderLibrary();
         if(viewId === 'playlists') renderPlaylistsFolders();
     }
@@ -300,10 +286,7 @@
         db.songs.forEach((song, sIdx) => {
             const card = document.createElement('div');
             card.className = 'card';
-            
-            // Sestavení roletky playlistů (musí tam být 'Hnihovna' jako default)
             let plOptions = db.playlists.map((p, pIdx) => `<option value="${pIdx}">${p.name}</option>`).join('');
-            
             card.innerHTML = `
                 <div style="flex:1"><b>${song.title}</b></div>
                 <div style="display:flex; gap:5px;" class="stop-prop">
@@ -312,11 +295,7 @@
                     </select>
                     <button class="btn btn-red" onclick="deleteSong(${sIdx})" style="padding:10px;">🗑</button>
                 </div>`;
-            
-            // Kliknutí na kartu (mimo roletku a trash) otevře player
-            card.onclick = (e) => { 
-                if(!e.target.closest('.stop-prop')) openPlayer(sIdx, 'library'); 
-            };
+            card.onclick = (e) => { if(!e.target.closest('.stop-prop')) openPlayer(sIdx, 'library'); };
             list.appendChild(card);
         });
     }
@@ -325,11 +304,8 @@
         currentSongIndex = idx; lastView = fromView;
         targetKeyIndex = db.songs[idx].baseKey || 0;
         document.getElementById('scrollContainer').scrollTop = 0;
-        
-        // Vypnout edit mode, pokud byl zapnutý
         isEditMode = false;
         toggleEditUI(false); 
-
         showView('player'); 
         renderPlayer();
     }
@@ -337,13 +313,11 @@
     function renderPlayer() {
         const song = db.songs[currentSongIndex];
         const lines = (song.lyrics || "").split('\n');
-        
         document.getElementById('displayArea').innerHTML = lines.map(line => {
             return line.replace(chordRegex, (match, prefix, chord) => {
                 return prefix + `<span class="chord">${transposeChord(chord, song.baseKey || 0, targetKeyIndex)}</span>`;
             });
         }).join('\n');
-        
         document.getElementById('displayTitle').innerText = song.title || "";
         document.getElementById('displayArea').style.fontSize = currentFontSize + 'px';
         renderKeyButtons();
@@ -352,7 +326,7 @@
     function transposeChord(chord, fromKey, toKey) {
         let diff = toKey - fromKey;
         return chord.replace(/[A-H][#b]?/, m => {
-            let note = m.replace('Bb', 'B'); // Standardizace
+            let note = m.replace('Bb', 'B');
             let idx = notes.indexOf(note);
             if (idx === -1) return m;
             let newIdx = (idx + diff) % 12;
@@ -375,30 +349,24 @@
 
     function fixCurrentKey() {
         const song = db.songs[currentSongIndex];
-        // Nahradit text s akordy transponovaným textem
         song.lyrics = song.lyrics.split('\n').map(line => {
             return line.replace(chordRegex, (match, prefix, chord) => prefix + transposeChord(chord, song.baseKey || 0, targetKeyIndex));
         }).join('\n');
-        song.baseKey = targetKeyIndex; // Nastavit aktuální tóninu jako základní
+        song.baseKey = targetKeyIndex;
         saveData(); notify("Tónina zafixována"); renderPlayer();
     }
 
     function changeFontSize(delta) {
         currentFontSize += delta;
         if(currentFontSize < 10) currentFontSize = 10;
-        if(currentFontSize > 40) currentFontSize = 40;
+        if(currentFontSize > 50) currentFontSize = 50;
         document.getElementById('displayArea').style.fontSize = currentFontSize + 'px';
     }
 
-    // --- EDITACE (Opravená) ---
     function toggleEditUI(showEdit) {
-        const vContent = document.getElementById('playerViewContent');
-        const eContent = document.getElementById('playerEditContent');
-        const eBtn = document.getElementById('toggleEditBtn');
-        const sBtn = document.getElementById('saveEditBtn');
-        const fKeyBtn = document.getElementById('fixKeyBtn');
-        const fCntrls = document.querySelector('.font-controls');
-
+        const vContent = document.getElementById('playerViewContent'), eContent = document.getElementById('playerEditContent');
+        const eBtn = document.getElementById('toggleEditBtn'), sBtn = document.getElementById('saveEditBtn');
+        const fKeyBtn = document.getElementById('fixKeyBtn'), fCntrls = document.querySelector('.font-controls');
         if(showEdit) {
             vContent.style.display = 'none'; eContent.style.display = 'block';
             sBtn.style.display = 'inline-flex'; eBtn.style.display = 'none';
@@ -413,35 +381,25 @@
     function toggleEditMode() {
         isEditMode = !isEditMode;
         if (isEditMode) {
-            stopScroll(); // Vypnout scroll
-            toggleEditUI(true);
+            stopScroll(); toggleEditUI(true);
             const song = db.songs[currentSongIndex];
             document.getElementById('editTitleInput').value = song.title;
             document.getElementById('editArea').value = song.lyrics;
         } else {
-            toggleEditUI(false);
-            renderPlayer(); // Obnovit přehrávač (pokud se neuložilo)
+            toggleEditUI(false); renderPlayer();
         }
     }
 
     function saveEdit() {
-        const t = document.getElementById('editTitleInput').value;
-        const l = document.getElementById('editArea').value;
+        const t = document.getElementById('editTitleInput').value, l = document.getElementById('editArea').value;
         if(!t) return;
-        
         db.songs[currentSongIndex].title = t;
         db.songs[currentSongIndex].lyrics = l;
-        // Pokud byla píseň dříve transponována, editor uložil transponované akordy.
-        // Základní klíč písně v databázi teď musí odpovídat tónině, ve které se editovalo (targetKeyIdx).
-        db.songs[currentSongIndex].baseKey = targetKeyIndex;
-        
-        saveData(); notify("Uloženo"); 
-        isEditMode = false;
-        toggleEditUI(false); 
-        renderPlayer(); // Obnovit player
+        db.songs[currentSongIndex].baseKey = detectFirstChordIndex(l);
+        targetKeyIndex = db.songs[currentSongIndex].baseKey;
+        saveData(); notify("Uloženo"); isEditMode = false; toggleEditUI(false); renderPlayer();
     }
 
-    // --- SCROLLING ---
     function toggleScroll() { isScrolling ? stopScroll() : startScroll(); }
     function startScroll() {
         isScrolling = true; document.getElementById('playPauseBtn').innerText = '⏸';
@@ -458,15 +416,10 @@
     }
     function stopScroll() { isScrolling = false; document.getElementById('playPauseBtn').innerText = '▶'; }
 
-    // --- ZÁLOHOVÁNÍ (FULL DB) ---
     function exportFullDatabase() {
-        const data = JSON.stringify(db, null, 2);
-        const blob = new Blob([data], {type: "application/json"});
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `muzikant_zaloha_${new Date().toISOString().slice(0,10)}.json`;
-        a.click();
-        notify("Záloha stažena");
+        const blob = new Blob([JSON.stringify(db, null, 2)], {type: "application/json"});
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+        a.download = `muzikant_zaloha_${new Date().toISOString().slice(0,10)}.json`; a.click(); notify("Záloha stažena");
     }
 
     function importFullDatabase(event) {
@@ -474,23 +427,17 @@
         reader.onload = (e) => {
             try {
                 const imported = JSON.parse(e.target.result);
-                if(imported.songs && imported.playlists) {
-                    db = imported;
-                    saveData();
-                    notify("Záloha úspěšně nahrána!");
-                    renderLibrary();
-                } else { throw new Error("Chybný formát"); }
+                if(imported.songs && imported.playlists) { db = imported; saveData(); notify("Záloha úspěšně nahrána!"); renderLibrary(); } 
+                else { throw new Error("Chybný formát"); }
             } catch(err) { notify("Chybný soubor!"); }
         };
         reader.readAsText(event.target.files[0]);
     }
 
-    // --- POMOCNÉ FUNKCE (Zbytek) ---
     function addNewSong() {
-        const t = document.getElementById('titleInput');
-        const l = document.getElementById('lyricsInput');
+        const t = document.getElementById('titleInput'), l = document.getElementById('lyricsInput');
         if (!t.value || !l.value) return;
-        db.songs.push({ title: t.value, lyrics: l.value, baseKey: 0 });
+        db.songs.push({ title: t.value, lyrics: l.value, baseKey: detectFirstChordIndex(l.value) });
         saveData(); t.value = ''; l.value = ''; showView('library'); notify("Uloženo");
     }
 
@@ -504,11 +451,9 @@
     function renderPlaylistsFolders() {
         const container = document.getElementById('playlistsFolderContainer'); container.innerHTML = '';
         db.playlists.forEach((p, idx) => {
-            const card = document.createElement('div');
-            card.className = 'card';
+            const card = document.createElement('div'); card.className = 'card';
             card.innerHTML = `<b>📁 ${p.name}</b> <button class="btn btn-red" onclick="event.stopPropagation(); deletePlaylist(${idx})">🗑</button>`;
-            card.onclick = () => openPlaylist(idx);
-            container.appendChild(card);
+            card.onclick = () => openPlaylist(idx); container.appendChild(card);
         });
     }
 
@@ -524,8 +469,7 @@
             const song = db.songs[songIdx]; if(!song) return;
             const card = document.createElement('div'); card.className = 'card';
             card.innerHTML = `<div>${itemIdx + 1}. <b>${song.title}</b></div><button class="btn btn-red" onclick="event.stopPropagation(); removeFromPlaylist(${itemIdx})">✕</button>`;
-            card.onclick = () => openPlayer(songIdx, 'playlist-detail');
-            container.appendChild(card);
+            card.onclick = () => openPlayer(songIdx, 'playlist-detail'); container.appendChild(card);
         });
     }
 
@@ -549,7 +493,6 @@
         document.getElementById('confirmModal').style.display = 'flex';
     }
     
-    // Inicializace
     document.addEventListener('DOMContentLoaded', () => {
         loadData();
         document.getElementById('themeToggle').onclick = toggleTheme;
@@ -562,7 +505,6 @@
         document.getElementById('importFullDbFile').onchange = importFullDatabase;
         document.getElementById('backToPlaylistsBtn').onclick = () => showView('playlists');
         
-        // Player buttons
         document.getElementById('backFromPlayerBtn').onclick = () => { stopScroll(); showView(lastView); };
         document.getElementById('toggleEditBtn').onclick = toggleEditMode;
         document.getElementById('saveEditBtn').onclick = saveEdit;
@@ -571,11 +513,9 @@
         document.getElementById('fixKeyBtn').onclick = fixCurrentKey;
         document.getElementById('playPauseBtn').onclick = toggleScroll;
         
-        // Modal buttons
         document.getElementById('confirmYesBtn').onclick = () => { if(confirmAction) confirmAction(); document.getElementById('confirmModal').style.display='none'; confirmAction = null; };
         document.getElementById('cancelConfirmBtn').onclick = () => { document.getElementById('confirmModal').style.display='none'; confirmAction = null; };
 
-        // Hledání
         document.getElementById('searchInput').onkeyup = (e) => {
             const val = e.target.value.toLowerCase();
             const cards = document.querySelectorAll('#libraryList .card');
