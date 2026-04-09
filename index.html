@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1e293b">
-    <title>Muzikant v19.7</title>
+    <title>Muzikant v19.8</title>
     <style>
         :root {
             --bg: #f8fafc; --text: #1e293b; --card-bg: #ffffff; --nav-bg: #1e293b;
@@ -56,7 +56,7 @@
             background: var(--card-bg); padding: 15px; border-radius: 12px; margin-bottom: 10px; 
             display: flex; justify-content: space-between; align-items: center; 
             box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 1px solid var(--border); 
-            cursor: pointer; 
+            cursor: pointer; transition: opacity 0.2s;
         }
         
         .btn { padding: 12px 16px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; color: white; font-size: 14px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
@@ -93,7 +93,6 @@
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 3000; align-items: center; justify-content: center; backdrop-filter: blur(3px); }
         .modal-content { background: var(--card-bg); color: var(--text); padding: 25px; border-radius: 15px; max-width: 300px; width: 90%; text-align: center; }
 
-        /* SKRYTÉ INPUTY PRO SOUBORY */
         .hidden-file { display: none; }
     </style>
 </head>
@@ -124,7 +123,7 @@
     </div>
 
     <div class="top-nav" id="mainHeader">
-        <div class="app-title">🎸 Muzikant v19.7</div>
+        <div class="app-title">🎸 Muzikant v19.8</div>
         <div class="nav-icons">
             <button class="nav-btn" id="themeToggle">🌓</button>
             <button class="nav-btn" id="nav-add">➕</button>
@@ -310,10 +309,27 @@
         container.innerHTML = '';
         db.playlists.forEach((pl, idx) => {
             const card = document.createElement('div'); card.className = 'card';
-            card.innerHTML = `<b style="flex-grow:1;">📁 ${pl.name} (${pl.songIds ? pl.songIds.length : 0})</b><button class="btn btn-red" onclick="event.stopPropagation(); deletePlaylist(${idx})" style="padding:8px;">🗑</button>`;
+            card.innerHTML = `
+                <b style="flex-grow:1;">📁 ${pl.name} (${pl.songIds ? pl.songIds.length : 0})</b>
+                <div style="display:flex; gap:5px;">
+                    <button class="btn btn-blue" onclick="event.stopPropagation(); renamePlaylist(${idx})" style="padding:8px;" title="Přejmenovat">✏️</button>
+                    <button class="btn btn-red" onclick="event.stopPropagation(); deletePlaylist(${idx})" style="padding:8px;">🗑</button>
+                </div>
+            `;
             card.onclick = () => openPlaylist(idx);
             container.appendChild(card);
         });
+    }
+
+    function renamePlaylist(idx) {
+        const currentName = db.playlists[idx].name;
+        const newName = prompt("Zadej nový název playlistu:", currentName);
+        if (newName !== null && newName.trim() !== "" && newName !== currentName) {
+            db.playlists[idx].name = newName.trim();
+            saveData();
+            renderPlaylistsFolders();
+            notify('Playlist přejmenován');
+        }
     }
 
     function deletePlaylist(idx) {
@@ -333,13 +349,49 @@
         container.innerHTML = '';
         const pl = db.playlists[activePlaylistIdx];
         if(!pl.songIds || pl.songIds.length === 0) { container.innerHTML = '<p style="color:var(--muted);">Prázdný playlist.</p>'; return; }
+        
         pl.songIds.forEach((songIdx, itemIdx) => {
             const song = db.songs[songIdx]; if(!song) return; 
             const card = document.createElement('div'); card.className = 'card';
-            card.innerHTML = `<b style="flex-grow:1;">${itemIdx + 1}. ${song.title}</b><button class="btn btn-red" onclick="event.stopPropagation(); removeFromPlaylist(${itemIdx})" style="padding:8px;">➖</button>`;
+            
+            // Logika pro Drag and Drop na PC
+            card.draggable = true;
+            card.ondragstart = (e) => { e.dataTransfer.setData('text/plain', itemIdx); card.style.opacity = '0.4'; };
+            card.ondragend = () => { card.style.opacity = '1'; };
+            card.ondragover = (e) => { e.preventDefault(); };
+            card.ondrop = (e) => {
+                e.preventDefault();
+                const fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
+                if (!isNaN(fromIdx) && fromIdx !== itemIdx) {
+                    const [moved] = pl.songIds.splice(fromIdx, 1);
+                    pl.songIds.splice(itemIdx, 0, moved);
+                    saveData(); renderPlaylistItems();
+                }
+            };
+
+            card.innerHTML = `
+                <div style="display:flex; flex-direction:column; gap:4px; margin-right:12px;">
+                    <button class="btn btn-gray" onclick="event.stopPropagation(); moveSongInPlaylist(${itemIdx}, -1)" style="padding:4px 8px; font-size:10px;">▲</button>
+                    <button class="btn btn-gray" onclick="event.stopPropagation(); moveSongInPlaylist(${itemIdx}, 1)" style="padding:4px 8px; font-size:10px;">▼</button>
+                </div>
+                <b style="flex-grow:1;">${itemIdx + 1}. ${song.title}</b>
+                <button class="btn btn-red" onclick="event.stopPropagation(); removeFromPlaylist(${itemIdx})" style="padding:8px;">➖</button>
+            `;
             card.onclick = () => { currentSongIndex = songIdx; targetKeyIndex = song.preferredKey !== undefined ? song.preferredKey : (song.baseKey || 0); showView('player'); renderPlayer(); };
             container.appendChild(card);
         });
+    }
+
+    function moveSongInPlaylist(itemIdx, direction) {
+        const pl = db.playlists[activePlaylistIdx];
+        const newIdx = itemIdx + direction;
+        if (newIdx >= 0 && newIdx < pl.songIds.length) {
+            const temp = pl.songIds[itemIdx];
+            pl.songIds[itemIdx] = pl.songIds[newIdx];
+            pl.songIds[newIdx] = temp;
+            saveData();
+            renderPlaylistItems();
+        }
     }
 
     function removeFromPlaylist(itemIdx) {
@@ -348,52 +400,34 @@
     }
 
     // --- EXPORT / IMPORT FUNKCE ---
-
-    // 1. Export celého zpěvníku
     function exportAll() {
-        const data = JSON.stringify(db);
-        const blob = new Blob([data], {type: 'application/json'});
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
+        const blob = new Blob([JSON.stringify(db)], {type: 'application/json'});
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
         a.download = `muzikant_zaloha_${new Date().toISOString().slice(0,10)}.json`;
-        a.click();
-        notify('Záloha vytvořena');
+        a.click(); notify('Záloha vytvořena');
     }
 
-    // 2. Import celého zpěvníku
     document.getElementById('importAllInput').onchange = (e) => {
         const file = e.target.files[0]; if(!file) return;
         const reader = new FileReader();
         reader.onload = (e) => {
             try {
                 const imported = JSON.parse(e.target.result);
-                if(imported.songs && imported.playlists) {
-                    db = imported; saveData(); renderLibrary(); renderPlaylistsFolders();
-                    notify('Záloha úspěšně obnovena');
-                } else { notify('Neplatný soubor zálohy'); }
+                if(imported.songs && imported.playlists) { db = imported; saveData(); renderLibrary(); renderPlaylistsFolders(); notify('Záloha úspěšně obnovena'); }
+                else notify('Neplatný soubor zálohy');
             } catch(err) { notify('Chyba při nahrávání'); }
         };
         reader.readAsText(file);
     };
 
-    // 3. Export playlistu (včetně obsahu písní)
     function exportPlaylist() {
         const pl = db.playlists[activePlaylistIdx];
-        const exportData = {
-            name: pl.name,
-            songs: pl.songIds.map(id => db.songs[id])
-        };
+        const exportData = { name: pl.name, songs: pl.songIds.map(id => db.songs[id]) };
         const blob = new Blob([JSON.stringify(exportData)], {type: 'application/json'});
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `playlist_${pl.name.replace(/\s+/g, '_')}.json`;
-        a.click();
-        notify('Playlist exportován');
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+        a.download = `playlist_${pl.name.replace(/\s+/g, '_')}.json`; a.click(); notify('Playlist exportován');
     }
 
-    // 4. Import playlistu
     document.getElementById('importPlaylistInput').onchange = (e) => {
         const file = e.target.files[0]; if(!file) return;
         const reader = new FileReader();
@@ -401,25 +435,20 @@
             try {
                 const data = JSON.parse(e.target.result);
                 if(!data.songs || !data.name) return notify('Neplatný formát playlistu');
-                
                 const newSongIds = [];
                 data.songs.forEach(s => {
                     let existingIdx = db.songs.findIndex(ext => ext.title === s.title);
-                    if(existingIdx === -1) {
-                        db.songs.push(s);
-                        newSongIds.push(db.songs.length - 1);
-                    } else { newSongIds.push(existingIdx); }
+                    if(existingIdx === -1) { db.songs.push(s); newSongIds.push(db.songs.length - 1); }
+                    else { newSongIds.push(existingIdx); }
                 });
                 db.playlists.push({ name: data.name + ' (import)', songIds: newSongIds });
-                saveData(); renderPlaylistsFolders();
-                notify('Playlist importován');
+                saveData(); renderPlaylistsFolders(); notify('Playlist importován');
             } catch(err) { notify('Chyba při importu'); }
         };
         reader.readAsText(file);
     };
 
-
-    // --- TEXT A AKORDY (Logika z v19.6) ---
+    // --- TEXT A AKORDY ---
     function isChordLine(line) {
         if(line.trim().length === 0) return false;
         let stripped = line.replace(new RegExp(CHORD_REGEX_STR, 'g'), '').replace(/\s/g, '').replace(/[\|\-\/]/g, '');
@@ -540,7 +569,6 @@
         document.getElementById('backToPlaylistsBtn').onclick = () => showView('playlists');
         document.getElementById('searchInput').addEventListener('input', (e) => renderLibrary(e.target.value));
 
-        // Editace (v19.6)
         document.getElementById('toggleEditBtn').onclick = () => {
             isEditMode = !isEditMode;
             const viewContent = document.getElementById('playerViewContent'), editContent = document.getElementById('playerEditContent');
