@@ -7,7 +7,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1e293b">
-    <title>Muzikant v19.10</title>
+    <title>Muzikant v20.0</title>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <style>
         :root {
             --bg: #f8fafc; --text: #1e293b; --card-bg: #ffffff; --nav-bg: #1e293b;
@@ -113,6 +114,7 @@
 
     <input type="file" id="importAllInput" class="hidden-file" accept=".json">
     <input type="file" id="importPlaylistInput" class="hidden-file" accept=".json">
+    <input type="file" id="cameraInput" class="hidden-file" accept="image/*" capture="environment">
 
     <div class="modal-overlay" id="confirmModal">
         <div class="modal-content">
@@ -134,7 +136,7 @@
     </div>
 
     <div class="top-nav" id="mainHeader">
-        <div class="app-title">🎸 Muzikant v19.10</div>
+        <div class="app-title">🎸 Muzikant v20.0</div>
         <div class="nav-icons">
             <button class="nav-btn" id="themeToggle">🌓</button>
             <button class="nav-btn" id="nav-add">➕</button>
@@ -147,6 +149,11 @@
         
         <div id="view-add" class="view">
             <h1>Nová píseň</h1>
+            
+            <button class="btn btn-blue" id="scanBtn" style="width:100%; margin-bottom: 15px; background: #8b5cf6;">
+                📷 Naskenovat zpěvník z fotky
+            </button>
+
             <input type="text" id="titleInput" placeholder="Název písně">
             <div style="display:flex; gap:10px; align-items:center; margin-bottom:10px; background:var(--card-bg); padding:10px; border-radius:8px; border:1px solid var(--border);">
                 <label style="font-weight:bold;">Výchozí tónina textu:</label>
@@ -251,7 +258,6 @@
     const navButtonsPanel = document.getElementById('navButtonsPanel');
     const scrollPanel = document.getElementById('scrollPanel');
 
-    // Nyní řešíme probouzení přes Fyzické dotyky/kliknutí, abychom ignorovali strojový posun
     function wakeUpPanels() {
         scrollPanel.classList.remove('faded');
         navButtonsPanel.classList.remove('faded');
@@ -260,17 +266,15 @@
             fadeTimeout = setTimeout(() => { 
                 scrollPanel.classList.add('faded'); 
                 navButtonsPanel.classList.add('faded'); 
-            }, 2500); // 2.5 vteřiny po interakci usnou
+            }, 2500); 
         }
     }
 
-    // Navázání na fyzické akce (vyřeší to problém, kdy auto-scroll udržoval panely bdělé)
     scrollContainer.addEventListener('touchstart', wakeUpPanels, {passive: true});
     scrollContainer.addEventListener('touchmove', wakeUpPanels, {passive: true});
     scrollContainer.addEventListener('wheel', wakeUpPanels, {passive: true});
     scrollContainer.addEventListener('click', wakeUpPanels, {passive: true});
 
-    // Zmizení horní lišty při posunu stále řeší klasický onscroll
     scrollContainer.onscroll = () => {
         if (scrollContainer.scrollTop > 50) mainHeader.classList.add('hidden');
         else mainHeader.classList.remove('hidden');
@@ -294,7 +298,7 @@
 
     function notify(msg) {
         const t = document.getElementById('toast'); t.innerText = msg;
-        t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 2000);
+        t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 3000);
     }
 
     // --- NAVIGACE ---
@@ -622,7 +626,7 @@
         const speed = Math.pow(document.getElementById('speedSlider').value, 2) / 4500;
         scrollPos += speed * (delta / 16); 
         
-        scrollContainer.scrollTop = scrollPos; // Strojový posun
+        scrollContainer.scrollTop = scrollPos; 
         
         requestAnimationFrame(scrollStep);
     }
@@ -653,6 +657,40 @@
         document.getElementById('exportPlaylistBtn').onclick = exportPlaylist;
         document.getElementById('triggerImportPlaylistBtn').onclick = () => document.getElementById('importPlaylistInput').click();
         
+        // --- LOGIKA SKENOVÁNÍ (OCR) ---
+        const scanBtn = document.getElementById('scanBtn');
+        const cameraInput = document.getElementById('cameraInput');
+        
+        scanBtn.onclick = () => cameraInput.click();
+        
+        cameraInput.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const originalText = scanBtn.innerText;
+            scanBtn.innerText = '⏳ Čtu text... (Může to chvíli trvat)';
+            scanBtn.disabled = true;
+            notify('Skenování spuštěno. Prosím čekej.');
+
+            try {
+                // Tesseract přečte obrázek pomocí češtiny
+                const result = await Tesseract.recognize(file, 'ces');
+                
+                // Vloží přečtený text do pole pro text
+                const currentText = document.getElementById('lyricsInput').value;
+                document.getElementById('lyricsInput').value = currentText + (currentText ? '\n\n' : '') + result.data.text;
+                
+                notify('Hotovo! Nezapomeň text a akordy zkontrolovat.');
+            } catch (err) {
+                notify('Chyba při skenování. Zkus to znovu.');
+                console.error(err);
+            } finally {
+                scanBtn.innerText = originalText;
+                scanBtn.disabled = false;
+                e.target.value = ''; // Reset file inputu
+            }
+        };
+
         document.getElementById('themeToggle').onclick = () => {
             const isDark = document.body.getAttribute('data-theme') === 'dark';
             isDark ? document.body.removeAttribute('data-theme') : document.body.setAttribute('data-theme', 'dark');
