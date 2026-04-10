@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1e293b">
-    <title>Muzikant v19.9</title>
+    <title>Muzikant v19.10</title>
     <style>
         :root {
             --bg: #f8fafc; --text: #1e293b; --card-bg: #ffffff; --nav-bg: #1e293b;
@@ -81,7 +81,7 @@
             z-index: 100; border: 1px solid var(--border);
             transition: opacity 0.4s ease;
         }
-        .scroll-panel.faded { opacity: 0.15; }
+        .scroll-panel.faded { opacity: 0.15; pointer-events: none; }
         .speed-slider { appearance: none; width: 140px; height: 10px; background: var(--border); border-radius: 5px; transform: rotate(-90deg); margin: 60px 0; }
         .play-btn { width: 50px; height: 50px; border-radius: 50%; border: none; background: var(--primary); color: white; font-size: 20px; }
 
@@ -90,7 +90,7 @@
             position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
             display: flex; gap: 20px; z-index: 100; transition: opacity 0.4s ease;
         }
-        .nav-buttons-panel.faded { opacity: 0.15; }
+        .nav-buttons-panel.faded { opacity: 0.15; pointer-events: none; }
         .nav-arrow-btn {
             width: 55px; height: 55px; border-radius: 50%; background: var(--primary);
             color: white; border: none; font-size: 24px; display: flex; align-items: center; 
@@ -134,7 +134,7 @@
     </div>
 
     <div class="top-nav" id="mainHeader">
-        <div class="app-title">🎸 Muzikant v19.9</div>
+        <div class="app-title">🎸 Muzikant v19.10</div>
         <div class="nav-icons">
             <button class="nav-btn" id="themeToggle">🌓</button>
             <button class="nav-btn" id="nav-add">➕</button>
@@ -197,7 +197,8 @@
                 <button class="btn btn-blue" id="toggleEditBtn" style="background:#eab308">✏️</button>
                 <button class="btn btn-green" id="saveEditBtn" style="display:none;">💾 Uložit text</button>
                 <button class="btn btn-green" id="fixKeyBtn" title="Uložit aktuální tóninu pro příští hraní">💾 Tóninu</button>
-                <div class="font-controls" style="margin-left: auto;">
+                
+                <div class="font-controls">
                     <button class="font-btn" id="fontMinusBtn">A-</button>
                     <button class="font-btn" id="fontPlusBtn">A+</button>
                 </div>
@@ -240,7 +241,7 @@
     const CHORD_FIND_REGEX = /([A-H][#b]?(?:m|mi|maj|min|dim|sus|add|aug|2|4|5|6|7|9|11|13|Δ|\+)*(?:\/[A-H][#b]?)?)/g;
 
     let currentSongIndex = null, activePlaylistIdx = null, targetKeyIndex = 0;
-    let currentQueue = [], currentQueueIndex = 0; // Fronta pro přepínání písní
+    let currentQueue = [], currentQueueIndex = 0; 
     let lastView = 'library', isEditMode = false, isScrolling = false, scrollPos = 0, lastTime = 0;
     let currentFontSize = 20, confirmAction = null, fadeTimeout = null;
 
@@ -250,12 +251,7 @@
     const navButtonsPanel = document.getElementById('navButtonsPanel');
     const scrollPanel = document.getElementById('scrollPanel');
 
-    scrollContainer.onscroll = () => {
-        if (scrollContainer.scrollTop > 50) mainHeader.classList.add('hidden');
-        else mainHeader.classList.remove('hidden');
-        wakeUpPanels(); // Probuzení tlačítek i při manuálním scrollování prstem
-    };
-
+    // Nyní řešíme probouzení přes Fyzické dotyky/kliknutí, abychom ignorovali strojový posun
     function wakeUpPanels() {
         scrollPanel.classList.remove('faded');
         navButtonsPanel.classList.remove('faded');
@@ -264,9 +260,21 @@
             fadeTimeout = setTimeout(() => { 
                 scrollPanel.classList.add('faded'); 
                 navButtonsPanel.classList.add('faded'); 
-            }, 2000);
+            }, 2500); // 2.5 vteřiny po interakci usnou
         }
     }
+
+    // Navázání na fyzické akce (vyřeší to problém, kdy auto-scroll udržoval panely bdělé)
+    scrollContainer.addEventListener('touchstart', wakeUpPanels, {passive: true});
+    scrollContainer.addEventListener('touchmove', wakeUpPanels, {passive: true});
+    scrollContainer.addEventListener('wheel', wakeUpPanels, {passive: true});
+    scrollContainer.addEventListener('click', wakeUpPanels, {passive: true});
+
+    // Zmizení horní lišty při posunu stále řeší klasický onscroll
+    scrollContainer.onscroll = () => {
+        if (scrollContainer.scrollTop > 50) mainHeader.classList.add('hidden');
+        else mainHeader.classList.remove('hidden');
+    };
 
     // --- DATABÁZE ---
     function loadData() {
@@ -296,7 +304,6 @@
         document.getElementById('view-' + viewId).classList.add('active');
         if(document.getElementById('nav-' + viewId)) document.getElementById('nav-' + viewId).classList.add('active');
         
-        // Zobrazit ovládací panely jen v přehrávači
         scrollPanel.style.display = (viewId === 'player') ? 'flex' : 'none';
         navButtonsPanel.style.display = (viewId === 'player') ? 'flex' : 'none';
 
@@ -309,7 +316,6 @@
     function renderLibrary(filterText = '') {
         const list = document.getElementById('libraryList'); list.innerHTML = '';
         
-        // Vytvoříme dočasnou frontu na základě vyhledávání, abychom mohli procházet vyfiltrované
         let tempQueue = [];
         db.songs.forEach((song, sIdx) => {
             if (filterText && !song.title.toLowerCase().includes(filterText.toLowerCase())) return;
@@ -552,7 +558,6 @@
         document.getElementById('displayArea').style.fontSize = currentFontSize + 'px';
         renderKeyButtons();
 
-        // Nastavení viditelnosti tlačítek předchozí/další
         const prevBtn = document.getElementById('prevSongBtn');
         const nextBtn = document.getElementById('nextSongBtn');
         if (currentQueue && currentQueue.length > 1) {
@@ -601,7 +606,6 @@
         }
     };
 
-
     // --- AUTOSCROLL ---
     function startScroll() { 
         isScrolling = true; 
@@ -616,7 +620,10 @@
         if (!isScrolling) return;
         const delta = currentTime - lastTime; lastTime = currentTime;
         const speed = Math.pow(document.getElementById('speedSlider').value, 2) / 4500;
-        scrollPos += speed * (delta / 16); scrollContainer.scrollTop = scrollPos;
+        scrollPos += speed * (delta / 16); 
+        
+        scrollContainer.scrollTop = scrollPos; // Strojový posun
+        
         requestAnimationFrame(scrollStep);
     }
     
