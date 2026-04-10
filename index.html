@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1e293b">
-    <title>Muzikant v19.8</title>
+    <title>Muzikant v19.9</title>
     <style>
         :root {
             --bg: #f8fafc; --text: #1e293b; --card-bg: #ffffff; --nav-bg: #1e293b;
@@ -72,7 +72,7 @@
         .chord { color: var(--chord); font-weight: bold; font-family: 'Consolas', monospace; min-height: 1.2em; line-height: 1.2; }
         .lyric { font-family: 'Consolas', monospace; line-height: 1.4; min-height: 1.4em; }
         
-        /* OVLÁDACÍ PANEL */
+        /* OVLÁDACÍ PANEL SCROLLOVÁNÍ */
         .scroll-panel { 
             position: fixed; right: 10px; top: 50%; transform: translateY(-50%); 
             background: var(--card-bg); border-radius: 40px; width: 60px; 
@@ -82,9 +82,20 @@
             transition: opacity 0.4s ease;
         }
         .scroll-panel.faded { opacity: 0.15; }
-
         .speed-slider { appearance: none; width: 140px; height: 10px; background: var(--border); border-radius: 5px; transform: rotate(-90deg); margin: 60px 0; }
         .play-btn { width: 50px; height: 50px; border-radius: 50%; border: none; background: var(--primary); color: white; font-size: 20px; }
+
+        /* NAVIGAČNÍ TLAČÍTKA (PŘEDCHOZÍ / DALŠÍ) */
+        .nav-buttons-panel {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 20px; z-index: 100; transition: opacity 0.4s ease;
+        }
+        .nav-buttons-panel.faded { opacity: 0.15; }
+        .nav-arrow-btn {
+            width: 55px; height: 55px; border-radius: 50%; background: var(--primary);
+            color: white; border: none; font-size: 24px; display: flex; align-items: center; 
+            justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); cursor: pointer;
+        }
 
         .font-controls { display: flex; gap: 5px; background: var(--card-bg); border: 1px solid var(--border); padding: 5px; border-radius: 10px; align-items: center; }
         .font-btn { background: var(--nav-bg); color:var(--nav-text); border: none; padding: 8px 14px; border-radius: 6px; font-weight: bold; }
@@ -123,7 +134,7 @@
     </div>
 
     <div class="top-nav" id="mainHeader">
-        <div class="app-title">🎸 Muzikant v19.8</div>
+        <div class="app-title">🎸 Muzikant v19.9</div>
         <div class="nav-icons">
             <button class="nav-btn" id="themeToggle">🌓</button>
             <button class="nav-btn" id="nav-add">➕</button>
@@ -216,6 +227,11 @@
         <button id="playPauseBtn" class="play-btn">▶</button>
     </div>
 
+    <div id="navButtonsPanel" class="nav-buttons-panel" style="display: none;">
+        <button id="prevSongBtn" class="nav-arrow-btn">◀</button>
+        <button id="nextSongBtn" class="nav-arrow-btn">▶</button>
+    </div>
+
 <script>
     let db = { songs: [], playlists: [] };
     const DB_KEY = 'muzikant_db_v17'; 
@@ -224,21 +240,32 @@
     const CHORD_FIND_REGEX = /([A-H][#b]?(?:m|mi|maj|min|dim|sus|add|aug|2|4|5|6|7|9|11|13|Δ|\+)*(?:\/[A-H][#b]?)?)/g;
 
     let currentSongIndex = null, activePlaylistIdx = null, targetKeyIndex = 0;
+    let currentQueue = [], currentQueueIndex = 0; // Fronta pro přepínání písní
     let lastView = 'library', isEditMode = false, isScrolling = false, scrollPos = 0, lastTime = 0;
     let currentFontSize = 20, confirmAction = null, fadeTimeout = null;
 
-    // --- MIZEJÍCÍ LIŠTA ---
+    // --- MIZEJÍCÍ LIŠTA & ZPRŮHLEDNĚNÍ PRVKŮ ---
     const scrollContainer = document.getElementById('scrollContainer');
     const mainHeader = document.getElementById('mainHeader');
+    const navButtonsPanel = document.getElementById('navButtonsPanel');
+    const scrollPanel = document.getElementById('scrollPanel');
+
     scrollContainer.onscroll = () => {
         if (scrollContainer.scrollTop > 50) mainHeader.classList.add('hidden');
         else mainHeader.classList.remove('hidden');
+        wakeUpPanels(); // Probuzení tlačítek i při manuálním scrollování prstem
     };
 
-    function wakeUpPanel() {
+    function wakeUpPanels() {
         scrollPanel.classList.remove('faded');
+        navButtonsPanel.classList.remove('faded');
         clearTimeout(fadeTimeout);
-        if (isScrolling) fadeTimeout = setTimeout(() => { scrollPanel.classList.add('faded'); }, 2000);
+        if (isScrolling) {
+            fadeTimeout = setTimeout(() => { 
+                scrollPanel.classList.add('faded'); 
+                navButtonsPanel.classList.add('faded'); 
+            }, 2000);
+        }
     }
 
     // --- DATABÁZE ---
@@ -268,7 +295,11 @@
         document.querySelectorAll('.nav-btn').forEach(n => n.classList.remove('active'));
         document.getElementById('view-' + viewId).classList.add('active');
         if(document.getElementById('nav-' + viewId)) document.getElementById('nav-' + viewId).classList.add('active');
+        
+        // Zobrazit ovládací panely jen v přehrávači
         scrollPanel.style.display = (viewId === 'player') ? 'flex' : 'none';
+        navButtonsPanel.style.display = (viewId === 'player') ? 'flex' : 'none';
+
         if(viewId === 'library') { lastView = 'library'; renderLibrary(); }
         if(viewId === 'playlists') renderPlaylistsFolders();
         if(viewId === 'playlist-detail') lastView = 'playlist-detail';
@@ -277,6 +308,14 @@
     // --- KNIHOVNA ---
     function renderLibrary(filterText = '') {
         const list = document.getElementById('libraryList'); list.innerHTML = '';
+        
+        // Vytvoříme dočasnou frontu na základě vyhledávání, abychom mohli procházet vyfiltrované
+        let tempQueue = [];
+        db.songs.forEach((song, sIdx) => {
+            if (filterText && !song.title.toLowerCase().includes(filterText.toLowerCase())) return;
+            tempQueue.push(sIdx);
+        });
+
         db.songs.forEach((song, sIdx) => {
             if (filterText && !song.title.toLowerCase().includes(filterText.toLowerCase())) return;
             const card = document.createElement('div'); card.className = 'card';
@@ -287,7 +326,13 @@
                     <button class="btn btn-red" onclick="event.stopPropagation(); deleteSong(${sIdx})" style="padding:8px;">🗑</button>
                 </div>
             `;
-            card.onclick = () => { currentSongIndex = sIdx; targetKeyIndex = song.preferredKey !== undefined ? song.preferredKey : (song.baseKey || 0); showView('player'); renderPlayer(); };
+            card.onclick = () => { 
+                currentQueue = [...tempQueue]; 
+                currentQueueIndex = currentQueue.indexOf(sIdx);
+                currentSongIndex = sIdx; 
+                targetKeyIndex = song.preferredKey !== undefined ? song.preferredKey : (song.baseKey || 0); 
+                showView('player'); renderPlayer(); 
+            };
             list.appendChild(card);
         });
     }
@@ -354,7 +399,6 @@
             const song = db.songs[songIdx]; if(!song) return; 
             const card = document.createElement('div'); card.className = 'card';
             
-            // Logika pro Drag and Drop na PC
             card.draggable = true;
             card.ondragstart = (e) => { e.dataTransfer.setData('text/plain', itemIdx); card.style.opacity = '0.4'; };
             card.ondragend = () => { card.style.opacity = '1'; };
@@ -377,7 +421,13 @@
                 <b style="flex-grow:1;">${itemIdx + 1}. ${song.title}</b>
                 <button class="btn btn-red" onclick="event.stopPropagation(); removeFromPlaylist(${itemIdx})" style="padding:8px;">➖</button>
             `;
-            card.onclick = () => { currentSongIndex = songIdx; targetKeyIndex = song.preferredKey !== undefined ? song.preferredKey : (song.baseKey || 0); showView('player'); renderPlayer(); };
+            card.onclick = () => { 
+                currentQueue = [...pl.songIds]; 
+                currentQueueIndex = itemIdx;
+                currentSongIndex = songIdx; 
+                targetKeyIndex = song.preferredKey !== undefined ? song.preferredKey : (song.baseKey || 0); 
+                showView('player'); renderPlayer(); 
+            };
             container.appendChild(card);
         });
     }
@@ -501,6 +551,17 @@
         document.getElementById('displayTitle').innerText = song.title || "";
         document.getElementById('displayArea').style.fontSize = currentFontSize + 'px';
         renderKeyButtons();
+
+        // Nastavení viditelnosti tlačítek předchozí/další
+        const prevBtn = document.getElementById('prevSongBtn');
+        const nextBtn = document.getElementById('nextSongBtn');
+        if (currentQueue && currentQueue.length > 1) {
+            prevBtn.style.visibility = currentQueueIndex > 0 ? 'visible' : 'hidden';
+            nextBtn.style.visibility = currentQueueIndex < currentQueue.length - 1 ? 'visible' : 'hidden';
+        } else {
+            prevBtn.style.visibility = 'hidden';
+            nextBtn.style.visibility = 'hidden';
+        }
     }
 
     function renderKeyButtons() {
@@ -515,8 +576,42 @@
         });
     }
 
+    // --- PŘEPÍNÁNÍ PÍSNÍ V PŘEHRÁVAČI ---
+    document.getElementById('prevSongBtn').onclick = () => {
+        if (currentQueueIndex > 0) {
+            currentQueueIndex--;
+            currentSongIndex = currentQueue[currentQueueIndex];
+            const song = db.songs[currentSongIndex];
+            targetKeyIndex = song.preferredKey !== undefined ? song.preferredKey : (song.baseKey || 0);
+            if (isScrolling) stopScroll();
+            scrollContainer.scrollTop = 0;
+            renderPlayer();
+        }
+    };
+
+    document.getElementById('nextSongBtn').onclick = () => {
+        if (currentQueueIndex < currentQueue.length - 1) {
+            currentQueueIndex++;
+            currentSongIndex = currentQueue[currentQueueIndex];
+            const song = db.songs[currentSongIndex];
+            targetKeyIndex = song.preferredKey !== undefined ? song.preferredKey : (song.baseKey || 0);
+            if (isScrolling) stopScroll();
+            scrollContainer.scrollTop = 0;
+            renderPlayer();
+        }
+    };
+
+
     // --- AUTOSCROLL ---
-    function startScroll() { isScrolling = true; document.getElementById('playPauseBtn').innerText = '⏸'; scrollPos = scrollContainer.scrollTop; lastTime = performance.now(); wakeUpPanel(); requestAnimationFrame(scrollStep); }
+    function startScroll() { 
+        isScrolling = true; 
+        document.getElementById('playPauseBtn').innerText = '⏸'; 
+        scrollPos = scrollContainer.scrollTop; 
+        lastTime = performance.now(); 
+        wakeUpPanels(); 
+        requestAnimationFrame(scrollStep); 
+    }
+    
     function scrollStep(currentTime) {
         if (!isScrolling) return;
         const delta = currentTime - lastTime; lastTime = currentTime;
@@ -524,7 +619,14 @@
         scrollPos += speed * (delta / 16); scrollContainer.scrollTop = scrollPos;
         requestAnimationFrame(scrollStep);
     }
-    function stopScroll() { isScrolling = false; document.getElementById('playPauseBtn').innerText = '▶'; scrollPanel.classList.remove('faded'); clearTimeout(fadeTimeout); }
+    
+    function stopScroll() { 
+        isScrolling = false; 
+        document.getElementById('playPauseBtn').innerText = '▶'; 
+        scrollPanel.classList.remove('faded'); 
+        navButtonsPanel.classList.remove('faded');
+        clearTimeout(fadeTimeout); 
+    }
 
     // --- INICIALIZACE ---
     document.addEventListener('DOMContentLoaded', () => {
