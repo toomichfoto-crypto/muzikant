@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1e293b">
-    <title>Muzikant v20.3</title>
+    <title>Muzikant v20.4</title>
     <style>
         :root {
             --bg: #f8fafc; --text: #1e293b; --card-bg: #ffffff; --nav-bg: #1e293b;
@@ -49,7 +49,7 @@
         }
         .nav-btn.active { background: var(--primary); border: 2px solid white; }
 
-        .main-content { flex-grow: 1; overflow-y: auto; padding: 15px; position: relative; -webkit-overflow-scrolling: touch; }
+        .main-content { flex-grow: 1; overflow-y: auto; padding: 15px; position: relative; -webkit-overflow-scrolling: touch; scroll-behavior: auto; }
         .view { display: none; max-width: 900px; margin: 0 auto; padding-bottom: 120px; }
         .view.active { display: block; }
 
@@ -92,7 +92,10 @@
             transition: opacity 0.4s ease;
         }
         .scroll-panel.faded { opacity: 0.15; pointer-events: none; }
-        .speed-slider { appearance: none; width: 140px; height: 10px; background: var(--border); border-radius: 5px; transform: rotate(-90deg); margin: 60px 0; }
+        
+        /* Upravený slider pro jemnější a pohodlnější ovládání */
+        .speed-slider { appearance: none; width: 200px; height: 12px; background: var(--border); border-radius: 6px; transform: rotate(-90deg); margin: 90px 0; }
+        
         .play-btn { width: 50px; height: 50px; border-radius: 50%; border: none; background: var(--primary); color: white; font-size: 20px; }
 
         .nav-buttons-panel {
@@ -144,7 +147,7 @@
     </div>
 
     <div class="top-nav" id="mainHeader">
-        <div class="app-title">🎸 Muzikant v20.3</div>
+        <div class="app-title">🎸 Muzikant v20.4</div>
         <div class="nav-icons">
             <button class="nav-btn" id="themeToggle">🌓</button>
             <button class="nav-btn" id="nav-add">➕</button>
@@ -235,7 +238,7 @@
     </div>
 
     <div id="scrollPanel" class="scroll-panel" style="display: none;">
-        <input type="range" id="speedSlider" class="speed-slider" min="0" max="100" value="15">
+        <input type="range" id="speedSlider" class="speed-slider" min="0" max="100" value="30">
         <button id="playPauseBtn" class="play-btn">▶</button>
     </div>
 
@@ -270,7 +273,7 @@
     let currentQueue = [], currentQueueIndex = 0; 
     let lastView = 'library', isEditMode = false, isScrolling = false, scrollPos = 0, lastTime = 0;
     let currentFontSize = 20, confirmAction = null, fadeTimeout = null, tooltipTimeout = null;
-    let draggedItemIndex = null; // Pomocná proměnná pro myš v playlistech
+    let draggedItemIndex = null;
 
     const scrollContainer = document.getElementById('scrollContainer');
     const mainHeader = document.getElementById('mainHeader');
@@ -300,7 +303,6 @@
         if(localStorage.getItem('muzikant_theme') === 'dark') document.body.setAttribute('data-theme', 'dark');
     }
 
-    // Změna: Už nepřehazujeme databázi pomocí sort(), pouze ukládáme jak je
     function saveData() { 
         localStorage.setItem(DB_KEY, JSON.stringify(db)); 
     }
@@ -320,7 +322,6 @@
         if(viewId === 'playlist-detail') lastView = 'playlist-detail';
     }
 
-    // Změna: Řazení jen pro oko uživatele, záchrana skutečných indexů
     function renderLibrary(filterText = '') {
         const list = document.getElementById('libraryList'); list.innerHTML = '';
         
@@ -416,7 +417,6 @@
     }
     function openPlaylist(idx) { activePlaylistIdx = idx; document.getElementById('currentPlaylistTitle').innerText = db.playlists[idx].name; showView('playlist-detail'); renderPlaylistItems(); }
     
-    // Změna: Povolení Drag and Drop
     function renderPlaylistItems() {
         const container = document.getElementById('playlistItemsContainer'); container.innerHTML = '';
         const pl = db.playlists[activePlaylistIdx];
@@ -465,9 +465,10 @@
     }
     function removeFromPlaylist(itemIdx) { db.playlists[activePlaylistIdx].songIds.splice(itemIdx, 1); saveData(); renderPlaylistItems(); }
 
+    // Nová logika pro bezpečnější rozpoznávání řádků s akordy i v závorkách a čárkách
     function isChordLine(line) {
         if(line.trim().length === 0) return false;
-        let stripped = line.replace(new RegExp(CHORD_REGEX_STR, 'g'), '').replace(/\s/g, '').replace(/[\|\-\/]/g, '');
+        let stripped = line.replace(new RegExp(CHORD_REGEX_STR, 'g'), '').replace(/\s/g, '').replace(/[\|\-\/\(\)\[\],:]/g, '');
         return stripped.length === 0;
     }
 
@@ -479,15 +480,36 @@
         });
     }
 
+    // Úplně přepsaná logika pro spojení akordů a textu, aby bezpečně uchovala závorky a původní odsazení
     function mergeChordAndLyric(chordLine, lyricLine, fromKey, toKey) {
         let chords = []; let match;
         while ((match = CHORD_FIND_REGEX.exec(chordLine)) !== null) chords.push({ chord: match[0], index: match.index });
-        if(chords.length === 0) return `<span class="segment"><span class="chord">&nbsp;</span><span class="lyric">${lyricLine}</span></span>`;
-        let html = ''; let maxLen = Math.max(lyricLine.length, chordLine.length); let paddedLyric = lyricLine.padEnd(maxLen, ' ');
+        
+        if(chords.length === 0) return `<span class="segment"><span class="chord">${chordLine || '&nbsp;'}</span><span class="lyric">${lyricLine}</span></span>`;
+        
+        let html = ''; 
+        let maxLen = Math.max(lyricLine.length, chordLine.length); 
+        let paddedLyric = lyricLine.padEnd(maxLen, ' ');
+        let paddedChordLine = chordLine.padEnd(maxLen, ' ');
+        
         for (let j = 0; j < chords.length; j++) {
-            let currentChordIdx = chords[j].index; let nextChordIdx = (j + 1 < chords.length) ? chords[j+1].index : maxLen;
-            if (j === 0 && currentChordIdx > 0) html += `<span class="segment"><span class="chord">&nbsp;</span><span class="lyric">${paddedLyric.substring(0, currentChordIdx)}</span></span>`;
-            html += `<span class="segment"><span class="chord">${transposeChord(chords[j].chord, fromKey, toKey)}</span><span class="lyric">${paddedLyric.substring(currentChordIdx, nextChordIdx)}</span></span>`;
+            let currentChordIdx = chords[j].index; 
+            let nextChordIdx = (j + 1 < chords.length) ? chords[j+1].index : maxLen;
+            
+            if (j === 0 && currentChordIdx > 0) {
+                let preChordText = paddedChordLine.substring(0, currentChordIdx);
+                if(preChordText.trim() === '') preChordText = '&nbsp;'.repeat(preChordText.length);
+                html += `<span class="segment"><span class="chord">${preChordText}</span><span class="lyric">${paddedLyric.substring(0, currentChordIdx)}</span></span>`;
+            }
+            
+            let originalChord = chords[j].chord;
+            let transposed = transposeChord(originalChord, fromKey, toKey);
+            let rawSegment = paddedChordLine.substring(currentChordIdx, nextChordIdx);
+            
+            // Nahradíme jen původní akord na začátku, zbytek segmentu (jako závorky nebo mezery) zůstane
+            let chordHtml = transposed + rawSegment.substring(originalChord.length);
+            
+            html += `<span class="segment"><span class="chord">${chordHtml}</span><span class="lyric">${paddedLyric.substring(currentChordIdx, nextChordIdx)}</span></span>`;
         }
         return html;
     }
@@ -571,8 +593,12 @@
         let chordSpan = e.target.closest('.chord');
         if (chordSpan) {
             e.stopPropagation(); 
-            let chordText = chordSpan.innerText.trim();
-            if (!chordText) return;
+            // Vytáhneme bezpečně jen samotný akord, abychom ignorovali případné závorky
+            let rawText = chordSpan.innerText;
+            let match = rawText.match(/([A-H][#b]?(?:m|mi|maj|min|dim|sus|add|aug|2|4|5|6|7|9|11|13|Δ|\+)*(?:\/[A-H][#b]?)?)/);
+            if (!match) return;
+            let chordText = match[0];
+            
             chordTooltip.innerHTML = getChordSVG(chordText);
             let rect = chordSpan.getBoundingClientRect();
             chordTooltip.style.left = (rect.left + rect.width/2) + 'px';
@@ -585,8 +611,23 @@
 
     document.getElementById('prevSongBtn').onclick = () => { if (currentQueueIndex > 0) { currentQueueIndex--; currentSongIndex = currentQueue[currentQueueIndex]; targetKeyIndex = db.songs[currentSongIndex].preferredKey !== undefined ? db.songs[currentSongIndex].preferredKey : (db.songs[currentSongIndex].baseKey || 0); if (isScrolling) stopScroll(); scrollContainer.scrollTop = 0; renderPlayer(); } };
     document.getElementById('nextSongBtn').onclick = () => { if (currentQueueIndex < currentQueue.length - 1) { currentQueueIndex++; currentSongIndex = currentQueue[currentQueueIndex]; targetKeyIndex = db.songs[currentSongIndex].preferredKey !== undefined ? db.songs[currentSongIndex].preferredKey : (db.songs[currentSongIndex].baseKey || 0); if (isScrolling) stopScroll(); scrollContainer.scrollTop = 0; renderPlayer(); } };
+    
+    // Vylepšená rovnice pro plynulejší scrollování
     function startScroll() { isScrolling = true; document.getElementById('playPauseBtn').innerText = '⏸'; scrollPos = scrollContainer.scrollTop; lastTime = performance.now(); wakeUpPanels(); requestAnimationFrame(scrollStep); }
-    function scrollStep(currentTime) { if (!isScrolling) return; const delta = currentTime - lastTime; lastTime = currentTime; const speed = Math.pow(document.getElementById('speedSlider').value, 2) / 4500; scrollPos += speed * (delta / 16); scrollContainer.scrollTop = scrollPos; requestAnimationFrame(scrollStep); }
+    function scrollStep(currentTime) { 
+        if (!isScrolling) return; 
+        const delta = currentTime - lastTime; 
+        lastTime = currentTime; 
+        
+        // Prevence obřího skoku, pokud uživatel aplikaci "uspí" na pozadí
+        if (delta > 100) { requestAnimationFrame(scrollStep); return; }
+        
+        // Plynulejší matematická křivka (na třetí) pro jemnější krokování v malých rychlostech
+        const speed = Math.pow(document.getElementById('speedSlider').value, 3) / 400000; 
+        scrollPos += speed * (delta / 16.66); 
+        scrollContainer.scrollTop = scrollPos; 
+        requestAnimationFrame(scrollStep); 
+    }
     function stopScroll() { isScrolling = false; document.getElementById('playPauseBtn').innerText = '▶'; scrollPanel.classList.remove('faded'); navButtonsPanel.classList.remove('faded'); clearTimeout(fadeTimeout); }
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -602,7 +643,6 @@
         document.getElementById('fontPlusBtn').onclick = () => { currentFontSize += 2; renderPlayer(); };
         document.getElementById('fontMinusBtn').onclick = () => { currentFontSize -= 2; renderPlayer(); };
         
-        // Změna: Nové tlačítko v přehrávači
         document.getElementById('playerAddToPlaylistBtn').onclick = () => { if (currentSongIndex !== null) openAddToPlaylistModal(currentSongIndex); };
         
         document.getElementById('exportAllBtn').onclick = () => { 
@@ -720,11 +760,9 @@
             notify('Uloženo');
         };
         
-        // Zobrazíme výchozí pohled při načtení
         showView('library');
     });
 
-    // Registrace Service Workeru pro offline fungování
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('sw.js')
