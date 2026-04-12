@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1e293b">
-    <title>Muzikant v20.5</title>
+    <title>Muzikant v20.6</title>
     <style>
         :root {
             --bg: #f8fafc; --text: #1e293b; --card-bg: #ffffff; --nav-bg: #1e293b;
@@ -68,7 +68,6 @@
 
         #displayAreaWrapper { width: 100%; border-radius: 10px; border: 1px solid var(--border); background: var(--card-bg); padding: 15px 80px 40px 15px; box-sizing: border-box; overflow-x: auto; }
         
-        /* Vráceno k původnímu bezpečnému zobrazení textu */
         #displayArea { font-family: 'Consolas', monospace; white-space: pre-wrap; line-height: 1.5; }
         .chord { color: var(--chord); font-weight: bold; cursor: pointer; border-radius: 4px; padding: 0 2px; margin: 0 -2px; }
         .chord:active { background: rgba(37, 99, 235, 0.2); }
@@ -144,7 +143,7 @@
     </div>
 
     <div class="top-nav" id="mainHeader">
-        <div class="app-title">🎸 Muzikant v20.5</div>
+        <div class="app-title">🎸 Muzikant v20.6</div>
         <div class="nav-icons">
             <button class="nav-btn" id="themeToggle">🌓</button>
             <button class="nav-btn" id="nav-add">➕</button>
@@ -167,7 +166,7 @@
         </div>
 
         <div id="view-library" class="view active">
-            <h1>Knihovna</h1>
+            <h1>Knihovna <span id="songCount" style="font-size: 0.9rem; color: var(--muted); font-weight: normal; margin-left: 5px;"></span></h1>
             <input type="text" id="searchInput" placeholder="Hledat píseň...">
             <div id="libraryList"></div>
             
@@ -249,7 +248,6 @@
     const DB_KEY = 'muzikant_db_v17'; 
     const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B', 'H'];
     
-    // Nový, tolerantnější regex na akordy (podporuje závorky i svislítka)
     const CHORD_REGEX_STR = "(^|\\s|\\[|\\(|\\|)([A-H][#b]?(?:m|mi|maj|min|dim|sus|add|aug|2|4|5|6|7|9|11|13|Δ|\\+)*(?:\\/[A-H][#b]?)?)(?=\\s|\\]|\\)|\\||$|,)";
 
     const basicChords = {
@@ -315,13 +313,14 @@
         scrollPanel.style.display = (viewId === 'player') ? 'flex' : 'none';
         navButtonsPanel.style.display = (viewId === 'player') ? 'flex' : 'none';
         chordTooltip.style.display = 'none';
-        if(viewId === 'library') { lastView = 'library'; renderLibrary(); }
+        if(viewId === 'library') { lastView = 'library'; renderLibrary(document.getElementById('searchInput').value); }
         if(viewId === 'playlists') renderPlaylistsFolders();
         if(viewId === 'playlist-detail') lastView = 'playlist-detail';
     }
 
     function renderLibrary(filterText = '') {
         const list = document.getElementById('libraryList'); list.innerHTML = '';
+        const countElement = document.getElementById('songCount');
         
         let displaySongs = db.songs.map((song, index) => {
             return { song: song, originalIndex: index };
@@ -334,6 +333,15 @@
             if (filterText && !item.song.title.toLowerCase().includes(filterText.toLowerCase())) return;
             tempQueue.push(item.originalIndex);
         });
+
+        // Aktualizace počítadla
+        if (countElement) {
+            if (filterText) {
+                countElement.innerText = `(${tempQueue.length} nalezeno)`;
+            } else {
+                countElement.innerText = `(celkem ${db.songs.length})`;
+            }
+        }
 
         displaySongs.forEach(item => {
             const song = item.song;
@@ -362,7 +370,7 @@
         confirmAction = () => { 
             db.playlists.forEach(pl => { pl.songIds = pl.songIds.filter(id => id !== i); }); db.songs.splice(i, 1); 
             db.playlists.forEach(pl => { pl.songIds = pl.songIds.map(id => id > i ? id - 1 : id); });
-            saveData(); renderLibrary(); notify('Smazáno');
+            saveData(); renderLibrary(document.getElementById('searchInput').value); notify('Smazáno');
         };
         document.getElementById('confirmText').innerText = `Smazat píseň ${db.songs[i].title}?`;
         document.getElementById('confirmModal').style.display = 'flex';
@@ -459,7 +467,6 @@
 
     function isChordLine(line) {
         if(line.trim().length === 0) return false;
-        // Odstraníme akordy a běžné oddělovače. Pokud zbyde nic, je to řádek s akordy.
         let stripped = line.replace(new RegExp(CHORD_REGEX_STR, 'g'), '').replace(/\s/g, '').replace(/[\|\-\/\(\)\[\],:]/g, '');
         return stripped.length === 0;
     }
@@ -472,7 +479,6 @@
         });
     }
 
-    // Vráceno k původní bezpečné metodě vykreslování textu
     function renderPlayerText(lyrics, fromKey, toKey) {
         const lines = lyrics.split('\n'); 
         let resultHTML = '';
@@ -481,7 +487,6 @@
         for (let i = 0; i < lines.length; i++) {
             let line = lines[i];
             if (isChordLine(line)) {
-                // Přesný "nahrazovač" zachová všechny mezery i závorky, změní jen obsah akordu
                 let transposedLine = line.replace(regex, (match, prefix, chordName) => {
                     return prefix + '<span class="chord">' + transposeChord(chordName, fromKey, toKey) + '</span>';
                 });
@@ -619,7 +624,7 @@
             r.onload = (ev) => { 
                 try {
                     db = JSON.parse(ev.target.result); 
-                    saveData(); renderLibrary(); renderPlaylistsFolders(); notify('Obnoveno'); 
+                    saveData(); renderLibrary(document.getElementById('searchInput').value); renderPlaylistsFolders(); notify('Obnoveno'); 
                 } catch(err) { notify('Chybný soubor zálohy'); }
             }; 
             r.readAsText(e.target.files[0]); 
@@ -652,7 +657,7 @@
                             else { db.songs.push(importedSong); newIds.push(db.songs.length - 1); }
                         });
                         db.playlists.push({ name: data.playlistName, songIds: newIds });
-                        saveData(); renderLibrary(); renderPlaylistsFolders(); showView('playlists'); notify('Playlist importován');
+                        saveData(); renderLibrary(document.getElementById('searchInput').value); renderPlaylistsFolders(); showView('playlists'); notify('Playlist importován');
                     } else { notify('Toto není správný formát playlistu'); }
                 } catch(err) { notify('Chyba při čtení souboru'); }
             };
