@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1e293b">
-    <title>Muzikant v21.0</title>
+    <title>Muzikant v22.0</title>
     <style>
         :root {
             --bg: #f8fafc; --text: #1e293b; --card-bg: #ffffff; --nav-bg: #1e293b;
@@ -70,23 +70,11 @@
         
         #displayArea { font-family: 'Consolas', monospace; line-height: 1.2; }
         
-        /* --- MAGNETICKÉ AKORDY v21.0 --- */
-        .magnet-line {
-            display: flex;
-            flex-wrap: wrap;
-        }
-        .magnet-block {
-            display: inline-flex;
-            flex-direction: column;
-            justify-content: flex-end;
-        }
-        .magnet-chord {
-            min-height: 1.2em;
-            white-space: pre; /* Udrží mezery mezi akordy */
-        }
-        .magnet-text {
-            white-space: pre; /* Udrží mezery v textu */
-        }
+        /* --- MAGNETICKÉ AKORDY v21.0+ --- */
+        .magnet-line { display: flex; flex-wrap: wrap; }
+        .magnet-block { display: inline-flex; flex-direction: column; justify-content: flex-end; }
+        .magnet-chord { min-height: 1.2em; white-space: pre; }
+        .magnet-text { white-space: pre; }
 
         .chord { color: var(--chord); font-weight: bold; cursor: pointer; border-radius: 4px; padding: 0 2px; margin: 0 -2px; }
         .chord:active { background: rgba(37, 99, 235, 0.2); }
@@ -161,10 +149,28 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal-content">
+            <h3 style="margin-top:0;">Nastavení nástroje</h3>
+            <div style="text-align:left; margin-bottom:20px;">
+                <label style="font-weight:bold; display:block; margin-bottom:8px; color:var(--muted); font-size:14px;">Zvolte zobrazení hmatů pro:</label>
+                <select id="instrumentSelect">
+                    <option value="guitar">Kytara (6 strun)</option>
+                    <option value="ukulele">Ukulele (4 struny)</option>
+                    <option value="mandolin">Mandolína / Housle (4 struny)</option>
+                    <option value="bass">Baskytara (4 struny)</option>
+                    <option value="banjo">Banjo (5 strun)</option>
+                </select>
+            </div>
+            <button class="btn btn-blue" id="closeSettingsBtn" style="width:100%;">Zavřít</button>
+        </div>
+    </div>
+
     <div class="top-nav" id="mainHeader">
-        <div class="app-title">🎸 Muzikant v21.0</div>
+        <div class="app-title">🎸 Muzikant v22.0</div>
         <div class="nav-icons">
-            <button class="nav-btn" id="themeToggle">🌓</button>
+            <button class="nav-btn" id="nav-settings" title="Nastavení nástroje">⚙️</button>
+            <button class="nav-btn" id="themeToggle" title="Tmavý/Světlý režim">🌓</button>
             <button class="nav-btn" id="nav-add">➕</button>
             <button class="nav-btn active" id="nav-library">📚</button>
             <button class="nav-btn" id="nav-playlists">📑</button>
@@ -269,19 +275,61 @@
     
     const CHORD_REGEX_STR = "(^|\\s|\\[|\\(|\\|)([A-H][#b]?(?:m|mi|maj|min|dim|sus|add|aug|2|4|5|6|7|9|11|13|Δ|\\+)*(?:\\/[A-H][#b]?)?)(?=\\s|\\]|\\)|\\||$|,)";
 
-    const basicChords = {
-        "C": { f: [-1,3,2,0,1,0] }, "Cmi": { f: [-1,3,5,5,4,3], b: 3 }, "Cm": { f: [-1,3,5,5,4,3], b: 3 }, "C7": { f: [-1,3,2,3,1,0] },
-        "C#": { f: [-1,4,6,6,6,4], b: 4 }, "C#mi": { f: [-1,4,6,6,5,4], b: 4 }, "C#m": { f: [-1,4,6,6,5,4], b: 4 },
-        "D": { f: [-1,-1,0,2,3,2] }, "Dmi": { f: [-1,-1,0,2,3,1] }, "Dm": { f: [-1,-1,0,2,3,1] }, "D7": { f: [-1,-1,0,2,1,2] },
-        "D#": { f: [-1,6,8,8,8,6], b: 6 }, "D#mi": { f: [-1,6,8,8,7,6], b: 6 }, "D#m": { f: [-1,6,8,8,7,6], b: 6 },
-        "E": { f: [0,2,2,1,0,0] }, "Emi": { f: [0,2,2,0,0,0] }, "Em": { f: [0,2,2,0,0,0] }, "E7": { f: [0,2,0,1,0,0] },
-        "F": { f: [1,3,3,2,1,1] }, "Fmi": { f: [1,3,3,1,1,1] }, "Fm": { f: [1,3,3,1,1,1] }, "F7": { f: [1,3,1,2,1,1] },
-        "F#": { f: [2,4,4,3,2,2], b: 2 }, "F#mi": { f: [2,4,4,2,2,2], b: 2 }, "F#m": { f: [2,4,4,2,2,2], b: 2 },
-        "G": { f: [3,2,0,0,0,3] }, "Gmi": { f: [3,5,5,3,3,3], b: 3 }, "Gm": { f: [3,5,5,3,3,3], b: 3 }, "G7": { f: [3,2,0,0,0,1] },
-        "G#": { f: [4,6,6,5,4,4], b: 4 }, "G#mi": { f: [4,6,6,4,4,4], b: 4 }, "G#m": { f: [4,6,6,4,4,4], b: 4 },
-        "A": { f: [-1,0,2,2,2,0] }, "Ami": { f: [-1,0,2,2,1,0] }, "Am": { f: [-1,0,2,2,1,0] }, "A7": { f: [-1,0,2,0,2,0] },
-        "B": { f: [-1,1,3,3,3,1] }, "Bmi": { f: [-1,1,3,3,2,1] }, "Bm": { f: [-1,1,3,3,2,1] }, "B7": { f: [-1,1,3,1,3,1] }, 
-        "H": { f: [-1,2,4,4,4,2] }, "Hmi": { f: [-1,2,4,4,3,2] }, "Hm": { f: [-1,2,4,4,3,2] }, "H7": { f: [-1,2,1,2,0,2] }
+    let currentInstrument = localStorage.getItem('muzikant_instrument') || 'guitar';
+
+    // Nová databáze akordů pro různé nástroje (v22.0)
+    const chordDB = {
+        guitar: {
+            "C": { f: [-1,3,2,0,1,0] }, "Cmi": { f: [-1,3,5,5,4,3], b: 3 }, "Cm": { f: [-1,3,5,5,4,3], b: 3 }, "C7": { f: [-1,3,2,3,1,0] },
+            "C#": { f: [-1,4,6,6,6,4], b: 4 }, "C#mi": { f: [-1,4,6,6,5,4], b: 4 }, "C#m": { f: [-1,4,6,6,5,4], b: 4 },
+            "D": { f: [-1,-1,0,2,3,2] }, "Dmi": { f: [-1,-1,0,2,3,1] }, "Dm": { f: [-1,-1,0,2,3,1] }, "D7": { f: [-1,-1,0,2,1,2] },
+            "D#": { f: [-1,6,8,8,8,6], b: 6 }, "D#mi": { f: [-1,6,8,8,7,6], b: 6 }, "D#m": { f: [-1,6,8,8,7,6], b: 6 },
+            "E": { f: [0,2,2,1,0,0] }, "Emi": { f: [0,2,2,0,0,0] }, "Em": { f: [0,2,2,0,0,0] }, "E7": { f: [0,2,0,1,0,0] },
+            "F": { f: [1,3,3,2,1,1] }, "Fmi": { f: [1,3,3,1,1,1] }, "Fm": { f: [1,3,3,1,1,1] }, "F7": { f: [1,3,1,2,1,1] },
+            "F#": { f: [2,4,4,3,2,2], b: 2 }, "F#mi": { f: [2,4,4,2,2,2], b: 2 }, "F#m": { f: [2,4,4,2,2,2], b: 2 },
+            "G": { f: [3,2,0,0,0,3] }, "Gmi": { f: [3,5,5,3,3,3], b: 3 }, "Gm": { f: [3,5,5,3,3,3], b: 3 }, "G7": { f: [3,2,0,0,0,1] },
+            "G#": { f: [4,6,6,5,4,4], b: 4 }, "G#mi": { f: [4,6,6,4,4,4], b: 4 }, "G#m": { f: [4,6,6,4,4,4], b: 4 },
+            "A": { f: [-1,0,2,2,2,0] }, "Ami": { f: [-1,0,2,2,1,0] }, "Am": { f: [-1,0,2,2,1,0] }, "A7": { f: [-1,0,2,0,2,0] },
+            "B": { f: [-1,1,3,3,3,1] }, "Bmi": { f: [-1,1,3,3,2,1] }, "Bm": { f: [-1,1,3,3,2,1] }, "B7": { f: [-1,1,3,1,3,1] }, 
+            "H": { f: [-1,2,4,4,4,2] }, "Hmi": { f: [-1,2,4,4,3,2] }, "Hm": { f: [-1,2,4,4,3,2] }, "H7": { f: [-1,2,1,2,0,2] }
+        },
+        ukulele: {
+            "C": { f: [0,0,0,3] }, "Cmi": { f: [0,3,3,3] }, "Cm": { f: [0,3,3,3] },
+            "D": { f: [2,2,2,0] }, "Dmi": { f: [2,2,1,0] }, "Dm": { f: [2,2,1,0] },
+            "E": { f: [4,4,4,2], b: 2 }, "Emi": { f: [0,4,3,2] }, "Em": { f: [0,4,3,2] },
+            "F": { f: [2,0,1,0] }, "Fmi": { f: [1,0,1,3] }, "Fm": { f: [1,0,1,3] },
+            "G": { f: [0,2,3,2] }, "Gmi": { f: [0,2,3,1] }, "Gm": { f: [0,2,3,1] },
+            "A": { f: [2,1,0,0] }, "Ami": { f: [2,0,0,0] }, "Am": { f: [2,0,0,0] },
+            "H": { f: [4,3,2,2] }, "Hmi": { f: [4,2,2,2] }, "Hm": { f: [4,2,2,2] },
+            "B": { f: [3,2,1,1] }, "Bmi": { f: [3,1,1,1] }, "Bm": { f: [3,1,1,1] }
+        },
+        mandolin: {
+            "C": { f: [5,2,3,0] }, "Cmi": { f: [5,1,3,-1] }, "Cm": { f: [5,1,3,-1] },
+            "D": { f: [2,0,0,2] }, "Dmi": { f: [2,0,0,1] }, "Dm": { f: [2,0,0,1] },
+            "E": { f: [1,2,2,0] }, "Emi": { f: [0,2,2,0] }, "Em": { f: [0,2,2,0] },
+            "F": { f: [2,3,0,1] }, "Fmi": { f: [1,3,4,1] }, "Fm": { f: [1,3,4,1] },
+            "G": { f: [0,0,2,3] }, "Gmi": { f: [0,0,1,3] }, "Gm": { f: [0,0,1,3] },
+            "A": { f: [2,2,4,5] }, "Ami": { f: [2,2,3,5] }, "Am": { f: [2,2,3,5] },
+            "H": { f: [4,4,6,7] }, "Hmi": { f: [4,4,5,7] }, "Hm": { f: [4,4,5,7] }
+        },
+        bass: {
+            "C": { f: [-1,3,-1,-1] }, "Cmi": { f: [-1,3,-1,-1] }, "Cm": { f: [-1,3,-1,-1] },
+            "D": { f: [-1,5,-1,-1] }, "Dmi": { f: [-1,5,-1,-1] }, "Dm": { f: [-1,5,-1,-1] },
+            "E": { f: [0,-1,-1,-1] }, "Emi": { f: [0,-1,-1,-1] }, "Em": { f: [0,-1,-1,-1] },
+            "F": { f: [1,-1,-1,-1] }, "Fmi": { f: [1,-1,-1,-1] }, "Fm": { f: [1,-1,-1,-1] },
+            "G": { f: [3,-1,-1,-1] }, "Gmi": { f: [3,-1,-1,-1] }, "Gm": { f: [3,-1,-1,-1] },
+            "A": { f: [-1,0,-1,-1] }, "Ami": { f: [-1,0,-1,-1] }, "Am": { f: [-1,0,-1,-1] },
+            "H": { f: [-1,2,-1,-1] }, "Hmi": { f: [-1,2,-1,-1] }, "Hm": { f: [-1,2,-1,-1] }
+        },
+        banjo: {
+            "C": { f: [0,2,0,1,2] }, "Cmi": { f: [0,1,0,1,1] }, "Cm": { f: [0,1,0,1,1] },
+            "D": { f: [0,4,2,3,4] }, "Dmi": { f: [0,3,2,3,3] }, "Dm": { f: [0,3,2,3,3] },
+            "E": { f: [0,6,4,5,6] }, "Emi": { f: [0,5,4,5,5] }, "Em": { f: [0,5,4,5,5] },
+            "F": { f: [0,3,2,1,3] }, "Fmi": { f: [0,3,1,1,3] }, "Fm": { f: [0,3,1,1,3] },
+            "G": { f: [0,0,0,0,0] }, "Gmi": { f: [0,0,3,3,5] }, "Gm": { f: [0,0,3,3,5] },
+            "A": { f: [0,2,2,2,2] }, "Ami": { f: [0,2,2,1,2] }, "Am": { f: [0,2,2,1,2] },
+            "H": { f: [0,4,4,4,4] }, "Hmi": { f: [0,4,4,3,4] }, "Hm": { f: [0,4,4,3,4] }
+        }
     };
 
     let currentSongIndex = null, activePlaylistIdx = null, targetKeyIndex = 0;
@@ -317,6 +365,7 @@
         const saved = localStorage.getItem(DB_KEY);
         if (saved) { const parsed = JSON.parse(saved); db.songs = parsed.songs || []; db.playlists = parsed.playlists || []; }
         if(localStorage.getItem('muzikant_theme') === 'dark') document.body.setAttribute('data-theme', 'dark');
+        document.getElementById('instrumentSelect').value = currentInstrument;
     }
 
     function saveData() { 
@@ -343,9 +392,7 @@
         list.innerHTML = '';
         const countElement = document.getElementById('songCount');
         
-        let displaySongs = db.songs.map((song, index) => {
-            return { song: song, originalIndex: index };
-        });
+        let displaySongs = db.songs.map((song, index) => { return { song: song, originalIndex: index }; });
         displaySongs.sort((a, b) => a.song.title.localeCompare(b.song.title));
 
         let tempQueue = [];
@@ -354,13 +401,9 @@
             tempQueue.push(item.originalIndex);
         });
         
-        // Aktualizace počítadla
         if (countElement) {
-            if (filterText) {
-                countElement.innerText = `(${tempQueue.length} nalezeno)`;
-            } else {
-                countElement.innerText = `(celkem ${db.songs.length})`;
-            }
+            if (filterText) countElement.innerText = `(${tempQueue.length} nalezeno)`;
+            else countElement.innerText = `(celkem ${db.songs.length})`;
         }
 
         displaySongs.forEach(item => {
@@ -412,11 +455,8 @@
                 btn.onclick = () => {
                     if (!pl.songIds.includes(songIdx)) {
                         pl.songIds.push(songIdx);
-                        saveData();
-                        notify('Přidáno do playlistu');
-                    } else {
-                        notify('Píseň už v playlistu je');
-                    }
+                        saveData(); notify('Přidáno do playlistu');
+                    } else { notify('Píseň už v playlistu je'); }
                     document.getElementById('playlistSelectModal').style.display = 'none';
                 };
                 container.appendChild(btn);
@@ -445,8 +485,7 @@
             saveData(); renderPlaylistsFolders(); notify('Smazáno'); };
         document.getElementById('confirmText').innerText = `Smazat playlist ${db.playlists[idx].name}?`; document.getElementById('confirmModal').style.display = 'flex';
     }
-    function openPlaylist(idx) { activePlaylistIdx = idx; document.getElementById('currentPlaylistTitle').innerText = db.playlists[idx].name; showView('playlist-detail'); renderPlaylistItems();
-    }
+    function openPlaylist(idx) { activePlaylistIdx = idx; document.getElementById('currentPlaylistTitle').innerText = db.playlists[idx].name; showView('playlist-detail'); renderPlaylistItems(); }
     
     function renderPlaylistItems() {
         const container = document.getElementById('playlistItemsContainer');
@@ -458,7 +497,6 @@
             const song = db.songs[songIdx]; if(!song) return; 
             const card = document.createElement('div'); 
             card.className = 'card';
-            
             card.draggable = true; 
             card.ondragstart = (e) => { 
                 draggedItemIndex = itemIdx; 
@@ -472,8 +510,7 @@
                 if (draggedItemIndex !== null && draggedItemIndex !== itemIdx) {
                     const draggedId = pl.songIds.splice(draggedItemIndex, 1)[0];
                     pl.songIds.splice(itemIdx, 0, draggedId);
-                    saveData();
-                    renderPlaylistItems();
+                    saveData(); renderPlaylistItems();
                 }
             };
             card.innerHTML = `<div style="display:flex; flex-direction:column; gap:4px; margin-right:12px; cursor:grab;">
@@ -518,23 +555,18 @@
                 let delka = Math.max(radekAkordu.length, radekTextu.length);
 
                 vysledneHTML += '<div class="magnet-line">';
-                let blokAkordu = '';
-                let blokTextu = '';
+                let blokAkordu = ''; let blokTextu = '';
 
                 for (let j = 0; j < delka; j++) {
-                    let znakA = radekAkordu[j] || ' ';
-                    let znakT = radekTextu[j] || ' ';
-
-                    blokAkordu += znakA;
-                    blokTextu += znakT;
+                    let znakA = radekAkordu[j] || ' '; let znakT = radekTextu[j] || ' ';
+                    blokAkordu += znakA; blokTextu += znakT;
 
                     if (znakT === ' ' && znakA === ' ') {
                         let prepocitanyAkord = blokAkordu.replace(regex, (match, prefix, chordName) => {
                             return prefix + '<span class="chord">' + transposeChord(chordName, fromKey, toKey) + '</span>';
                         });
                         vysledneHTML += `<span class="magnet-block"><span class="magnet-chord">${prepocitanyAkord}</span><span class="magnet-text">${blokTextu}</span></span>`;
-                        blokAkordu = '';
-                        blokTextu = '';
+                        blokAkordu = ''; blokTextu = '';
                     }
                 }
                 
@@ -546,7 +578,7 @@
                 }
 
                 vysledneHTML += '</div>';
-                i++; // Přeskočíme textový řádek, protože jsme ho už spojili s akordem
+                i++; // Přeskočíme textový řádek
             } else {
                 if (radek.trim() === '') {
                     vysledneHTML += '<br>';
@@ -589,29 +621,43 @@
     }
 
     function getChordSVG(chordName) {
-        let cleanName = chordName.replace(/maj7|sus4|sus2|add9|dim|aug|\+|Δ|\/[A-H][#b]?/g, '');
-        if (!basicChords[cleanName] && cleanName.includes('7')) cleanName = cleanName.replace('7', '');
+        let cleanName = chordName.replace(/maj7|sus4|sus2|add9|dim|aug|\+|\u0394|\/[A-H][#b]?/g, '');
         
-        let chordData = basicChords[cleanName];
+        // Záchrana, kdyby aktuální nástroj nebyl v databázi (fallback na kytaru)
+        if (!chordDB[currentInstrument]) currentInstrument = 'guitar';
+        let currentDB = chordDB[currentInstrument];
+
+        if (!currentDB[cleanName] && cleanName.includes('7')) cleanName = cleanName.replace('7', '');
+        
+        let chordData = currentDB[cleanName];
         if (!chordData) {
             let match = chordName.match(/^[A-H][#b]?(mi|m)?/);
-            if(match) chordData = basicChords[match[0]];
+            if(match) chordData = currentDB[match[0]];
         }
         
-        if (!chordData) return `<div style="padding:10px; font-size:14px; text-align:center;">Akord<br><b style="color:var(--primary)">${chordName}</b><br>nenalezen v DB</div>`;
+        if (!chordData) return `<div style="padding:10px; font-size:14px; text-align:center;">Akord<br><b style="color:var(--primary)">${chordName}</b><br>nenalezen pro tento nástroj</div>`;
+        
+        // Dynamický výpočet strun
+        let numStrings = chordData.f.length;
+        let spacing = 50 / (numStrings - 1);
+
         let isDark = document.body.getAttribute('data-theme') === 'dark';
         let strokeColor = isDark ? '#f8fafc' : '#1e293b';
         let dotColor = '#2563eb';
         let svg = `<div style="text-align:center; font-weight:bold; margin-bottom:5px; color:${strokeColor}">${chordName}</div>`;
         svg += `<svg width="70" height="90" viewBox="0 0 70 90" xmlns="http://www.w3.org/2000/svg" style="font-family:sans-serif;">`;
         if (chordData.b && chordData.b > 1) svg += `<text x="0" y="24" font-size="12" fill="${strokeColor}">${chordData.b}</text>`;
+        
+        // Rámeček a pražce
         svg += `<path d="M 15 15 L 65 15 L 65 85 L 15 85 Z" fill="none" stroke="${strokeColor}" stroke-width="1.5"/>`;
-        for(let i=1; i<5; i++) { let x = 15 + i*10; svg += `<line x1="${x}" y1="15" x2="${x}" y2="85" stroke="${strokeColor}" stroke-width="1"/>`; }
+        for(let i=1; i<numStrings-1; i++) { let x = 15 + i*spacing; svg += `<line x1="${x}" y1="15" x2="${x}" y2="85" stroke="${strokeColor}" stroke-width="1"/>`; }
         for(let i=1; i<4; i++) { let y = 15 + i*17.5; svg += `<line x1="15" y1="${y}" x2="65" y2="${y}" stroke="${strokeColor}" stroke-width="1"/>`; }
         if (!chordData.b || chordData.b === 1) svg += `<line x1="15" y1="13" x2="65" y2="13" stroke="${strokeColor}" stroke-width="3"/>`;
+        
+        // Značky a body
         let frets = chordData.f;
-        for(let s=0; s<6; s++) {
-            let stringX = 15 + s*10;
+        for(let s=0; s<numStrings; s++) {
+            let stringX = 15 + s*spacing;
             let fretY = frets[s];
             if (fretY === -1) { svg += `<text x="${stringX-3}" y="10" font-size="10" fill="${strokeColor}">x</text>`; } 
             else if (fretY === 0) { svg += `<circle cx="${stringX}" cy="7" r="2.5" fill="none" stroke="${strokeColor}" stroke-width="1"/>`; } 
@@ -648,9 +694,7 @@
         if (!isScrolling) return;
         const delta = currentTime - lastTime; 
         lastTime = currentTime; 
-        
         if (delta > 100) { requestAnimationFrame(scrollStep); return; }
-        
         const speed = Math.pow(document.getElementById('speedSlider').value, 3) / 400000;
         scrollPos += speed * (delta / 16.66); 
         scrollContainer.scrollTop = scrollPos; 
@@ -673,6 +717,15 @@
         
         document.getElementById('playerAddToPlaylistBtn').onclick = () => { if (currentSongIndex !== null) openAddToPlaylistModal(currentSongIndex); };
         
+        // Nastavení (v22.0)
+        document.getElementById('nav-settings').onclick = () => { document.getElementById('settingsModal').style.display = 'flex'; };
+        document.getElementById('closeSettingsBtn').onclick = () => { document.getElementById('settingsModal').style.display = 'none'; };
+        document.getElementById('instrumentSelect').onchange = (e) => {
+            currentInstrument = e.target.value;
+            localStorage.setItem('muzikant_instrument', currentInstrument);
+            notify('Nástroj změněn');
+        };
+
         document.getElementById('exportAllBtn').onclick = () => { 
             const a = document.createElement('a');
             a.href = URL.createObjectURL(new Blob([JSON.stringify(db)], {type: 'application/json'})); 
@@ -715,7 +768,6 @@
                         data.songs.forEach(importedSong => {
                             let existIdx = db.songs.findIndex(s => s.title.toLowerCase() === importedSong.title.toLowerCase());
                             if (existIdx !== -1) { newIds.push(existIdx); } 
-                            
                             else { db.songs.push(importedSong); newIds.push(db.songs.length - 1); }
                         });
                         db.playlists.push({ name: data.playlistName, songIds: newIds });
