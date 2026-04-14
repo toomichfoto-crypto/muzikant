@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1e293b">
-    <title>Muzikant v20.6</title>
+    <title>Muzikant v21.0</title>
     <style>
         :root {
             --bg: #f8fafc; --text: #1e293b; --card-bg: #ffffff; --nav-bg: #1e293b;
@@ -68,7 +68,26 @@
 
         #displayAreaWrapper { width: 100%; border-radius: 10px; border: 1px solid var(--border); background: var(--card-bg); padding: 15px 80px 40px 15px; box-sizing: border-box; overflow-x: auto; }
         
-        #displayArea { font-family: 'Consolas', monospace; white-space: pre-wrap; line-height: 1.5; }
+        #displayArea { font-family: 'Consolas', monospace; line-height: 1.2; }
+        
+        /* --- MAGNETICKÉ AKORDY v21.0 --- */
+        .magnet-line {
+            display: flex;
+            flex-wrap: wrap;
+        }
+        .magnet-block {
+            display: inline-flex;
+            flex-direction: column;
+            justify-content: flex-end;
+        }
+        .magnet-chord {
+            min-height: 1.2em;
+            white-space: pre; /* Udrží mezery mezi akordy */
+        }
+        .magnet-text {
+            white-space: pre; /* Udrží mezery v textu */
+        }
+
         .chord { color: var(--chord); font-weight: bold; cursor: pointer; border-radius: 4px; padding: 0 2px; margin: 0 -2px; }
         .chord:active { background: rgba(37, 99, 235, 0.2); }
         
@@ -143,7 +162,7 @@
     </div>
 
     <div class="top-nav" id="mainHeader">
-        <div class="app-title">🎸 Muzikant v20.6</div>
+        <div class="app-title">🎸 Muzikant v21.0</div>
         <div class="nav-icons">
             <button class="nav-btn" id="themeToggle">🌓</button>
             <button class="nav-btn" id="nav-add">➕</button>
@@ -266,7 +285,7 @@
     };
 
     let currentSongIndex = null, activePlaylistIdx = null, targetKeyIndex = 0;
-    let currentQueue = [], currentQueueIndex = 0; 
+    let currentQueue = [], currentQueueIndex = 0;
     let lastView = 'library', isEditMode = false, isScrolling = false, scrollPos = 0, lastTime = 0;
     let currentFontSize = 20, confirmAction = null, fadeTimeout = null, tooltipTimeout = null;
     let draggedItemIndex = null;
@@ -289,7 +308,8 @@
     scrollContainer.addEventListener('click', wakeUpPanels, {passive: true});
 
     scrollContainer.onscroll = () => {
-        if (scrollContainer.scrollTop > 50) mainHeader.classList.add('hidden'); else mainHeader.classList.remove('hidden');
+        if (scrollContainer.scrollTop > 50) mainHeader.classList.add('hidden');
+        else mainHeader.classList.remove('hidden');
         chordTooltip.style.display = 'none';
     };
 
@@ -300,7 +320,7 @@
     }
 
     function saveData() { 
-        localStorage.setItem(DB_KEY, JSON.stringify(db)); 
+        localStorage.setItem(DB_KEY, JSON.stringify(db));
     }
     
     function notify(msg) { const t = document.getElementById('toast'); t.innerText = msg; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 3000); }
@@ -319,13 +339,13 @@
     }
 
     function renderLibrary(filterText = '') {
-        const list = document.getElementById('libraryList'); list.innerHTML = '';
+        const list = document.getElementById('libraryList');
+        list.innerHTML = '';
         const countElement = document.getElementById('songCount');
         
         let displaySongs = db.songs.map((song, index) => {
             return { song: song, originalIndex: index };
         });
-
         displaySongs.sort((a, b) => a.song.title.localeCompare(b.song.title));
 
         let tempQueue = [];
@@ -333,7 +353,7 @@
             if (filterText && !item.song.title.toLowerCase().includes(filterText.toLowerCase())) return;
             tempQueue.push(item.originalIndex);
         });
-
+        
         // Aktualizace počítadla
         if (countElement) {
             if (filterText) {
@@ -358,7 +378,7 @@
                 </div>
             `;
             card.onclick = () => { 
-                currentQueue = [...tempQueue]; currentQueueIndex = currentQueue.indexOf(sIdx); currentSongIndex = sIdx; 
+                currentQueue = [...tempQueue]; currentQueueIndex = currentQueue.indexOf(sIdx); currentSongIndex = sIdx;
                 targetKeyIndex = song.preferredKey !== undefined ? song.preferredKey : (song.baseKey || 0); 
                 showView('player'); renderPlayer(); 
             };
@@ -368,9 +388,11 @@
 
     function deleteSong(i) { 
         confirmAction = () => { 
-            db.playlists.forEach(pl => { pl.songIds = pl.songIds.filter(id => id !== i); }); db.songs.splice(i, 1); 
+            db.playlists.forEach(pl => { pl.songIds = pl.songIds.filter(id => id !== i); });
+            db.songs.splice(i, 1); 
             db.playlists.forEach(pl => { pl.songIds = pl.songIds.map(id => id > i ? id - 1 : id); });
-            saveData(); renderLibrary(document.getElementById('searchInput').value); notify('Smazáno');
+            saveData();
+            renderLibrary(document.getElementById('searchInput').value); notify('Smazáno');
         };
         document.getElementById('confirmText').innerText = `Smazat píseň ${db.songs[i].title}?`;
         document.getElementById('confirmModal').style.display = 'flex';
@@ -404,7 +426,8 @@
     }
 
     function renderPlaylistsFolders() {
-        const container = document.getElementById('playlistsFolderContainer'); container.innerHTML = '';
+        const container = document.getElementById('playlistsFolderContainer');
+        container.innerHTML = '';
         db.playlists.forEach((pl, idx) => {
             const card = document.createElement('div'); card.className = 'card';
             card.innerHTML = `<b style="flex-grow:1;">📁 ${pl.name} (${pl.songIds ? pl.songIds.length : 0})</b>
@@ -418,13 +441,16 @@
         if (newName && newName.trim() !== "" && newName !== db.playlists[idx].name) { db.playlists[idx].name = newName.trim(); saveData(); renderPlaylistsFolders(); notify('Přejmenováno'); }
     }
     function deletePlaylist(idx) {
-        confirmAction = () => { db.playlists.splice(idx, 1); saveData(); renderPlaylistsFolders(); notify('Smazáno'); };
+        confirmAction = () => { db.playlists.splice(idx, 1);
+            saveData(); renderPlaylistsFolders(); notify('Smazáno'); };
         document.getElementById('confirmText').innerText = `Smazat playlist ${db.playlists[idx].name}?`; document.getElementById('confirmModal').style.display = 'flex';
     }
-    function openPlaylist(idx) { activePlaylistIdx = idx; document.getElementById('currentPlaylistTitle').innerText = db.playlists[idx].name; showView('playlist-detail'); renderPlaylistItems(); }
+    function openPlaylist(idx) { activePlaylistIdx = idx; document.getElementById('currentPlaylistTitle').innerText = db.playlists[idx].name; showView('playlist-detail'); renderPlaylistItems();
+    }
     
     function renderPlaylistItems() {
-        const container = document.getElementById('playlistItemsContainer'); container.innerHTML = '';
+        const container = document.getElementById('playlistItemsContainer');
+        container.innerHTML = '';
         const pl = db.playlists[activePlaylistIdx];
         if(!pl.songIds || pl.songIds.length === 0) { container.innerHTML = '<p style="color:var(--muted);">Prázdný playlist.</p>'; return; }
         
@@ -450,15 +476,14 @@
                     renderPlaylistItems();
                 }
             };
-
             card.innerHTML = `<div style="display:flex; flex-direction:column; gap:4px; margin-right:12px; cursor:grab;">
                 <button class="btn btn-gray" onclick="event.stopPropagation(); moveSongInPlaylist(${itemIdx}, -1)" style="padding:4px 8px; font-size:10px;">▲</button>
                 <button class="btn btn-gray" onclick="event.stopPropagation(); moveSongInPlaylist(${itemIdx}, 1)" style="padding:4px 8px; font-size:10px;">▼</button></div>
                 <b style="flex-grow:1;">${itemIdx + 1}. ${song.title}</b>
                 <button class="btn btn-red" onclick="event.stopPropagation(); removeFromPlaylist(${itemIdx})" style="padding:8px;">➖</button>`;
-            
             card.onclick = () => { 
-                currentQueue = [...pl.songIds]; currentQueueIndex = itemIdx; currentSongIndex = songIdx; 
+                currentQueue = [...pl.songIds];
+                currentQueueIndex = itemIdx; currentSongIndex = songIdx; 
                 targetKeyIndex = song.preferredKey !== undefined ? song.preferredKey : (song.baseKey || 0); showView('player'); renderPlayer(); 
             };
             container.appendChild(card);
@@ -480,22 +505,62 @@
     }
 
     function renderPlayerText(lyrics, fromKey, toKey) {
-        const lines = lyrics.split('\n'); 
-        let resultHTML = '';
+        const radky = lyrics.split('\n');
+        let vysledneHTML = '';
         const regex = new RegExp(CHORD_REGEX_STR, 'g');
 
-        for (let i = 0; i < lines.length; i++) {
-            let line = lines[i];
-            if (isChordLine(line)) {
-                let transposedLine = line.replace(regex, (match, prefix, chordName) => {
-                    return prefix + '<span class="chord">' + transposeChord(chordName, fromKey, toKey) + '</span>';
-                });
-                resultHTML += `<div>${transposedLine}</div>`;
-            } else { 
-                resultHTML += `<div>${line === '' ? '<br>' : line}</div>`; 
+        for (let i = 0; i < radky.length; i++) {
+            let radek = radky[i];
+
+            if (isChordLine(radek) && i + 1 < radky.length && !isChordLine(radky[i+1]) && radky[i+1].trim() !== '') {
+                let radekAkordu = radek;
+                let radekTextu = radky[i+1];
+                let delka = Math.max(radekAkordu.length, radekTextu.length);
+
+                vysledneHTML += '<div class="magnet-line">';
+                let blokAkordu = '';
+                let blokTextu = '';
+
+                for (let j = 0; j < delka; j++) {
+                    let znakA = radekAkordu[j] || ' ';
+                    let znakT = radekTextu[j] || ' ';
+
+                    blokAkordu += znakA;
+                    blokTextu += znakT;
+
+                    if (znakT === ' ' && znakA === ' ') {
+                        let prepocitanyAkord = blokAkordu.replace(regex, (match, prefix, chordName) => {
+                            return prefix + '<span class="chord">' + transposeChord(chordName, fromKey, toKey) + '</span>';
+                        });
+                        vysledneHTML += `<span class="magnet-block"><span class="magnet-chord">${prepocitanyAkord}</span><span class="magnet-text">${blokTextu}</span></span>`;
+                        blokAkordu = '';
+                        blokTextu = '';
+                    }
+                }
+                
+                if (blokTextu.length > 0 || blokAkordu.length > 0) {
+                    let prepocitanyAkord = blokAkordu.replace(regex, (match, prefix, chordName) => {
+                        return prefix + '<span class="chord">' + transposeChord(chordName, fromKey, toKey) + '</span>';
+                    });
+                    vysledneHTML += `<span class="magnet-block"><span class="magnet-chord">${prepocitanyAkord}</span><span class="magnet-text">${blokTextu}</span></span>`;
+                }
+
+                vysledneHTML += '</div>';
+                i++; // Přeskočíme textový řádek, protože jsme ho už spojili s akordem
+            } else {
+                if (radek.trim() === '') {
+                    vysledneHTML += '<br>';
+                } else if (isChordLine(radek)) {
+                    let transposedLine = radek.replace(regex, (match, prefix, chordName) => {
+                        return prefix + '<span class="chord">' + transposeChord(chordName, fromKey, toKey) + '</span>';
+                    });
+                    vysledneHTML += `<div class="magnet-line"><span class="magnet-block"><span class="magnet-chord">${transposedLine}</span><span class="magnet-text"> </span></span></div>`;
+                } else {
+                    vysledneHTML += `<div class="magnet-line"><span class="magnet-block"><span class="magnet-chord"> </span><span class="magnet-text">${radek}</span></span></div>`;
+                }
             }
         }
-        return resultHTML;
+        return vysledneHTML;
     }
 
     function renderPlayer() {
@@ -503,7 +568,8 @@
         document.getElementById('displayArea').innerHTML = renderPlayerText(song.lyrics || "", song.baseKey || 0, targetKeyIndex);
         document.getElementById('displayTitle').innerText = song.title || "";
         document.getElementById('displayArea').style.fontSize = currentFontSize + 'px';
-        renderKeyButtons(); chordTooltip.style.display = 'none';
+        renderKeyButtons();
+        chordTooltip.style.display = 'none';
 
         const prevBtn = document.getElementById('prevSongBtn'); const nextBtn = document.getElementById('nextSongBtn');
         if (currentQueue && currentQueue.length > 1) {
@@ -512,7 +578,8 @@
     }
 
     function renderKeyButtons() {
-        const container = document.getElementById('keyButtons'); container.innerHTML = '';
+        const container = document.getElementById('keyButtons');
+        container.innerHTML = '';
         notes.forEach((note, index) => {
             const btn = document.createElement('button'); btn.className = 'btn'; btn.style = "padding:8px 12px; background:var(--card-bg); color:var(--text); border:1px solid var(--border);";
             if(index === targetKeyIndex) { btn.style.background = "var(--primary)"; btn.style.color = "white"; }
@@ -532,11 +599,9 @@
         }
         
         if (!chordData) return `<div style="padding:10px; font-size:14px; text-align:center;">Akord<br><b style="color:var(--primary)">${chordName}</b><br>nenalezen v DB</div>`;
-
         let isDark = document.body.getAttribute('data-theme') === 'dark';
         let strokeColor = isDark ? '#f8fafc' : '#1e293b';
         let dotColor = '#2563eb';
-        
         let svg = `<div style="text-align:center; font-weight:bold; margin-bottom:5px; color:${strokeColor}">${chordName}</div>`;
         svg += `<svg width="70" height="90" viewBox="0 0 70 90" xmlns="http://www.w3.org/2000/svg" style="font-family:sans-serif;">`;
         if (chordData.b && chordData.b > 1) svg += `<text x="0" y="24" font-size="12" fill="${strokeColor}">${chordData.b}</text>`;
@@ -568,6 +633,7 @@
             
             chordTooltip.innerHTML = getChordSVG(chordText);
             let rect = chordSpan.getBoundingClientRect();
+ 
             chordTooltip.style.left = (rect.left + rect.width/2) + 'px';
             chordTooltip.style.top = rect.top + 'px';
             chordTooltip.style.display = 'block';
@@ -575,22 +641,20 @@
             tooltipTimeout = setTimeout(() => { chordTooltip.style.display = 'none'; }, 3000);
         } else { chordTooltip.style.display = 'none'; }
     });
-
     document.getElementById('prevSongBtn').onclick = () => { if (currentQueueIndex > 0) { currentQueueIndex--; currentSongIndex = currentQueue[currentQueueIndex]; targetKeyIndex = db.songs[currentSongIndex].preferredKey !== undefined ? db.songs[currentSongIndex].preferredKey : (db.songs[currentSongIndex].baseKey || 0); if (isScrolling) stopScroll(); scrollContainer.scrollTop = 0; renderPlayer(); } };
     document.getElementById('nextSongBtn').onclick = () => { if (currentQueueIndex < currentQueue.length - 1) { currentQueueIndex++; currentSongIndex = currentQueue[currentQueueIndex]; targetKeyIndex = db.songs[currentSongIndex].preferredKey !== undefined ? db.songs[currentSongIndex].preferredKey : (db.songs[currentSongIndex].baseKey || 0); if (isScrolling) stopScroll(); scrollContainer.scrollTop = 0; renderPlayer(); } };
-    
     function startScroll() { isScrolling = true; document.getElementById('playPauseBtn').innerText = '⏸'; scrollPos = scrollContainer.scrollTop; lastTime = performance.now(); wakeUpPanels(); requestAnimationFrame(scrollStep); }
     function scrollStep(currentTime) { 
-        if (!isScrolling) return; 
+        if (!isScrolling) return;
         const delta = currentTime - lastTime; 
         lastTime = currentTime; 
         
         if (delta > 100) { requestAnimationFrame(scrollStep); return; }
         
-        const speed = Math.pow(document.getElementById('speedSlider').value, 3) / 400000; 
+        const speed = Math.pow(document.getElementById('speedSlider').value, 3) / 400000;
         scrollPos += speed * (delta / 16.66); 
         scrollContainer.scrollTop = scrollPos; 
-        requestAnimationFrame(scrollStep); 
+        requestAnimationFrame(scrollStep);
     }
     function stopScroll() { isScrolling = false; document.getElementById('playPauseBtn').innerText = '▶'; scrollPanel.classList.remove('faded'); navButtonsPanel.classList.remove('faded'); clearTimeout(fadeTimeout); }
 
@@ -610,39 +674,36 @@
         document.getElementById('playerAddToPlaylistBtn').onclick = () => { if (currentSongIndex !== null) openAddToPlaylistModal(currentSongIndex); };
         
         document.getElementById('exportAllBtn').onclick = () => { 
-            const a = document.createElement('a'); 
+            const a = document.createElement('a');
             a.href = URL.createObjectURL(new Blob([JSON.stringify(db)], {type: 'application/json'})); 
             a.download = `muzikant_zaloha.json`; 
             a.click(); 
         };
         
         document.getElementById('triggerImportAllBtn').onclick = () => document.getElementById('importAllInput').click();
-        
         document.getElementById('importAllInput').onchange = (e) => { 
             if(!e.target.files[0]) return;
             const r = new FileReader(); 
             r.onload = (ev) => { 
                 try {
-                    db = JSON.parse(ev.target.result); 
+                    db = JSON.parse(ev.target.result);
                     saveData(); renderLibrary(document.getElementById('searchInput').value); renderPlaylistsFolders(); notify('Obnoveno'); 
                 } catch(err) { notify('Chybný soubor zálohy'); }
             }; 
             r.readAsText(e.target.files[0]); 
             e.target.value = '';
         };
-
         document.getElementById('exportPlaylistBtn').onclick = () => {
             if (activePlaylistIdx === null) return;
             const pl = db.playlists[activePlaylistIdx];
             const exportData = { playlistName: pl.name, songs: pl.songIds.map(id => db.songs[id]) };
-            const a = document.createElement('a'); 
+            const a = document.createElement('a');
             a.href = URL.createObjectURL(new Blob([JSON.stringify(exportData)], {type: 'application/json'})); 
             a.download = `Playlist_${pl.name.replace(/\s+/g, '_')}.json`; 
             a.click();
         };
 
         document.getElementById('triggerImportPlaylistBtn').onclick = () => document.getElementById('importPlaylistInput').click();
-        
         document.getElementById('importPlaylistInput').onchange = (e) => {
             if(!e.target.files[0]) return;
             const r = new FileReader();
@@ -654,6 +715,7 @@
                         data.songs.forEach(importedSong => {
                             let existIdx = db.songs.findIndex(s => s.title.toLowerCase() === importedSong.title.toLowerCase());
                             if (existIdx !== -1) { newIds.push(existIdx); } 
+                            
                             else { db.songs.push(importedSong); newIds.push(db.songs.length - 1); }
                         });
                         db.playlists.push({ name: data.playlistName, songIds: newIds });
@@ -664,20 +726,19 @@
             r.readAsText(e.target.files[0]);
             e.target.value = '';
         };
-
         document.getElementById('themeToggle').onclick = () => {
             const isDark = document.body.getAttribute('data-theme') === 'dark';
             isDark ? document.body.removeAttribute('data-theme') : document.body.setAttribute('data-theme', 'dark');
             localStorage.setItem('muzikant_theme', isDark ? 'light' : 'dark');
         };
-
         document.getElementById('saveNewSongBtn').onclick = () => { 
-            db.songs.push({ title: document.getElementById('titleInput').value, lyrics: document.getElementById('lyricsInput').value, baseKey: parseInt(document.getElementById('addBaseKey').value) }); 
+            db.songs.push({ title: document.getElementById('titleInput').value, lyrics: document.getElementById('lyricsInput').value, baseKey: parseInt(document.getElementById('addBaseKey').value) });
             saveData(); showView('library'); notify('Přidáno'); 
             document.getElementById('titleInput').value = ''; document.getElementById('lyricsInput').value = '';
         };
         
-        document.getElementById('createPlaylistBtn').onclick = () => { const name = document.getElementById('newPlaylistName').value.trim(); if(name) { db.playlists.push({ name: name, songIds: [] }); saveData(); document.getElementById('newPlaylistName').value = ''; renderPlaylistsFolders(); notify('Vytvořeno'); }};
+        document.getElementById('createPlaylistBtn').onclick = () => { const name = document.getElementById('newPlaylistName').value.trim();
+            if(name) { db.playlists.push({ name: name, songIds: [] }); saveData(); document.getElementById('newPlaylistName').value = ''; renderPlaylistsFolders(); notify('Vytvořeno'); }};
         document.getElementById('fixKeyBtn').onclick = () => { db.songs[currentSongIndex].preferredKey = targetKeyIndex; saveData(); notify('Uloženo'); };
         document.getElementById('confirmYesBtn').onclick = () => { confirmAction(); document.getElementById('confirmModal').style.display='none'; };
         document.getElementById('cancelConfirmBtn').onclick = () => { document.getElementById('confirmModal').style.display='none'; };
@@ -686,26 +747,25 @@
         document.getElementById('searchInput').addEventListener('input', (e) => renderLibrary(e.target.value));
 
         document.getElementById('toggleEditBtn').onclick = () => {
-            isEditMode = !isEditMode; 
+            isEditMode = !isEditMode;
             const viewContent = document.getElementById('playerViewContent');
             const editContent = document.getElementById('playerEditContent');
             const saveBtn = document.getElementById('saveEditBtn');
             const toggleBtn = document.getElementById('toggleEditBtn');
-            
             if (isEditMode) { 
-                viewContent.style.display = 'none'; 
+                viewContent.style.display = 'none';
                 editContent.style.display = 'block'; 
                 saveBtn.style.display = 'inline-flex'; 
                 toggleBtn.innerText = '❌'; 
                 toggleBtn.style.background = '#ef4444'; 
                 
                 const song = db.songs[currentSongIndex]; 
-                document.getElementById('editTitleInput').value = song.title; 
+                document.getElementById('editTitleInput').value = song.title;
                 document.getElementById('editArea').value = song.lyrics; 
                 document.getElementById('editBaseKey').innerHTML = keys; 
-                document.getElementById('editBaseKey').value = song.baseKey || 0; 
+                document.getElementById('editBaseKey').value = song.baseKey || 0;
             } else {
-                viewContent.style.display = 'block'; 
+                viewContent.style.display = 'block';
                 editContent.style.display = 'none'; 
                 saveBtn.style.display = 'none'; 
                 toggleBtn.innerText = '✏️'; 
@@ -726,7 +786,6 @@
         
         showView('library');
     });
-
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('sw.js')
