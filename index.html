@@ -9,7 +9,6 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1e293b">
     <title>Muzikant</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         /* --- BAREVNÁ TÉMATA (v23.0) --- */
         :root, [data-day-theme="classic"] {
@@ -135,15 +134,6 @@
         </div>
     </div>
 
-    <div class="modal-overlay" id="qrModal">
-        <div class="modal-content" style="display:flex; flex-direction:column; align-items:center;">
-            <h3 style="margin-top:0;">Sdílet píseň</h3>
-            <div id="qrcode" style="margin: 20px 0; background: white; padding: 10px; border-radius: 10px;"></div>
-            <p style="font-size: 13px; color: var(--muted); margin-bottom: 20px;">Druhý muzikant ať naskenuje tento kód fotoaparátem ve svém mobilu.</p>
-            <button class="btn btn-blue" id="closeQrBtn" style="width:100%;">Zavřít</button>
-        </div>
-    </div>
-
     <div class="modal-overlay" id="playlistSelectModal">
         <div class="modal-content">
             <h3 style="margin-top:0;">Přidat do playlistu</h3>
@@ -177,7 +167,7 @@
             </div>
 
             <button class="btn btn-blue" id="closeSettingsBtn" style="width:100%;">Zavřít</button>
-            <div style="margin-top:20px; font-size:12px; color:var(--muted);">Verze: v23.2</div>
+            <div style="margin-top:20px; font-size:12px; color:var(--muted);">Verze: v23.1</div>
         </div>
     </div>
 
@@ -195,6 +185,7 @@
     <div class="modal-overlay" id="songTagsModal">
         <div class="modal-content">
             <h3 style="margin-top:0;">Štítky k písni</h3>
+            
             <div id="songTagsContainer" style="display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin-bottom:15px;"></div>
             
             <div style="display:flex; gap:5px; margin-top: 15px; border-top: 1px solid var(--border); padding-top: 15px; margin-bottom: 20px;">
@@ -276,9 +267,8 @@
         <div id="view-player" class="view">
             <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:15px; align-items:center;">
                 <button class="btn btn-blue" id="backFromPlayerBtn">← Zpět</button>
-                <button class="btn btn-blue" id="toggleEditBtn" style="background:#eab308" title="Upravit">✏️</button>
+                <button class="btn btn-blue" id="toggleEditBtn" style="background:#eab308">✏️</button>
                 <button class="btn btn-blue" id="playerTagsBtn" title="Přidat štítky">🏷️</button>
-                <button class="btn btn-blue" id="playerShareBtn" title="Sdílet píseň">🔗</button>
                 <button class="btn btn-green" id="saveEditBtn" style="display:none;">💾 Uložit text</button>
                 <button class="btn btn-green" id="fixKeyBtn" title="Uložit aktuální tóninu">💾 Tóninu</button>
                 <button class="btn btn-blue" id="playerAddToPlaylistBtn" title="Přidat do playlistu">📑+</button>
@@ -336,11 +326,44 @@
 
     // Databáze akordů
     const chordDB = {
-        guitar: { "C": { f: [-1,3,2,0,1,0] }, "Cmi": { f: [-1,3,5,5,4,3], b: 3 }, "Cm": { f: [-1,3,5,5,4,3], b: 3 }, "C7": { f: [-1,3,2,3,1,0] }, "C#": { f: [-1,4,6,6,6,4], b: 4 }, "C#mi": { f: [-1,4,6,6,5,4], b: 4 }, "C#m": { f: [-1,4,6,6,5,4], b: 4 }, "D": { f: [-1,-1,0,2,3,2] }, "Dmi": { f: [-1,-1,0,2,3,1] }, "Dm": { f: [-1,-1,0,2,3,1] }, "D7": { f: [-1,-1,0,2,1,2] }, "D#": { f: [-1,6,8,8,8,6], b: 6 }, "D#mi": { f: [-1,6,8,8,7,6], b: 6 }, "D#m": { f: [-1,6,8,8,7,6], b: 6 }, "E": { f: [0,2,2,1,0,0] }, "Emi": { f: [0,2,2,0,0,0] }, "Em": { f: [0,2,2,0,0,0] }, "E7": { f: [0,2,0,1,0,0] }, "F": { f: [1,3,3,2,1,1] }, "Fmi": { f: [1,3,3,1,1,1] }, "Fm": { f: [1,3,3,1,1,1] }, "F7": { f: [1,3,1,2,1,1] }, "F#": { f: [2,4,4,3,2,2], b: 2 }, "F#mi": { f: [2,4,4,2,2,2], b: 2 }, "F#m": { f: [2,4,4,2,2,2], b: 2 }, "G": { f: [3,2,0,0,0,3] }, "Gmi": { f: [3,5,5,3,3,3], b: 3 }, "Gm": { f: [3,5,5,3,3,3], b: 3 }, "G7": { f: [3,2,0,0,0,1] }, "G#": { f: [4,6,6,5,4,4], b: 4 }, "G#mi": { f: [4,6,6,4,4,4], b: 4 }, "G#m": { f: [4,6,6,4,4,4], b: 4 }, "A": { f: [-1,0,2,2,2,0] }, "Ami": { f: [-1,0,2,2,1,0] }, "Am": { f: [-1,0,2,2,1,0] }, "A7": { f: [-1,0,2,0,2,0] }, "B": { f: [-1,1,3,3,3,1] }, "Bmi": { f: [-1,1,3,3,2,1] }, "Bm": { f: [-1,1,3,3,2,1] }, "B7": { f: [-1,1,3,1,3,1] }, "H": { f: [-1,2,4,4,4,2] }, "Hmi": { f: [-1,2,4,4,3,2] }, "Hm": { f: [-1,2,4,4,3,2] }, "H7": { f: [-1,2,1,2,0,2] } },
-        ukulele: { "C": { f: [0,0,0,3] }, "Cmi": { f: [0,3,3,3] }, "Cm": { f: [0,3,3,3] }, "D": { f: [2,2,2,0] }, "Dmi": { f: [2,2,1,0] }, "Dm": { f: [2,2,1,0] }, "E": { f: [4,4,4,2], b: 2 }, "Emi": { f: [0,4,3,2] }, "Em": { f: [0,4,3,2] }, "F": { f: [2,0,1,0] }, "Fmi": { f: [1,0,1,3] }, "Fm": { f: [1,0,1,3] }, "G": { f: [0,2,3,2] }, "Gmi": { f: [0,2,3,1] }, "Gm": { f: [0,2,3,1] }, "A": { f: [2,1,0,0] }, "Ami": { f: [2,0,0,0] }, "Am": { f: [2,0,0,0] }, "H": { f: [4,3,2,2] }, "Hmi": { f: [4,2,2,2] }, "Hm": { f: [4,2,2,2] }, "B": { f: [3,2,1,1] }, "Bmi": { f: [3,1,1,1] }, "Bm": { f: [3,1,1,1] } },
-        mandolin: { "C": { f: [5,2,3,0] }, "Cmi": { f: [5,1,3,-1] }, "Cm": { f: [5,1,3,-1] }, "D": { f: [2,0,0,2] }, "Dmi": { f: [2,0,0,1] }, "Dm": { f: [2,0,0,1] }, "E": { f: [1,2,2,0] }, "Emi": { f: [0,2,2,0] }, "Em": { f: [0,2,2,0] }, "F": { f: [2,3,0,1] }, "Fmi": { f: [1,3,4,1] }, "Fm": { f: [1,3,4,1] }, "G": { f: [0,0,2,3] }, "Gmi": { f: [0,0,1,3] }, "Gm": { f: [0,0,1,3] }, "A": { f: [2,2,4,5] }, "Ami": { f: [2,2,3,5] }, "Am": { f: [2,2,3,5] }, "H": { f: [4,4,6,7] }, "Hmi": { f: [4,4,5,7] }, "Hm": { f: [4,4,5,7] } },
-        bass: { "C": { f: [-1,3,-1,-1] }, "Cmi": { f: [-1,3,-1,-1] }, "Cm": { f: [-1,3,-1,-1] }, "D": { f: [-1,5,-1,-1] }, "Dmi": { f: [-1,5,-1,-1] }, "Dm": { f: [-1,5,-1,-1] }, "E": { f: [0,-1,-1,-1] }, "Emi": { f: [0,-1,-1,-1] }, "Em": { f: [0,-1,-1,-1] }, "F": { f: [1,-1,-1,-1] }, "Fmi": { f: [1,-1,-1,-1] }, "Fm": { f: [1,-1,-1,-1] }, "G": { f: [3,-1,-1,-1] }, "Gmi": { f: [3,-1,-1,-1] }, "Gm": { f: [3,-1,-1,-1] }, "A": { f: [-1,0,-1,-1] }, "Ami": { f: [-1,0,-1,-1] }, "Am": { f: [-1,0,-1,-1] }, "H": { f: [-1,2,-1,-1] }, "Hmi": { f: [-1,2,-1,-1] }, "Hm": { f: [-1,2,-1,-1] } },
-        banjo: { "C": { f: [0,2,0,1,2] }, "Cmi": { f: [0,1,0,1,1] }, "Cm": { f: [0,1,0,1,1] }, "D": { f: [0,4,2,3,4] }, "Dmi": { f: [0,3,2,3,3] }, "Dm": { f: [0,3,2,3,3] }, "E": { f: [0,6,4,5,6] }, "Emi": { f: [0,5,4,5,5] }, "Em": { f: [0,5,4,5,5] }, "F": { f: [0,3,2,1,3] }, "Fmi": { f: [0,3,1,1,3] }, "Fm": { f: [0,3,1,1,3] }, "G": { f: [0,0,0,0,0] }, "Gmi": { f: [0,0,3,3,5] }, "Gm": { f: [0,0,3,3,5] }, "A": { f: [0,2,2,2,2] }, "Ami": { f: [0,2,2,1,2] }, "Am": { f: [0,2,2,1,2] }, "H": { f: [0,4,4,4,4] }, "Hmi": { f: [0,4,4,3,4] }, "Hm": { f: [0,4,4,3,4] } }
+        guitar: {
+            "C": { f: [-1,3,2,0,1,0] }, "Cmi": { f: [-1,3,5,5,4,3], b: 3 }, "Cm": { f: [-1,3,5,5,4,3], b: 3 }, "C7": { f: [-1,3,2,3,1,0] },
+            "C#": { f: [-1,4,6,6,6,4], b: 4 }, "C#mi": { f: [-1,4,6,6,5,4], b: 4 }, "C#m": { f: [-1,4,6,6,5,4], b: 4 },
+            "D": { f: [-1,-1,0,2,3,2] }, "Dmi": { f: [-1,-1,0,2,3,1] }, "Dm": { f: [-1,-1,0,2,3,1] }, "D7": { f: [-1,-1,0,2,1,2] },
+            "D#": { f: [-1,6,8,8,8,6], b: 6 }, "D#mi": { f: [-1,6,8,8,7,6], b: 6 }, "D#m": { f: [-1,6,8,8,7,6], b: 6 },
+            "E": { f: [0,2,2,1,0,0] }, "Emi": { f: [0,2,2,0,0,0] }, "Em": { f: [0,2,2,0,0,0] }, "E7": { f: [0,2,0,1,0,0] },
+            "F": { f: [1,3,3,2,1,1] }, "Fmi": { f: [1,3,3,1,1,1] }, "Fm": { f: [1,3,3,1,1,1] }, "F7": { f: [1,3,1,2,1,1] },
+            "F#": { f: [2,4,4,3,2,2], b: 2 }, "F#mi": { f: [2,4,4,2,2,2], b: 2 }, "F#m": { f: [2,4,4,2,2,2], b: 2 },
+            "G": { f: [3,2,0,0,0,3] }, "Gmi": { f: [3,5,5,3,3,3], b: 3 }, "Gm": { f: [3,5,5,3,3,3], b: 3 }, "G7": { f: [3,2,0,0,0,1] },
+            "G#": { f: [4,6,6,5,4,4], b: 4 }, "G#mi": { f: [4,6,6,4,4,4], b: 4 }, "G#m": { f: [4,6,6,4,4,4], b: 4 },
+            "A": { f: [-1,0,2,2,2,0] }, "Ami": { f: [-1,0,2,2,1,0] }, "Am": { f: [-1,0,2,2,1,0] }, "A7": { f: [-1,0,2,0,2,0] },
+            "B": { f: [-1,1,3,3,3,1] }, "Bmi": { f: [-1,1,3,3,2,1] }, "Bm": { f: [-1,1,3,3,2,1] }, "B7": { f: [-1,1,3,1,3,1] }, 
+            "H": { f: [-1,2,4,4,4,2] }, "Hmi": { f: [-1,2,4,4,3,2] }, "Hm": { f: [-1,2,4,4,3,2] }, "H7": { f: [-1,2,1,2,0,2] }
+        },
+        ukulele: {
+            "C": { f: [0,0,0,3] }, "Cmi": { f: [0,3,3,3] }, "Cm": { f: [0,3,3,3] }, "D": { f: [2,2,2,0] }, "Dmi": { f: [2,2,1,0] }, "Dm": { f: [2,2,1,0] },
+            "E": { f: [4,4,4,2], b: 2 }, "Emi": { f: [0,4,3,2] }, "Em": { f: [0,4,3,2] }, "F": { f: [2,0,1,0] }, "Fmi": { f: [1,0,1,3] }, "Fm": { f: [1,0,1,3] },
+            "G": { f: [0,2,3,2] }, "Gmi": { f: [0,2,3,1] }, "Gm": { f: [0,2,3,1] }, "A": { f: [2,1,0,0] }, "Ami": { f: [2,0,0,0] }, "Am": { f: [2,0,0,0] },
+            "H": { f: [4,3,2,2] }, "Hmi": { f: [4,2,2,2] }, "Hm": { f: [4,2,2,2] }, "B": { f: [3,2,1,1] }, "Bmi": { f: [3,1,1,1] }, "Bm": { f: [3,1,1,1] }
+        },
+        mandolin: {
+            "C": { f: [5,2,3,0] }, "Cmi": { f: [5,1,3,-1] }, "Cm": { f: [5,1,3,-1] }, "D": { f: [2,0,0,2] }, "Dmi": { f: [2,0,0,1] }, "Dm": { f: [2,0,0,1] },
+            "E": { f: [1,2,2,0] }, "Emi": { f: [0,2,2,0] }, "Em": { f: [0,2,2,0] }, "F": { f: [2,3,0,1] }, "Fmi": { f: [1,3,4,1] }, "Fm": { f: [1,3,4,1] },
+            "G": { f: [0,0,2,3] }, "Gmi": { f: [0,0,1,3] }, "Gm": { f: [0,0,1,3] }, "A": { f: [2,2,4,5] }, "Ami": { f: [2,2,3,5] }, "Am": { f: [2,2,3,5] },
+            "H": { f: [4,4,6,7] }, "Hmi": { f: [4,4,5,7] }, "Hm": { f: [4,4,5,7] }
+        },
+        bass: {
+            "C": { f: [-1,3,-1,-1] }, "Cmi": { f: [-1,3,-1,-1] }, "Cm": { f: [-1,3,-1,-1] }, "D": { f: [-1,5,-1,-1] }, "Dmi": { f: [-1,5,-1,-1] }, "Dm": { f: [-1,5,-1,-1] },
+            "E": { f: [0,-1,-1,-1] }, "Emi": { f: [0,-1,-1,-1] }, "Em": { f: [0,-1,-1,-1] }, "F": { f: [1,-1,-1,-1] }, "Fmi": { f: [1,-1,-1,-1] }, "Fm": { f: [1,-1,-1,-1] },
+            "G": { f: [3,-1,-1,-1] }, "Gmi": { f: [3,-1,-1,-1] }, "Gm": { f: [3,-1,-1,-1] }, "A": { f: [-1,0,-1,-1] }, "Ami": { f: [-1,0,-1,-1] }, "Am": { f: [-1,0,-1,-1] },
+            "H": { f: [-1,2,-1,-1] }, "Hmi": { f: [-1,2,-1,-1] }, "Hm": { f: [-1,2,-1,-1] }
+        },
+        banjo: {
+            "C": { f: [0,2,0,1,2] }, "Cmi": { f: [0,1,0,1,1] }, "Cm": { f: [0,1,0,1,1] }, "D": { f: [0,4,2,3,4] }, "Dmi": { f: [0,3,2,3,3] }, "Dm": { f: [0,3,2,3,3] },
+            "E": { f: [0,6,4,5,6] }, "Emi": { f: [0,5,4,5,5] }, "Em": { f: [0,5,4,5,5] }, "F": { f: [0,3,2,1,3] }, "Fmi": { f: [0,3,1,1,3] }, "Fm": { f: [0,3,1,1,3] },
+            "G": { f: [0,0,0,0,0] }, "Gmi": { f: [0,0,3,3,5] }, "Gm": { f: [0,0,3,3,5] }, "A": { f: [0,2,2,2,2] }, "Ami": { f: [0,2,2,1,2] }, "Am": { f: [0,2,2,1,2] },
+            "H": { f: [0,4,4,4,4] }, "Hmi": { f: [0,4,4,3,4] }, "Hm": { f: [0,4,4,3,4] }
+        }
     };
 
     let currentSongIndex = null, activePlaylistIdx = null, targetKeyIndex = 0;
@@ -372,9 +395,15 @@
         chordTooltip.style.display = 'none';
     };
 
+    // Pomocná funkce - poskládá všechny použité štítky s těmi základními
     function getAllTags() {
         let tagsSet = new Set(baseTags);
-        db.songs.forEach(s => { if (s.tags) s.tags.forEach(t => tagsSet.add(t)); });
+        db.songs.forEach(s => {
+            if (s.tags) {
+                s.tags.forEach(t => tagsSet.add(t));
+            }
+        });
+        // Převedeme Set na pole a seřadíme abecedně (ignorujeme velká/malá písmena)
         return Array.from(tagsSet).sort((a, b) => a.localeCompare(b, 'cs', { sensitivity: 'base' }));
     }
 
@@ -386,7 +415,10 @@
         document.getElementById('dayThemeSelect').value = currentDayTheme;
     }
 
-    function saveData() { localStorage.setItem(DB_KEY, JSON.stringify(db)); }
+    function saveData() { 
+        localStorage.setItem(DB_KEY, JSON.stringify(db));
+    }
+    
     function notify(msg) { const t = document.getElementById('toast'); t.innerText = msg; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 3000); }
 
     function showView(viewId) {
@@ -402,9 +434,11 @@
         if(viewId === 'playlist-detail') lastView = 'playlist-detail';
     }
 
+    // Modal Filtr v knihovně
     function renderFilterTagsModal() {
         const container = document.getElementById('filterTagsContainer');
         container.innerHTML = '';
+        
         getAllTags().forEach(tag => {
             const btn = document.createElement('button');
             btn.className = 'tag-btn' + (activeLibraryFilters.includes(tag) ? ' active' : '');
@@ -413,7 +447,8 @@
                 if (activeLibraryFilters.includes(tag)) activeLibraryFilters = activeLibraryFilters.filter(t => t !== tag);
                 else activeLibraryFilters.push(tag);
                 btn.classList.toggle('active');
-                updateFilterBadge(); renderLibrary(document.getElementById('searchInput').value);
+                updateFilterBadge();
+                renderLibrary(document.getElementById('searchInput').value);
             };
             container.appendChild(btn);
         });
@@ -421,10 +456,15 @@
 
     function updateFilterBadge() {
         const badge = document.getElementById('activeFilterBadge');
-        if (activeLibraryFilters.length > 0) { badge.style.display = 'flex'; badge.innerText = activeLibraryFilters.length; } 
-        else { badge.style.display = 'none'; }
+        if (activeLibraryFilters.length > 0) {
+            badge.style.display = 'flex';
+            badge.innerText = activeLibraryFilters.length;
+        } else {
+            badge.style.display = 'none';
+        }
     }
 
+    // Modal Štítky v přehrávači
     function renderSongTagsModal() {
         const song = db.songs[currentSongIndex];
         const songTags = song.tags || [];
@@ -439,27 +479,43 @@
                 if (!song.tags) song.tags = [];
                 if (song.tags.includes(tag)) song.tags = song.tags.filter(t => t !== tag);
                 else song.tags.push(tag);
-                btn.classList.toggle('active'); saveData(); renderPlayerTags();
+                
+                btn.classList.toggle('active');
+                saveData();
+                renderPlayerTags();
             };
             container.appendChild(btn);
         });
     }
 
+    // Přidání vlastního štítku
     document.getElementById('addNewTagBtn').onclick = () => {
         const inputField = document.getElementById('newTagInput');
         const newTag = inputField.value.trim();
+        
         if (newTag) {
             const song = db.songs[currentSongIndex];
             if (!song.tags) song.tags = [];
-            if (!song.tags.includes(newTag)) { song.tags.push(newTag); saveData(); renderPlayerTags(); }
-            inputField.value = ''; renderSongTagsModal();
+            
+            // Pokud ještě tag nemá, přidáme ho a uložíme
+            if (!song.tags.includes(newTag)) {
+                song.tags.push(newTag);
+                saveData();
+                renderPlayerTags();
+            }
+            
+            inputField.value = ''; // Vyčistíme políčko
+            renderSongTagsModal(); // Překreslíme seznam, protože tag přibyl do databáze
         }
     };
 
     function renderPlayerTags() {
         const container = document.getElementById('playerActiveTags');
         const songTags = db.songs[currentSongIndex].tags || [];
-        if(songTags.length === 0) { container.innerHTML = ''; return; }
+        if(songTags.length === 0) {
+            container.innerHTML = '';
+            return;
+        }
         container.innerHTML = songTags.map(tag => `<span class="song-tag-badge">${tag}</span>`).join('');
     }
 
@@ -472,12 +528,17 @@
         displaySongs.sort((a, b) => a.song.title.localeCompare(b.song.title));
 
         let tempQueue = [];
+        
+        // Aplikace filtrů (AND logika)
         displaySongs.forEach(item => {
             if (filterText && !item.song.title.toLowerCase().includes(filterText.toLowerCase())) return;
+            
             if (activeLibraryFilters.length > 0) {
                 const songTags = item.song.tags || [];
-                if (!activeLibraryFilters.every(t => songTags.includes(t))) return;
+                const matchesAll = activeLibraryFilters.every(t => songTags.includes(t));
+                if (!matchesAll) return;
             }
+
             tempQueue.push(item.originalIndex);
         });
         
@@ -487,14 +548,26 @@
         }
 
         displaySongs.forEach(item => {
-            const song = item.song; const sIdx = item.originalIndex;
+            const song = item.song;
+            const sIdx = item.originalIndex;
+            
             if (!tempQueue.includes(sIdx)) return;
             
-            const tagsHtml = (song.tags && song.tags.length > 0) ? `<div style="margin-top:4px;">` + song.tags.map(t => `<span class="song-tag-badge">${t}</span>`).join('') + `</div>` : '';
+            const tagsHtml = (song.tags && song.tags.length > 0) 
+                ? `<div style="margin-top:4px;">` + song.tags.map(t => `<span class="song-tag-badge">${t}</span>`).join('') + `</div>` 
+                : '';
+
             const card = document.createElement('div'); card.className = 'card';
-            card.innerHTML = `<div style="flex-grow:1;"><b>${song.title}</b>${tagsHtml}</div>
-                <div style="display:flex; gap:5px;"><button class="btn btn-blue" onclick="event.stopPropagation(); openAddToPlaylistModal(${sIdx})" style="padding:8px;">📑+</button>
-                <button class="btn btn-red" onclick="event.stopPropagation(); deleteSong(${sIdx})" style="padding:8px;">🗑</button></div>`;
+            card.innerHTML = `
+                <div style="flex-grow:1;">
+                    <b>${song.title}</b>
+                    ${tagsHtml}
+                </div>
+                <div style="display:flex; gap:5px;">
+                    <button class="btn btn-blue" onclick="event.stopPropagation(); openAddToPlaylistModal(${sIdx})" style="padding:8px;" title="Přidat do playlistu">📑+</button>
+                    <button class="btn btn-red" onclick="event.stopPropagation(); deleteSong(${sIdx})" style="padding:8px;">🗑</button>
+                </div>
+            `;
             card.onclick = () => { 
                 currentQueue = [...tempQueue]; currentQueueIndex = currentQueue.indexOf(sIdx); currentSongIndex = sIdx;
                 targetKeyIndex = song.preferredKey !== undefined ? song.preferredKey : (song.baseKey || 0); 
@@ -509,21 +582,29 @@
             db.playlists.forEach(pl => { pl.songIds = pl.songIds.filter(id => id !== i); });
             db.songs.splice(i, 1); 
             db.playlists.forEach(pl => { pl.songIds = pl.songIds.map(id => id > i ? id - 1 : id); });
-            saveData(); renderLibrary(document.getElementById('searchInput').value); notify('Smazáno');
+            saveData();
+            renderLibrary(document.getElementById('searchInput').value); notify('Smazáno');
         };
-        document.getElementById('confirmText').innerText = `Smazat píseň ${db.songs[i].title}?`; document.getElementById('confirmModal').style.display = 'flex';
+        document.getElementById('confirmText').innerText = `Smazat píseň ${db.songs[i].title}?`;
+        document.getElementById('confirmModal').style.display = 'flex';
     }
 
     function openAddToPlaylistModal(songIdx) {
         const container = document.getElementById('playlistOptions');
         container.innerHTML = '';
-        if (db.playlists.length === 0) { container.innerHTML = '<p style="color:var(--muted)">Zatím nemáš žádné playlisty.</p>'; } 
-        else {
+        if (db.playlists.length === 0) {
+            container.innerHTML = '<p style="color:var(--muted)">Zatím nemáš žádné playlisty.</p>';
+        } else {
             db.playlists.forEach((pl) => {
-                const btn = document.createElement('button'); btn.className = 'btn btn-outline'; btn.style.width = '100%'; btn.innerText = pl.name;
+                const btn = document.createElement('button');
+                btn.className = 'btn btn-outline';
+                btn.style.width = '100%';
+                btn.innerText = pl.name;
                 btn.onclick = () => {
-                    if (!pl.songIds.includes(songIdx)) { pl.songIds.push(songIdx); saveData(); notify('Přidáno do playlistu'); } 
-                    else { notify('Píseň už v playlistu je'); }
+                    if (!pl.songIds.includes(songIdx)) {
+                        pl.songIds.push(songIdx);
+                        saveData(); notify('Přidáno do playlistu');
+                    } else { notify('Píseň už v playlistu je'); }
                     document.getElementById('playlistSelectModal').style.display = 'none';
                 };
                 container.appendChild(btn);
@@ -547,7 +628,10 @@
         const newName = prompt("Zadej nový název playlistu:", db.playlists[idx].name);
         if (newName && newName.trim() !== "" && newName !== db.playlists[idx].name) { db.playlists[idx].name = newName.trim(); saveData(); renderPlaylistsFolders(); notify('Přejmenováno'); }
     }
-    function deletePlaylist(idx) { confirmAction = () => { db.playlists.splice(idx, 1); saveData(); renderPlaylistsFolders(); notify('Smazáno'); }; document.getElementById('confirmText').innerText = `Smazat playlist ${db.playlists[idx].name}?`; document.getElementById('confirmModal').style.display = 'flex'; }
+    function deletePlaylist(idx) {
+        confirmAction = () => { db.playlists.splice(idx, 1); saveData(); renderPlaylistsFolders(); notify('Smazáno'); };
+        document.getElementById('confirmText').innerText = `Smazat playlist ${db.playlists[idx].name}?`; document.getElementById('confirmModal').style.display = 'flex';
+    }
     function openPlaylist(idx) { activePlaylistIdx = idx; document.getElementById('currentPlaylistTitle').innerText = db.playlists[idx].name; showView('playlist-detail'); renderPlaylistItems(); }
     
     function renderPlaylistItems() {
@@ -558,23 +642,37 @@
         
         pl.songIds.forEach((songIdx, itemIdx) => {
             const song = db.songs[songIdx]; if(!song) return; 
-            const card = document.createElement('div'); card.className = 'card'; card.draggable = true; 
+            const card = document.createElement('div'); 
+            card.className = 'card';
+            card.draggable = true; 
             card.ondragstart = (e) => { draggedItemIndex = itemIdx; e.dataTransfer.effectAllowed = 'move'; card.style.opacity = '0.5'; };
-            card.ondragend = () => { card.style.opacity = '1'; }; card.ondragover = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
-            card.ondrop = (e) => { e.preventDefault(); if (draggedItemIndex !== null && draggedItemIndex !== itemIdx) { const draggedId = pl.songIds.splice(draggedItemIndex, 1)[0]; pl.songIds.splice(itemIdx, 0, draggedId); saveData(); renderPlaylistItems(); } };
+            card.ondragend = () => { card.style.opacity = '1'; };
+            card.ondragover = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
+            card.ondrop = (e) => {
+                e.preventDefault();
+                if (draggedItemIndex !== null && draggedItemIndex !== itemIdx) {
+                    const draggedId = pl.songIds.splice(draggedItemIndex, 1)[0];
+                    pl.songIds.splice(itemIdx, 0, draggedId);
+                    saveData(); renderPlaylistItems();
+                }
+            };
             card.innerHTML = `<div style="display:flex; flex-direction:column; gap:4px; margin-right:12px; cursor:grab;">
                 <button class="btn btn-gray" onclick="event.stopPropagation(); moveSongInPlaylist(${itemIdx}, -1)" style="padding:4px 8px; font-size:10px;">▲</button>
                 <button class="btn btn-gray" onclick="event.stopPropagation(); moveSongInPlaylist(${itemIdx}, 1)" style="padding:4px 8px; font-size:10px;">▼</button></div>
                 <b style="flex-grow:1;">${itemIdx + 1}. ${song.title}</b>
                 <button class="btn btn-red" onclick="event.stopPropagation(); removeFromPlaylist(${itemIdx})" style="padding:8px;">➖</button>`;
-            card.onclick = () => { currentQueue = [...pl.songIds]; currentQueueIndex = itemIdx; currentSongIndex = songIdx; targetKeyIndex = song.preferredKey !== undefined ? song.preferredKey : (song.baseKey || 0); showView('player'); renderPlayer(); };
+            card.onclick = () => { 
+                currentQueue = [...pl.songIds]; currentQueueIndex = itemIdx; currentSongIndex = songIdx; 
+                targetKeyIndex = song.preferredKey !== undefined ? song.preferredKey : (song.baseKey || 0); showView('player'); renderPlayer(); 
+            };
             container.appendChild(card);
         });
     }
 
     function isChordLine(line) {
         if(line.trim().length === 0) return false;
-        return line.replace(new RegExp(CHORD_REGEX_STR, 'g'), '').replace(/\s/g, '').replace(/[\|\-\/\(\)\[\],:]/g, '').length === 0;
+        let stripped = line.replace(new RegExp(CHORD_REGEX_STR, 'g'), '').replace(/\s/g, '').replace(/[\|\-\/\(\)\[\],:]/g, '');
+        return stripped.length === 0;
     }
 
     function transposeChord(chord, fromKey, toKey) {
@@ -586,32 +684,44 @@
     }
 
     function renderPlayerText(lyrics, fromKey, toKey) {
-        const radky = lyrics.split('\n'); let vysledneHTML = ''; const regex = new RegExp(CHORD_REGEX_STR, 'g');
+        const radky = lyrics.split('\n');
+        let vysledneHTML = '';
+        const regex = new RegExp(CHORD_REGEX_STR, 'g');
+
         for (let i = 0; i < radky.length; i++) {
             let radek = radky[i];
+
             if (isChordLine(radek) && i + 1 < radky.length && !isChordLine(radky[i+1]) && radky[i+1].trim() !== '') {
                 let radekAkordu = radek; let radekTextu = radky[i+1]; let delka = Math.max(radekAkordu.length, radekTextu.length);
-                vysledneHTML += '<div class="magnet-line">'; let blokAkordu = ''; let blokTextu = '';
+                vysledneHTML += '<div class="magnet-line">';
+                let blokAkordu = ''; let blokTextu = '';
+
                 for (let j = 0; j < delka; j++) {
                     let znakA = radekAkordu[j] || ' '; let znakT = radekTextu[j] || ' ';
                     blokAkordu += znakA; blokTextu += znakT;
+
                     if (znakT === ' ' && znakA === ' ') {
                         let prepocitanyAkord = blokAkordu.replace(regex, (match, prefix, chordName) => { return prefix + '<span class="chord">' + transposeChord(chordName, fromKey, toKey) + '</span>'; });
                         vysledneHTML += `<span class="magnet-block"><span class="magnet-chord">${prepocitanyAkord}</span><span class="magnet-text">${blokTextu}</span></span>`;
                         blokAkordu = ''; blokTextu = '';
                     }
                 }
+                
                 if (blokTextu.length > 0 || blokAkordu.length > 0) {
                     let prepocitanyAkord = blokAkordu.replace(regex, (match, prefix, chordName) => { return prefix + '<span class="chord">' + transposeChord(chordName, fromKey, toKey) + '</span>'; });
                     vysledneHTML += `<span class="magnet-block"><span class="magnet-chord">${prepocitanyAkord}</span><span class="magnet-text">${blokTextu}</span></span>`;
                 }
-                vysledneHTML += '</div>'; i++;
+
+                vysledneHTML += '</div>';
+                i++; // Přeskočí text
             } else {
                 if (radek.trim() === '') { vysledneHTML += '<br>'; } 
                 else if (isChordLine(radek)) {
                     let transposedLine = radek.replace(regex, (match, prefix, chordName) => { return prefix + '<span class="chord">' + transposeChord(chordName, fromKey, toKey) + '</span>'; });
                     vysledneHTML += `<div class="magnet-line"><span class="magnet-block"><span class="magnet-chord">${transposedLine}</span><span class="magnet-text"> </span></span></div>`;
-                } else { vysledneHTML += `<div class="magnet-line"><span class="magnet-block"><span class="magnet-chord"> </span><span class="magnet-text">${radek}</span></span></div>`; }
+                } else {
+                    vysledneHTML += `<div class="magnet-line"><span class="magnet-block"><span class="magnet-chord"> </span><span class="magnet-text">${radek}</span></span></div>`;
+                }
             }
         }
         return vysledneHTML;
@@ -622,14 +732,19 @@
         document.getElementById('displayArea').innerHTML = renderPlayerText(song.lyrics || "", song.baseKey || 0, targetKeyIndex);
         document.getElementById('displayTitle').innerText = song.title || "";
         document.getElementById('displayArea').style.fontSize = currentFontSize + 'px';
-        renderKeyButtons(); renderPlayerTags(); chordTooltip.style.display = 'none';
+        renderKeyButtons();
+        renderPlayerTags();
+        chordTooltip.style.display = 'none';
+
         const prevBtn = document.getElementById('prevSongBtn'); const nextBtn = document.getElementById('nextSongBtn');
-        if (currentQueue && currentQueue.length > 1) { prevBtn.style.visibility = currentQueueIndex > 0 ? 'visible' : 'hidden'; nextBtn.style.visibility = currentQueueIndex < currentQueue.length - 1 ? 'visible' : 'hidden'; } 
-        else { prevBtn.style.visibility = 'hidden'; nextBtn.style.visibility = 'hidden'; }
+        if (currentQueue && currentQueue.length > 1) {
+            prevBtn.style.visibility = currentQueueIndex > 0 ? 'visible' : 'hidden'; nextBtn.style.visibility = currentQueueIndex < currentQueue.length - 1 ? 'visible' : 'hidden';
+        } else { prevBtn.style.visibility = 'hidden'; nextBtn.style.visibility = 'hidden'; }
     }
 
     function renderKeyButtons() {
-        const container = document.getElementById('keyButtons'); container.innerHTML = '';
+        const container = document.getElementById('keyButtons');
+        container.innerHTML = '';
         notes.forEach((note, index) => {
             const btn = document.createElement('button'); btn.className = 'btn'; btn.style = "padding:8px 12px; background:var(--card-bg); color:var(--text); border:1px solid var(--border);";
             if(index === targetKeyIndex) { btn.style.background = "var(--primary)"; btn.style.color = "white"; }
@@ -643,9 +758,10 @@
         if (!chordDB[currentInstrument]) currentInstrument = 'guitar';
         let currentDB = chordDB[currentInstrument];
         if (!currentDB[cleanName] && cleanName.includes('7')) cleanName = cleanName.replace('7', '');
+        
         let chordData = currentDB[cleanName];
         if (!chordData) { let match = chordName.match(/^[A-H][#b]?(mi|m)?/); if(match) chordData = currentDB[match[0]]; }
-        if (!chordData) return `<div style="padding:10px; font-size:14px; text-align:center;">Akord<br><b style="color:var(--primary)">${chordName}</b><br>nenalezen</div>`;
+        if (!chordData) return `<div style="padding:10px; font-size:14px; text-align:center;">Akord<br><b style="color:var(--primary)">${chordName}</b><br>nenalezen pro tento nástroj</div>`;
         
         let numStrings = chordData.f.length; let spacing = 50 / (numStrings - 1);
         let isDark = document.body.getAttribute('data-theme') === 'dark';
@@ -677,47 +793,31 @@
     document.getElementById('scrollContainer').addEventListener('click', (e) => {
         let chordSpan = e.target.closest('.chord');
         if (chordSpan) {
-            e.stopPropagation(); let chordText = chordSpan.innerText; chordTooltip.innerHTML = getChordSVG(chordText);
-            let rect = chordSpan.getBoundingClientRect(); chordTooltip.style.left = (rect.left + rect.width/2) + 'px'; chordTooltip.style.top = rect.top + 'px'; chordTooltip.style.display = 'block';
-            clearTimeout(tooltipTimeout); tooltipTimeout = setTimeout(() => { chordTooltip.style.display = 'none'; }, 3000);
+            e.stopPropagation(); 
+            let chordText = chordSpan.innerText;
+            chordTooltip.innerHTML = getChordSVG(chordText);
+            let rect = chordSpan.getBoundingClientRect();
+            chordTooltip.style.left = (rect.left + rect.width/2) + 'px';
+            chordTooltip.style.top = rect.top + 'px';
+            chordTooltip.style.display = 'block';
+            clearTimeout(tooltipTimeout);
+            tooltipTimeout = setTimeout(() => { chordTooltip.style.display = 'none'; }, 3000);
         } else { chordTooltip.style.display = 'none'; }
     });
 
     document.getElementById('prevSongBtn').onclick = () => { if (currentQueueIndex > 0) { currentQueueIndex--; currentSongIndex = currentQueue[currentQueueIndex]; targetKeyIndex = db.songs[currentSongIndex].preferredKey !== undefined ? db.songs[currentSongIndex].preferredKey : (db.songs[currentSongIndex].baseKey || 0); if (isScrolling) stopScroll(); scrollContainer.scrollTop = 0; renderPlayer(); } };
     document.getElementById('nextSongBtn').onclick = () => { if (currentQueueIndex < currentQueue.length - 1) { currentQueueIndex++; currentSongIndex = currentQueue[currentQueueIndex]; targetKeyIndex = db.songs[currentSongIndex].preferredKey !== undefined ? db.songs[currentSongIndex].preferredKey : (db.songs[currentSongIndex].baseKey || 0); if (isScrolling) stopScroll(); scrollContainer.scrollTop = 0; renderPlayer(); } };
     function startScroll() { isScrolling = true; document.getElementById('playPauseBtn').innerText = '⏸'; scrollPos = scrollContainer.scrollTop; lastTime = performance.now(); wakeUpPanels(); requestAnimationFrame(scrollStep); }
-    function scrollStep(currentTime) { if (!isScrolling) return; const delta = currentTime - lastTime; lastTime = currentTime; if (delta > 100) { requestAnimationFrame(scrollStep); return; } const speed = Math.pow(document.getElementById('speedSlider').value, 3) / 400000; scrollPos += speed * (delta / 16.66); scrollContainer.scrollTop = scrollPos; requestAnimationFrame(scrollStep); }
+    function scrollStep(currentTime) { 
+        if (!isScrolling) return; const delta = currentTime - lastTime; lastTime = currentTime; 
+        if (delta > 100) { requestAnimationFrame(scrollStep); return; }
+        const speed = Math.pow(document.getElementById('speedSlider').value, 3) / 400000;
+        scrollPos += speed * (delta / 16.66); scrollContainer.scrollTop = scrollPos; requestAnimationFrame(scrollStep);
+    }
     function stopScroll() { isScrolling = false; document.getElementById('playPauseBtn').innerText = '▶'; scrollPanel.classList.remove('faded'); navButtonsPanel.classList.remove('faded'); clearTimeout(fadeTimeout); }
 
     document.addEventListener('DOMContentLoaded', () => {
         loadData();
-        
-        // --- LOGIKA PRO PŘÍJEM PÍSNĚ Z QR KÓDU (v23.2) ---
-        const urlParams = new URLSearchParams(window.location.search);
-        const sharedData = urlParams.get('s');
-        if (sharedData) {
-            try {
-                // Dekódování sdílené písně
-                const json = decodeURIComponent(escape(atob(sharedData)));
-                const song = JSON.parse(json);
-                
-                // Vyčistíme URL, aby se po aktualizaci stránky píseň nenačítala znovu
-                window.history.replaceState({}, document.title, window.location.pathname);
-                
-                // Zeptáme se uživatele, zda ji chce uložit
-                confirmAction = () => {
-                    db.songs.push(song);
-                    saveData();
-                    notify('Píseň uložena do knihovny');
-                    renderLibrary();
-                };
-                document.getElementById('confirmText').innerHTML = `Chcete uložit sdílenou píseň<br><b>${song.title}</b>?`;
-                document.getElementById('confirmModal').style.display = 'flex';
-            } catch (e) {
-                notify('Chyba při čtení sdílené písně.');
-            }
-        }
-
         const keys = notes.map((n, i) => `<option value="${i}">${n}</option>`).join('');
         document.getElementById('addBaseKey').innerHTML = keys;
         
@@ -730,53 +830,58 @@
         document.getElementById('fontMinusBtn').onclick = () => { currentFontSize -= 2; renderPlayer(); };
         document.getElementById('playerAddToPlaylistBtn').onclick = () => { if (currentSongIndex !== null) openAddToPlaylistModal(currentSongIndex); };
         
-        // --- LOGIKA PRO GENEROVÁNÍ QR KÓDU (v23.2) ---
-        document.getElementById('playerShareBtn').onclick = () => {
-            const song = db.songs[currentSongIndex];
-            const payload = JSON.stringify(song);
-            
-            try {
-                // Zakódování písně do URL
-                const base64 = btoa(unescape(encodeURIComponent(payload)));
-                const url = window.location.origin + window.location.pathname + '?s=' + base64;
-                
-                document.getElementById('qrcode').innerHTML = ''; 
-                
-                new QRCode(document.getElementById('qrcode'), {
-                    text: url, width: 220, height: 220,
-                    colorDark : "#000000", colorLight : "#ffffff",
-                    correctLevel : QRCode.CorrectLevel.L
-                });
-                
-                document.getElementById('qrModal').style.display = 'flex';
-            } catch(e) {
-                notify('Píseň je příliš dlouhá pro QR kód.');
-            }
-        };
-
-        document.getElementById('closeQrBtn').onclick = () => { document.getElementById('qrModal').style.display = 'none'; };
-
+        // Logika tlačítek pro štítky
         document.getElementById('openLibraryFilterBtn').onclick = () => { renderFilterTagsModal(); document.getElementById('libraryFilterModal').style.display = 'flex'; };
         document.getElementById('closeLibraryFilterBtn').onclick = () => { document.getElementById('libraryFilterModal').style.display = 'none'; };
         document.getElementById('clearFiltersBtn').onclick = () => { activeLibraryFilters = []; updateFilterBadge(); renderLibrary(document.getElementById('searchInput').value); renderFilterTagsModal(); };
         document.getElementById('playerTagsBtn').onclick = () => { renderSongTagsModal(); document.getElementById('songTagsModal').style.display = 'flex'; };
         document.getElementById('closeSongTagsBtn').onclick = () => document.getElementById('songTagsModal').style.display = 'none';
 
+        // Nastavení
         document.getElementById('nav-settings').onclick = () => { document.getElementById('settingsModal').style.display = 'flex'; };
         document.getElementById('closeSettingsBtn').onclick = () => { document.getElementById('settingsModal').style.display = 'none'; };
         document.getElementById('instrumentSelect').onchange = (e) => { currentInstrument = e.target.value; localStorage.setItem('muzikant_instrument', currentInstrument); notify('Nástroj změněn'); };
-        document.getElementById('dayThemeSelect').onchange = (e) => { currentDayTheme = e.target.value; localStorage.setItem('muzikant_day_theme', currentDayTheme); document.body.setAttribute('data-day-theme', currentDayTheme); notify('Téma změněno'); };
-        document.getElementById('themeToggle').onclick = () => { const isDark = document.body.getAttribute('data-theme') === 'dark'; isDark ? document.body.removeAttribute('data-theme') : document.body.setAttribute('data-theme', 'dark'); localStorage.setItem('muzikant_theme', isDark ? 'light' : 'dark'); };
+        document.getElementById('dayThemeSelect').onchange = (e) => { 
+            currentDayTheme = e.target.value; localStorage.setItem('muzikant_day_theme', currentDayTheme); document.body.setAttribute('data-day-theme', currentDayTheme); notify('Téma změněno'); 
+        };
+        document.getElementById('themeToggle').onclick = () => {
+            const isDark = document.body.getAttribute('data-theme') === 'dark';
+            isDark ? document.body.removeAttribute('data-theme') : document.body.setAttribute('data-theme', 'dark');
+            localStorage.setItem('muzikant_theme', isDark ? 'light' : 'dark');
+        };
 
+        // Export/Import
         document.getElementById('exportAllBtn').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(db)], {type: 'application/json'})); a.download = `muzikant_zaloha.json`; a.click(); };
         document.getElementById('triggerImportAllBtn').onclick = () => document.getElementById('importAllInput').click();
-        document.getElementById('importAllInput').onchange = (e) => { if(!e.target.files[0]) return; const r = new FileReader(); r.onload = (ev) => { try { db = JSON.parse(ev.target.result); saveData(); renderLibrary(document.getElementById('searchInput').value); renderPlaylistsFolders(); notify('Obnoveno'); } catch(err) { notify('Chybný soubor zálohy'); } }; r.readAsText(e.target.files[0]); e.target.value = ''; };
-        
-        document.getElementById('exportPlaylistBtn').onclick = () => { if (activePlaylistIdx === null) return; const pl = db.playlists[activePlaylistIdx]; const exportData = { playlistName: pl.name, songs: pl.songIds.map(id => db.songs[id]) }; const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(exportData)], {type: 'application/json'})); a.download = `Playlist_${pl.name.replace(/\s+/g, '_')}.json`; a.click(); };
+        document.getElementById('importAllInput').onchange = (e) => { 
+            if(!e.target.files[0]) return; const r = new FileReader(); 
+            r.onload = (ev) => { try { db = JSON.parse(ev.target.result); saveData(); renderLibrary(document.getElementById('searchInput').value); renderPlaylistsFolders(); notify('Obnoveno'); } catch(err) { notify('Chybný soubor zálohy'); } }; 
+            r.readAsText(e.target.files[0]); e.target.value = '';
+        };
+        document.getElementById('exportPlaylistBtn').onclick = () => {
+            if (activePlaylistIdx === null) return; const pl = db.playlists[activePlaylistIdx]; const exportData = { playlistName: pl.name, songs: pl.songIds.map(id => db.songs[id]) };
+            const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(exportData)], {type: 'application/json'})); a.download = `Playlist_${pl.name.replace(/\s+/g, '_')}.json`; a.click();
+        };
         document.getElementById('triggerImportPlaylistBtn').onclick = () => document.getElementById('importPlaylistInput').click();
-        document.getElementById('importPlaylistInput').onchange = (e) => { if(!e.target.files[0]) return; const r = new FileReader(); r.onload = (ev) => { try { const data = JSON.parse(ev.target.result); if (data.playlistName && data.songs) { let newIds = []; data.songs.forEach(importedSong => { let existIdx = db.songs.findIndex(s => s.title.toLowerCase() === importedSong.title.toLowerCase()); if (existIdx !== -1) { newIds.push(existIdx); } else { db.songs.push(importedSong); newIds.push(db.songs.length - 1); } }); db.playlists.push({ name: data.playlistName, songIds: newIds }); saveData(); renderLibrary(document.getElementById('searchInput').value); renderPlaylistsFolders(); showView('playlists'); notify('Playlist importován'); } else { notify('Toto není správný formát playlistu'); } } catch(err) { notify('Chyba při čtení souboru'); } }; r.readAsText(e.target.files[0]); e.target.value = ''; };
+        document.getElementById('importPlaylistInput').onchange = (e) => {
+            if(!e.target.files[0]) return; const r = new FileReader();
+            r.onload = (ev) => {
+                try {
+                    const data = JSON.parse(ev.target.result);
+                    if (data.playlistName && data.songs) {
+                        let newIds = []; data.songs.forEach(importedSong => { let existIdx = db.songs.findIndex(s => s.title.toLowerCase() === importedSong.title.toLowerCase()); if (existIdx !== -1) { newIds.push(existIdx); } else { db.songs.push(importedSong); newIds.push(db.songs.length - 1); } });
+                        db.playlists.push({ name: data.playlistName, songIds: newIds }); saveData(); renderLibrary(document.getElementById('searchInput').value); renderPlaylistsFolders(); showView('playlists'); notify('Playlist importován');
+                    } else { notify('Toto není správný formát playlistu'); }
+                } catch(err) { notify('Chyba při čtení souboru'); }
+            };
+            r.readAsText(e.target.files[0]); e.target.value = '';
+        };
         
-        document.getElementById('saveNewSongBtn').onclick = () => { db.songs.push({ title: document.getElementById('titleInput').value, lyrics: document.getElementById('lyricsInput').value, baseKey: parseInt(document.getElementById('addBaseKey').value), tags: [] }); saveData(); showView('library'); notify('Přidáno'); document.getElementById('titleInput').value = ''; document.getElementById('lyricsInput').value = ''; };
+        document.getElementById('saveNewSongBtn').onclick = () => { 
+            db.songs.push({ title: document.getElementById('titleInput').value, lyrics: document.getElementById('lyricsInput').value, baseKey: parseInt(document.getElementById('addBaseKey').value), tags: [] });
+            saveData(); showView('library'); notify('Přidáno'); 
+            document.getElementById('titleInput').value = ''; document.getElementById('lyricsInput').value = '';
+        };
         
         document.getElementById('createPlaylistBtn').onclick = () => { const name = document.getElementById('newPlaylistName').value.trim(); if(name) { db.playlists.push({ name: name, songIds: [] }); saveData(); document.getElementById('newPlaylistName').value = ''; renderPlaylistsFolders(); notify('Vytvořeno'); }};
         document.getElementById('fixKeyBtn').onclick = () => { db.songs[currentSongIndex].preferredKey = targetKeyIndex; saveData(); notify('Uloženo'); };
@@ -788,8 +893,10 @@
 
         document.getElementById('toggleEditBtn').onclick = () => {
             isEditMode = !isEditMode;
-            const viewContent = document.getElementById('playerViewContent'); const editContent = document.getElementById('playerEditContent');
-            const saveBtn = document.getElementById('saveEditBtn'); const toggleBtn = document.getElementById('toggleEditBtn');
+            const viewContent = document.getElementById('playerViewContent');
+            const editContent = document.getElementById('playerEditContent');
+            const saveBtn = document.getElementById('saveEditBtn');
+            const toggleBtn = document.getElementById('toggleEditBtn');
             if (isEditMode) { 
                 viewContent.style.display = 'none'; editContent.style.display = 'block'; saveBtn.style.display = 'inline-flex'; 
                 toggleBtn.innerText = '❌'; toggleBtn.style.background = '#ef4444'; 
@@ -804,7 +911,9 @@
 
         document.getElementById('saveEditBtn').onclick = () => {
             const song = db.songs[currentSongIndex];
-            song.title = document.getElementById('editTitleInput').value; song.lyrics = document.getElementById('editArea').value; song.baseKey = parseInt(document.getElementById('editBaseKey').value);
+            song.title = document.getElementById('editTitleInput').value;
+            song.lyrics = document.getElementById('editArea').value;
+            song.baseKey = parseInt(document.getElementById('editBaseKey').value);
             saveData(); renderPlayer(); document.getElementById('toggleEditBtn').click(); notify('Uloženo');
         };
         
