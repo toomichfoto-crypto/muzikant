@@ -1,10 +1,9 @@
-const CACHE_NAME = 'muzikant-cache-v23.2';
+const CACHE_NAME = 'muzikant-cache-v24'; // Povýšeno na v24
 const ASSETS = [
     './',
     './index.html',
     './manifest.json',
-    './icon-512.png',
-    'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js'
+    './icon-512.png'
 ];
 
 // Instalace a uložení souborů do mezipaměti
