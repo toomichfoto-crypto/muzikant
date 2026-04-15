@@ -10,7 +10,7 @@
     <meta name="theme-color" content="#1e293b">
     <title>Muzikant</title>
     <style>
-        /* --- BAREVNÁ TÉMATA (v24.0) --- */
+        /* --- BAREVNÁ TÉMATA (v24.1) --- */
         :root, [data-day-theme="classic"] {
             --bg: #f8fafc; --text: #1e293b; --card-bg: #ffffff; --nav-bg: #1e293b;
             --nav-text: #ffffff; --primary: #2563eb; --accent: #059669; --chord: #2563eb;
@@ -168,7 +168,7 @@
             </div>
 
             <button class="btn btn-blue" id="closeSettingsBtn" style="width:100%;">Zavřít</button>
-            <div style="margin-top:20px; font-size:12px; color:var(--muted);">Verze: v24.0</div>
+            <div style="margin-top:20px; font-size:12px; color:var(--muted);">Verze: v24.1</div>
         </div>
     </div>
 
@@ -751,6 +751,53 @@
     function scrollStep(currentTime) { if (!isScrolling) return; const delta = currentTime - lastTime; lastTime = currentTime; if (delta > 100) { requestAnimationFrame(scrollStep); return; } const speed = Math.pow(document.getElementById('speedSlider').value, 3) / 400000; scrollPos += speed * (delta / 16.66); scrollContainer.scrollTop = scrollPos; requestAnimationFrame(scrollStep); }
     function stopScroll() { isScrolling = false; document.getElementById('playPauseBtn').innerText = '▶'; scrollPanel.classList.remove('faded'); navButtonsPanel.classList.remove('faded'); clearTimeout(fadeTimeout); }
 
+    // --- FUNKCE PRO ZPRACOVÁNÍ SDÍLENÉHO ODKAZU ---
+    function checkSharedSong() {
+        const urlParams = new URLSearchParams(window.location.search);
+        let songParam = urlParams.get('song');
+        
+        if (songParam) {
+            try {
+                // Oprava URL-safe znaků zpět na klasický Base64 formát
+                songParam = songParam.replace(/-/g, '+').replace(/_/g, '/');
+                while (songParam.length % 4) { songParam += '='; } // Doplnění chybějících znaků
+                
+                // Zesílené dekódování UTF-8
+                const jsonStr = decodeURIComponent(escape(atob(songParam)));
+                const importedSong = JSON.parse(jsonStr);
+                
+                if (importedSong && importedSong.title && importedSong.lyrics) {
+                    confirmAction = () => {
+                        importedSong.tags = [];
+                        db.songs.push(importedSong);
+                        saveData();
+                        renderLibrary(document.getElementById('searchInput').value);
+                        notify('Píseň uložena');
+                        
+                        // Vyčištění URL a zavření okna
+                        window.history.replaceState({}, document.title, window.location.pathname);
+                        document.getElementById('confirmModal').style.display = 'none';
+                        
+                        // Otevřít nově přidanou píseň v přehrávači
+                        currentSongIndex = db.songs.length - 1;
+                        currentQueue = [currentSongIndex];
+                        currentQueueIndex = 0;
+                        targetKeyIndex = importedSong.preferredKey !== undefined ? importedSong.preferredKey : (importedSong.baseKey || 0);
+                        showView('player');
+                        renderPlayer();
+                    };
+                    document.getElementById('confirmText').innerText = `Chceš uložit sdílenou píseň "${importedSong.title}" do své knihovny?`;
+                    document.getElementById('confirmModal').style.display = 'flex';
+                }
+            } catch(e) {
+                console.error("Chyba dekódování sdílené písně:", e);
+                notify('Neplatný nebo poškozený odkaz na píseň');
+                window.history.replaceState({}, document.title, window.location.pathname);
+                showView('library');
+            }
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         loadData();
         const keys = notes.map((n, i) => `<option value="${i}">${n}</option>`).join('');
@@ -765,18 +812,24 @@
         document.getElementById('fontMinusBtn').onclick = () => { currentFontSize -= 2; renderPlayer(); };
         document.getElementById('playerAddToPlaylistBtn').onclick = () => { if (currentSongIndex !== null) openAddToPlaylistModal(currentSongIndex); };
         
-        // Sdílení písně (Web Share API)
+        // --- Sdílení písně ---
         document.getElementById('playerShareBtn').onclick = async () => {
             const song = db.songs[currentSongIndex];
             const exportObj = {
                 title: song.title,
                 lyrics: song.lyrics,
                 baseKey: song.baseKey,
-                preferredKey: targetKeyIndex // Uložíme aktuální posunutou tóninu
+                preferredKey: targetKeyIndex 
             };
             
             const jsonStr = JSON.stringify(exportObj);
-            const base64str = btoa(encodeURIComponent(jsonStr));
+            
+            // Zesílené kódování UTF-8 s náhradou problémových znaků pro URL
+            const base64str = btoa(unescape(encodeURIComponent(jsonStr)))
+                                .replace(/\+/g, '-')
+                                .replace(/\//g, '_')
+                                .replace(/=+$/, '');
+            
             const shareUrl = window.location.origin + window.location.pathname + '?song=' + base64str;
             
             if (navigator.share) {
@@ -786,7 +839,7 @@
                         text: `Posílám ti píseň "${song.title}" s akordy z aplikace Muzikant! 🎸`,
                         url: shareUrl
                     });
-                } catch (err) { console.log('Sdílení zrušeno', err); }
+                } catch (err) { console.log('Sdílení zrušeno'); }
             } else {
                 navigator.clipboard.writeText(shareUrl);
                 notify('Odkaz zkopírován do schránky');
@@ -882,42 +935,19 @@
             saveData(); renderPlayer(); document.getElementById('toggleEditBtn').click(); notify('Uloženo');
         };
         
-        // Zpracování přijatého sdíleného odkazu
-        const urlParams = new URLSearchParams(window.location.search);
-        const songParam = urlParams.get('song');
-        if (songParam) {
-            try {
-                const jsonStr = decodeURIComponent(atob(songParam));
-                const importedSong = JSON.parse(jsonStr);
-                
-                if (importedSong && importedSong.title && importedSong.lyrics) {
-                    confirmAction = () => {
-                        importedSong.tags = [];
-                        db.songs.push(importedSong);
-                        saveData();
-                        renderLibrary(document.getElementById('searchInput').value);
-                        notify('Píseň uložena');
-                        window.history.replaceState({}, document.title, window.location.pathname);
-                        
-                        // Otevřít nově přidanou píseň
-                        currentSongIndex = db.songs.length - 1;
-                        currentQueue = [currentSongIndex];
-                        currentQueueIndex = 0;
-                        targetKeyIndex = importedSong.preferredKey !== undefined ? importedSong.preferredKey : (importedSong.baseKey || 0);
-                        showView('player');
-                        renderPlayer();
-                    };
-                    document.getElementById('confirmText').innerText = `Chceš uložit sdílenou píseň "${importedSong.title}" do své knihovny?`;
-                    document.getElementById('confirmModal').style.display = 'flex';
-                }
-            } catch(e) {
-                notify('Neplatný nebo poškozený odkaz na píseň');
-                window.history.replaceState({}, document.title, window.location.pathname);
-            }
-        }
+        // --- Spuštění kontroly sdíleného odkazu při startu ---
+        checkSharedSong();
 
-        if (!songParam) {
+        // Zajistí, že pokud je prázdný parametr song (nebo po jeho smazání), ukáže se knihovna
+        if (!window.location.search.includes('song=')) {
             showView('library');
+        }
+    });
+
+    // --- Sledování probuzení z pozadí (Lapač) ---
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && window.location.search.includes('song=')) {
+            checkSharedSong();
         }
     });
     
