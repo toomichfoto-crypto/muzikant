@@ -10,7 +10,7 @@
     <meta name="theme-color" content="#1e293b">
     <title>Muzikant</title>
     <style>
-        /* --- BAREVNÁ TÉMATA (v24.1) --- */
+        /* --- BAREVNÁ TÉMATA (v24.2) --- */
         :root, [data-day-theme="classic"] {
             --bg: #f8fafc; --text: #1e293b; --card-bg: #ffffff; --nav-bg: #1e293b;
             --nav-text: #ffffff; --primary: #2563eb; --accent: #059669; --chord: #2563eb;
@@ -135,6 +135,20 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="shareModal">
+        <div class="modal-content">
+            <h3 style="margin-top:0;">Sdílet píseň</h3>
+            <p style="color: var(--muted); margin-bottom:10px; font-size: 14px;">Odkaz na tuto píseň:</p>
+            <input type="text" id="shareUrlInput" readonly style="margin-bottom:15px; font-size: 12px; background: var(--bg); cursor: text;">
+            <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:20px;">
+                <button class="btn btn-blue" id="copyShareBtn">📋 Zkopírovat odkaz</button>
+                <button class="btn btn-green" id="whatsappShareBtn" style="background:#25D366; color:white;">💬 WhatsApp Web</button>
+                <button class="btn btn-gray" id="emailShareBtn">📧 Poslat e-mailem</button>
+            </div>
+            <button class="btn btn-outline" id="closeShareModalBtn" style="width:100%;">Zavřít</button>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="playlistSelectModal">
         <div class="modal-content">
             <h3 style="margin-top:0;">Přidat do playlistu</h3>
@@ -168,7 +182,7 @@
             </div>
 
             <button class="btn btn-blue" id="closeSettingsBtn" style="width:100%;">Zavřít</button>
-            <div style="margin-top:20px; font-size:12px; color:var(--muted);">Verze: v24.1</div>
+            <div style="margin-top:20px; font-size:12px; color:var(--muted);">Verze: v24.2</div>
         </div>
     </div>
 
@@ -758,11 +772,9 @@
         
         if (songParam) {
             try {
-                // Oprava URL-safe znaků zpět na klasický Base64 formát
                 songParam = songParam.replace(/-/g, '+').replace(/_/g, '/');
-                while (songParam.length % 4) { songParam += '='; } // Doplnění chybějících znaků
+                while (songParam.length % 4) { songParam += '='; } 
                 
-                // Zesílené dekódování UTF-8
                 const jsonStr = decodeURIComponent(escape(atob(songParam)));
                 const importedSong = JSON.parse(jsonStr);
                 
@@ -774,11 +786,9 @@
                         renderLibrary(document.getElementById('searchInput').value);
                         notify('Píseň uložena');
                         
-                        // Vyčištění URL a zavření okna
                         window.history.replaceState({}, document.title, window.location.pathname);
                         document.getElementById('confirmModal').style.display = 'none';
                         
-                        // Otevřít nově přidanou píseň v přehrávači
                         currentSongIndex = db.songs.length - 1;
                         currentQueue = [currentSongIndex];
                         currentQueueIndex = 0;
@@ -797,6 +807,47 @@
             }
         }
     }
+
+    // --- FUNKCE PRO OTEVŘENÍ OKNA SDÍLENÍ NA PC ---
+    function openShareModal(shareUrl, songTitle) {
+        const input = document.getElementById('shareUrlInput');
+        input.value = shareUrl;
+        document.getElementById('shareModal').style.display = 'flex';
+        
+        // Tlačítko Kopírovat
+        document.getElementById('copyShareBtn').onclick = () => {
+            input.select();
+            input.setSelectionRange(0, 99999);
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(shareUrl).then(() => {
+                    notify('Odkaz zkopírován');
+                }).catch(() => {
+                    document.execCommand('copy');
+                    notify('Odkaz zkopírován (Fallback)');
+                });
+            } else {
+                document.execCommand('copy');
+                notify('Odkaz zkopírován (Fallback)');
+            }
+        };
+
+        // Tlačítko WhatsApp Web
+        document.getElementById('whatsappShareBtn').onclick = () => {
+            const waText = encodeURIComponent(`Posílám ti píseň "${songTitle}" s akordy z aplikace Muzikant! 🎸\n\n${shareUrl}`);
+            window.open(`https://api.whatsapp.com/send?text=${waText}`, '_blank');
+        };
+
+        // Tlačítko E-mail
+        document.getElementById('emailShareBtn').onclick = () => {
+            const subject = encodeURIComponent(`Muzikant: ${songTitle}`);
+            const body = encodeURIComponent(`Posílám ti píseň "${songTitle}" s akordy z aplikace Muzikant! 🎸\n\nOdkaz si otevři v telefonu nebo na počítači:\n${shareUrl}`);
+            window.location.href = `mailto:?subject=${subject}&body=${body}`;
+        };
+    }
+
+    document.getElementById('closeShareModalBtn').onclick = () => {
+        document.getElementById('shareModal').style.display = 'none';
+    };
 
     document.addEventListener('DOMContentLoaded', () => {
         loadData();
@@ -824,7 +875,6 @@
             
             const jsonStr = JSON.stringify(exportObj);
             
-            // Zesílené kódování UTF-8 s náhradou problémových znaků pro URL
             const base64str = btoa(unescape(encodeURIComponent(jsonStr)))
                                 .replace(/\+/g, '-')
                                 .replace(/\//g, '_')
@@ -832,6 +882,7 @@
             
             const shareUrl = window.location.origin + window.location.pathname + '?song=' + base64str;
             
+            // Zkusíme nativní sdílení telefonu
             if (navigator.share) {
                 try {
                     await navigator.share({
@@ -839,10 +890,15 @@
                         text: `Posílám ti píseň "${song.title}" s akordy z aplikace Muzikant! 🎸`,
                         url: shareUrl
                     });
-                } catch (err) { console.log('Sdílení zrušeno'); }
+                } catch (err) { 
+                    // Pokud to selže (např. uživatel okno na PC zavře, nebo API zlobí), ukážeme naše modal okno
+                    if (err.name !== 'AbortError') {
+                        openShareModal(shareUrl, song.title);
+                    }
+                }
             } else {
-                navigator.clipboard.writeText(shareUrl);
-                notify('Odkaz zkopírován do schránky');
+                // Pokud prohlížeč (např. PC Chrome) navigator.share vůbec nezná
+                openShareModal(shareUrl, song.title);
             }
         };
 
@@ -938,7 +994,6 @@
         // --- Spuštění kontroly sdíleného odkazu při startu ---
         checkSharedSong();
 
-        // Zajistí, že pokud je prázdný parametr song (nebo po jeho smazání), ukáže se knihovna
         if (!window.location.search.includes('song=')) {
             showView('library');
         }
