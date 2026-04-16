@@ -10,7 +10,7 @@
     <meta name="theme-color" content="#1e293b">
     <title>Muzikant</title>
     <style>
-        /* --- BAREVNÁ TÉMATA (v24.2) --- */
+        /* --- BAREVNÁ TÉMATA (v24.3) --- */
         :root, [data-day-theme="classic"] {
             --bg: #f8fafc; --text: #1e293b; --card-bg: #ffffff; --nav-bg: #1e293b;
             --nav-text: #ffffff; --primary: #2563eb; --accent: #059669; --chord: #2563eb;
@@ -182,7 +182,7 @@
             </div>
 
             <button class="btn btn-blue" id="closeSettingsBtn" style="width:100%;">Zavřít</button>
-            <div style="margin-top:20px; font-size:12px; color:var(--muted);">Verze: v24.2</div>
+            <div style="margin-top:20px; font-size:12px; color:var(--muted);">Verze: v24.3</div>
         </div>
     </div>
 
@@ -232,7 +232,7 @@
                 <label style="font-weight:bold;">Výchozí tónina textu:</label>
                 <select id="addBaseKey"></select>
             </div>
-            <textarea id="lyricsInput" style="height: 300px;" placeholder="Sem vlož text a akordy..."></textarea>
+            <textarea id="lyricsInput" style="min-height: 300px; overflow-y: hidden; resize: none; font-family: monospace;" placeholder="Sem vlož text a akordy..."></textarea>
             <button class="btn btn-green" style="width:100%;" id="saveNewSongBtn">Uložit do knihovny</button>
         </div>
 
@@ -310,7 +310,7 @@
                     <label style="font-weight:bold;">Tónina zapsaného textu:</label>
                     <select id="editBaseKey"></select>
                 </div>
-                <textarea id="editArea" style="height: 400px; font-family: monospace;" placeholder="Text s akordy..."></textarea>
+                <textarea id="editArea" style="min-height: 300px; overflow-y: hidden; resize: none; font-family: monospace;" placeholder="Text s akordy..."></textarea>
             </div>
         </div>
     </div>
@@ -393,6 +393,12 @@
     const navButtonsPanel = document.getElementById('navButtonsPanel');
     const scrollPanel = document.getElementById('scrollPanel');
     const chordTooltip = document.getElementById('chordTooltip');
+
+    // --- FUNKCE PRO AUTOMATICKÉ ROZTAŽENÍ TEXTAREA ---
+    function autoResizeTextarea(el) {
+        el.style.height = 'auto'; // Nejdřív zrušíme výšku, aby se to mohlo i zmenšit
+        el.style.height = el.scrollHeight + 'px'; // Nastavíme podle skutečného obsahu
+    }
 
     function wakeUpPanels() {
         scrollPanel.classList.remove('faded'); navButtonsPanel.classList.remove('faded');
@@ -765,7 +771,6 @@
     function scrollStep(currentTime) { if (!isScrolling) return; const delta = currentTime - lastTime; lastTime = currentTime; if (delta > 100) { requestAnimationFrame(scrollStep); return; } const speed = Math.pow(document.getElementById('speedSlider').value, 3) / 400000; scrollPos += speed * (delta / 16.66); scrollContainer.scrollTop = scrollPos; requestAnimationFrame(scrollStep); }
     function stopScroll() { isScrolling = false; document.getElementById('playPauseBtn').innerText = '▶'; scrollPanel.classList.remove('faded'); navButtonsPanel.classList.remove('faded'); clearTimeout(fadeTimeout); }
 
-    // --- FUNKCE PRO ZPRACOVÁNÍ SDÍLENÉHO ODKAZU ---
     function checkSharedSong() {
         const urlParams = new URLSearchParams(window.location.search);
         let songParam = urlParams.get('song');
@@ -808,13 +813,11 @@
         }
     }
 
-    // --- FUNKCE PRO OTEVŘENÍ OKNA SDÍLENÍ NA PC ---
     function openShareModal(shareUrl, songTitle) {
         const input = document.getElementById('shareUrlInput');
         input.value = shareUrl;
         document.getElementById('shareModal').style.display = 'flex';
         
-        // Tlačítko Kopírovat
         document.getElementById('copyShareBtn').onclick = () => {
             input.select();
             input.setSelectionRange(0, 99999);
@@ -831,13 +834,11 @@
             }
         };
 
-        // Tlačítko WhatsApp Web
         document.getElementById('whatsappShareBtn').onclick = () => {
             const waText = encodeURIComponent(`Posílám ti píseň "${songTitle}" s akordy z aplikace Muzikant! 🎸\n\n${shareUrl}`);
             window.open(`https://api.whatsapp.com/send?text=${waText}`, '_blank');
         };
 
-        // Tlačítko E-mail
         document.getElementById('emailShareBtn').onclick = () => {
             const subject = encodeURIComponent(`Muzikant: ${songTitle}`);
             const body = encodeURIComponent(`Posílám ti píseň "${songTitle}" s akordy z aplikace Muzikant! 🎸\n\nOdkaz si otevři v telefonu nebo na počítači:\n${shareUrl}`);
@@ -854,7 +855,16 @@
         const keys = notes.map((n, i) => `<option value="${i}">${n}</option>`).join('');
         document.getElementById('addBaseKey').innerHTML = keys;
         
-        document.getElementById('nav-add').onclick = () => showView('add');
+        // Nastavení posluchačů pro automatické roztahování textových polí
+        const lyricsInput = document.getElementById('lyricsInput');
+        const editArea = document.getElementById('editArea');
+        lyricsInput.addEventListener('input', () => autoResizeTextarea(lyricsInput));
+        editArea.addEventListener('input', () => autoResizeTextarea(editArea));
+
+        document.getElementById('nav-add').onclick = () => { 
+            showView('add'); 
+            autoResizeTextarea(lyricsInput); // Srovnání velikosti při otevření pohledu
+        };
         document.getElementById('nav-library').onclick = () => showView('library');
         document.getElementById('nav-playlists').onclick = () => showView('playlists');
         document.getElementById('playPauseBtn').onclick = () => isScrolling ? stopScroll() : startScroll();
@@ -863,7 +873,6 @@
         document.getElementById('fontMinusBtn').onclick = () => { currentFontSize -= 2; renderPlayer(); };
         document.getElementById('playerAddToPlaylistBtn').onclick = () => { if (currentSongIndex !== null) openAddToPlaylistModal(currentSongIndex); };
         
-        // --- Sdílení písně ---
         document.getElementById('playerShareBtn').onclick = async () => {
             const song = db.songs[currentSongIndex];
             const exportObj = {
@@ -882,7 +891,6 @@
             
             const shareUrl = window.location.origin + window.location.pathname + '?song=' + base64str;
             
-            // Zkusíme nativní sdílení telefonu
             if (navigator.share) {
                 try {
                     await navigator.share({
@@ -891,13 +899,9 @@
                         url: shareUrl
                     });
                 } catch (err) { 
-                    // Pokud to selže (např. uživatel okno na PC zavře, nebo API zlobí), ukážeme naše modal okno
-                    if (err.name !== 'AbortError') {
-                        openShareModal(shareUrl, song.title);
-                    }
+                    if (err.name !== 'AbortError') { openShareModal(shareUrl, song.title); }
                 }
             } else {
-                // Pokud prohlížeč (např. PC Chrome) navigator.share vůbec nezná
                 openShareModal(shareUrl, song.title);
             }
         };
@@ -908,14 +912,12 @@
         document.getElementById('playerTagsBtn').onclick = () => { renderSongTagsModal(); document.getElementById('songTagsModal').style.display = 'flex'; };
         document.getElementById('closeSongTagsBtn').onclick = () => document.getElementById('songTagsModal').style.display = 'none';
         
-        // Nastavení
         document.getElementById('nav-settings').onclick = () => { document.getElementById('settingsModal').style.display = 'flex'; };
         document.getElementById('closeSettingsBtn').onclick = () => { document.getElementById('settingsModal').style.display = 'none'; };
         document.getElementById('instrumentSelect').onchange = (e) => { currentInstrument = e.target.value; localStorage.setItem('muzikant_instrument', currentInstrument); notify('Nástroj změněn'); };
         document.getElementById('dayThemeSelect').onchange = (e) => { currentDayTheme = e.target.value; localStorage.setItem('muzikant_day_theme', currentDayTheme); document.body.setAttribute('data-day-theme', currentDayTheme); notify('Téma změněno'); };
         document.getElementById('themeToggle').onclick = () => { const isDark = document.body.getAttribute('data-theme') === 'dark'; isDark ? document.body.removeAttribute('data-theme') : document.body.setAttribute('data-theme', 'dark'); localStorage.setItem('muzikant_theme', isDark ? 'light' : 'dark'); };
         
-        // Export/Import
         document.getElementById('exportAllBtn').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(db)], {type: 'application/json'})); a.download = `muzikant_zaloha.json`; a.click(); };
         document.getElementById('triggerImportAllBtn').onclick = () => document.getElementById('importAllInput').click();
         document.getElementById('importAllInput').onchange = (e) => { 
@@ -949,7 +951,9 @@
         document.getElementById('saveNewSongBtn').onclick = () => { 
             db.songs.push({ title: document.getElementById('titleInput').value, lyrics: document.getElementById('lyricsInput').value, baseKey: parseInt(document.getElementById('addBaseKey').value), tags: [] });
             saveData(); showView('library'); notify('Přidáno'); 
-            document.getElementById('titleInput').value = ''; document.getElementById('lyricsInput').value = '';
+            document.getElementById('titleInput').value = ''; 
+            document.getElementById('lyricsInput').value = '';
+            autoResizeTextarea(document.getElementById('lyricsInput')); // Reset výšky
         };
         
         document.getElementById('createPlaylistBtn').onclick = () => { const name = document.getElementById('newPlaylistName').value.trim(); if(name) { db.playlists.push({ name: name, songIds: [] }); saveData(); document.getElementById('newPlaylistName').value = ''; renderPlaylistsFolders(); notify('Vytvořeno'); }};
@@ -977,7 +981,14 @@
                 viewContent.style.display = 'none'; editContent.style.display = 'block'; saveBtn.style.display = 'inline-flex'; 
                 toggleBtn.innerText = '❌'; toggleBtn.style.background = '#ef4444'; 
                 const song = db.songs[currentSongIndex]; 
-                document.getElementById('editTitleInput').value = song.title; document.getElementById('editArea').value = song.lyrics; 
+                document.getElementById('editTitleInput').value = song.title; 
+                
+                const editArea = document.getElementById('editArea');
+                editArea.value = song.lyrics; 
+                
+                // Přizpůsobení výšky bezprostředně po načtení textu
+                setTimeout(() => autoResizeTextarea(editArea), 10); 
+                
                 document.getElementById('editBaseKey').innerHTML = keys; document.getElementById('editBaseKey').value = song.baseKey || 0;
             } else {
                 viewContent.style.display = 'block'; editContent.style.display = 'none'; saveBtn.style.display = 'none'; 
@@ -991,7 +1002,6 @@
             saveData(); renderPlayer(); document.getElementById('toggleEditBtn').click(); notify('Uloženo');
         };
         
-        // --- Spuštění kontroly sdíleného odkazu při startu ---
         checkSharedSong();
 
         if (!window.location.search.includes('song=')) {
@@ -999,7 +1009,6 @@
         }
     });
 
-    // --- Sledování probuzení z pozadí (Lapač) ---
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible' && window.location.search.includes('song=')) {
             checkSharedSong();
