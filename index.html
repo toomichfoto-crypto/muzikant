@@ -10,7 +10,7 @@
     <meta name="theme-color" content="#1e293b">
     <title>Muzikant</title>
     <style>
-        /* --- BAREVNÁ TÉMATA (v24.3) --- */
+        /* --- BAREVNÁ TÉMATA (v24.4) --- */
         :root, [data-day-theme="classic"] {
             --bg: #f8fafc; --text: #1e293b; --card-bg: #ffffff; --nav-bg: #1e293b;
             --nav-text: #ffffff; --primary: #2563eb; --accent: #059669; --chord: #2563eb;
@@ -182,7 +182,7 @@
             </div>
 
             <button class="btn btn-blue" id="closeSettingsBtn" style="width:100%;">Zavřít</button>
-            <div style="margin-top:20px; font-size:12px; color:var(--muted);">Verze: v24.3</div>
+            <div style="margin-top:20px; font-size:12px; color:var(--muted);">Verze: v24.4</div>
         </div>
     </div>
 
@@ -394,16 +394,31 @@
     const scrollPanel = document.getElementById('scrollPanel');
     const chordTooltip = document.getElementById('chordTooltip');
 
-    // --- FUNKCE PRO AUTOMATICKÉ ROZTAŽENÍ TEXTAREA ---
+    // --- OPRAVENÁ FUNKCE PRO AUTOMATICKÉ ROZTAŽENÍ S FIXACÍ SCROLLU ---
     function autoResizeTextarea(el) {
-        el.style.height = 'auto'; // Nejdřív zrušíme výšku, aby se to mohlo i zmenšit
-        el.style.height = el.scrollHeight + 'px'; // Nastavíme podle skutečného obsahu
+        const container = document.getElementById('scrollContainer');
+        const currentScroll = container.scrollTop; // Uložení přesné pozice pohledu
+        
+        el.style.height = 'auto'; // Uvolnění výšky pro přepočet (tohle způsobuje ten skok)
+        el.style.height = el.scrollHeight + 'px'; // Okamžité nastavení nové výšky
+        
+        container.scrollTop = currentScroll; // Vracíme obrazovku přesně tam, kde byla
+    }
+
+    // Funkce pro zrušení edit módu při opuštění přehrávače
+    function resetEditMode() {
+        if (isEditMode) {
+            document.getElementById('toggleEditBtn').click(); // Nasimulujeme kliknutí pro bezpečný návrat z úprav
+        }
     }
 
     function wakeUpPanels() {
-        scrollPanel.classList.remove('faded'); navButtonsPanel.classList.remove('faded');
-        clearTimeout(fadeTimeout);
-        if (isScrolling) { fadeTimeout = setTimeout(() => { scrollPanel.classList.add('faded'); navButtonsPanel.classList.add('faded'); }, 2500); }
+        // Panely probudíme jen tehdy, pokud zrovna neupravujeme text
+        if (!isEditMode) {
+            scrollPanel.classList.remove('faded'); navButtonsPanel.classList.remove('faded');
+            clearTimeout(fadeTimeout);
+            if (isScrolling) { fadeTimeout = setTimeout(() => { scrollPanel.classList.add('faded'); navButtonsPanel.classList.add('faded'); }, 2500); }
+        }
     }
 
     scrollContainer.addEventListener('touchstart', wakeUpPanels, {passive: true});
@@ -444,8 +459,11 @@
         document.querySelectorAll('.nav-btn').forEach(n => n.classList.remove('active'));
         document.getElementById('view-' + viewId).classList.add('active');
         if(document.getElementById('nav-' + viewId)) document.getElementById('nav-' + viewId).classList.add('active');
-        scrollPanel.style.display = (viewId === 'player') ? 'flex' : 'none';
-        navButtonsPanel.style.display = (viewId === 'player') ? 'flex' : 'none';
+        
+        // Zobrazení panelů (scroll + šipky) POUZE v playeru a POUZE pokud se zrovna neupravuje text
+        scrollPanel.style.display = (viewId === 'player' && !isEditMode) ? 'flex' : 'none';
+        navButtonsPanel.style.display = (viewId === 'player' && !isEditMode) ? 'flex' : 'none';
+        
         chordTooltip.style.display = 'none';
         if(viewId === 'library') { lastView = 'library'; renderLibrary(document.getElementById('searchInput').value); }
         if(viewId === 'playlists') renderPlaylistsFolders();
@@ -559,6 +577,7 @@
                 </div>
             `;
             card.onclick = () => { 
+                resetEditMode(); // Zrušení edit módu před otevřením nové písně
                 currentQueue = [...tempQueue]; currentQueueIndex = currentQueue.indexOf(sIdx); currentSongIndex = sIdx;
                 targetKeyIndex = song.preferredKey !== undefined ? song.preferredKey : (song.baseKey || 0); 
                 showView('player'); renderPlayer(); 
@@ -642,6 +661,7 @@
                 <b style="flex-grow:1;">${itemIdx + 1}. ${song.title}</b>
                 <button class="btn btn-red" onclick="event.stopPropagation(); removeFromPlaylist(${itemIdx})" style="padding:8px;">➖</button>`;
             card.onclick = () => { 
+                resetEditMode(); // Zrušení edit módu před otevřením
                 currentQueue = [...pl.songIds]; currentQueueIndex = itemIdx; currentSongIndex = songIdx; 
                 targetKeyIndex = song.preferredKey !== undefined ? song.preferredKey : (song.baseKey || 0); showView('player'); renderPlayer(); 
             };
@@ -855,7 +875,6 @@
         const keys = notes.map((n, i) => `<option value="${i}">${n}</option>`).join('');
         document.getElementById('addBaseKey').innerHTML = keys;
         
-        // Nastavení posluchačů pro automatické roztahování textových polí
         const lyricsInput = document.getElementById('lyricsInput');
         const editArea = document.getElementById('editArea');
         lyricsInput.addEventListener('input', () => autoResizeTextarea(lyricsInput));
@@ -863,47 +882,36 @@
 
         document.getElementById('nav-add').onclick = () => { 
             showView('add'); 
-            autoResizeTextarea(lyricsInput); // Srovnání velikosti při otevření pohledu
+            autoResizeTextarea(lyricsInput);
         };
         document.getElementById('nav-library').onclick = () => showView('library');
         document.getElementById('nav-playlists').onclick = () => showView('playlists');
         document.getElementById('playPauseBtn').onclick = () => isScrolling ? stopScroll() : startScroll();
-        document.getElementById('backFromPlayerBtn').onclick = () => { stopScroll(); showView(lastView); };
+        
+        document.getElementById('backFromPlayerBtn').onclick = () => { 
+            resetEditMode(); // Vypne edit mód před návratem
+            stopScroll(); 
+            showView(lastView); 
+        };
+        
         document.getElementById('fontPlusBtn').onclick = () => { currentFontSize += 2; renderPlayer(); };
         document.getElementById('fontMinusBtn').onclick = () => { currentFontSize -= 2; renderPlayer(); };
         document.getElementById('playerAddToPlaylistBtn').onclick = () => { if (currentSongIndex !== null) openAddToPlaylistModal(currentSongIndex); };
         
         document.getElementById('playerShareBtn').onclick = async () => {
             const song = db.songs[currentSongIndex];
-            const exportObj = {
-                title: song.title,
-                lyrics: song.lyrics,
-                baseKey: song.baseKey,
-                preferredKey: targetKeyIndex 
-            };
-            
+            const exportObj = { title: song.title, lyrics: song.lyrics, baseKey: song.baseKey, preferredKey: targetKeyIndex };
             const jsonStr = JSON.stringify(exportObj);
-            
-            const base64str = btoa(unescape(encodeURIComponent(jsonStr)))
-                                .replace(/\+/g, '-')
-                                .replace(/\//g, '_')
-                                .replace(/=+$/, '');
-            
+            const base64str = btoa(unescape(encodeURIComponent(jsonStr))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
             const shareUrl = window.location.origin + window.location.pathname + '?song=' + base64str;
             
             if (navigator.share) {
                 try {
-                    await navigator.share({
-                        title: `Muzikant: ${song.title}`,
-                        text: `Posílám ti píseň "${song.title}" s akordy z aplikace Muzikant! 🎸`,
-                        url: shareUrl
-                    });
+                    await navigator.share({ title: `Muzikant: ${song.title}`, text: `Posílám ti píseň "${song.title}" s akordy z aplikace Muzikant! 🎸`, url: shareUrl });
                 } catch (err) { 
                     if (err.name !== 'AbortError') { openShareModal(shareUrl, song.title); }
                 }
-            } else {
-                openShareModal(shareUrl, song.title);
-            }
+            } else { openShareModal(shareUrl, song.title); }
         };
 
         document.getElementById('openLibraryFilterBtn').onclick = () => { renderFilterTagsModal(); document.getElementById('libraryFilterModal').style.display = 'flex'; };
@@ -953,7 +961,7 @@
             saveData(); showView('library'); notify('Přidáno'); 
             document.getElementById('titleInput').value = ''; 
             document.getElementById('lyricsInput').value = '';
-            autoResizeTextarea(document.getElementById('lyricsInput')); // Reset výšky
+            autoResizeTextarea(document.getElementById('lyricsInput'));
         };
         
         document.getElementById('createPlaylistBtn').onclick = () => { const name = document.getElementById('newPlaylistName').value.trim(); if(name) { db.playlists.push({ name: name, songIds: [] }); saveData(); document.getElementById('newPlaylistName').value = ''; renderPlaylistsFolders(); notify('Vytvořeno'); }};
@@ -962,9 +970,7 @@
         
         document.getElementById('cancelConfirmBtn').onclick = () => { 
             document.getElementById('confirmModal').style.display='none'; 
-            if (window.location.search.includes('song=')) {
-                window.history.replaceState({}, document.title, window.location.pathname);
-            }
+            if (window.location.search.includes('song=')) { window.history.replaceState({}, document.title, window.location.pathname); }
         };
 
         document.getElementById('closePlaylistSelectBtn').onclick = () => document.getElementById('playlistSelectModal').style.display = 'none';
@@ -977,22 +983,32 @@
             const editContent = document.getElementById('playerEditContent');
             const saveBtn = document.getElementById('saveEditBtn');
             const toggleBtn = document.getElementById('toggleEditBtn');
+            const scrollPnl = document.getElementById('scrollPanel');
+            const navBtnPnl = document.getElementById('navButtonsPanel');
+
             if (isEditMode) { 
                 viewContent.style.display = 'none'; editContent.style.display = 'block'; saveBtn.style.display = 'inline-flex'; 
                 toggleBtn.innerText = '❌'; toggleBtn.style.background = '#ef4444'; 
+                
+                // Úplné skrytí navigačních prvků během editace
+                scrollPnl.style.display = 'none';
+                navBtnPnl.style.display = 'none';
+
                 const song = db.songs[currentSongIndex]; 
                 document.getElementById('editTitleInput').value = song.title; 
                 
                 const editArea = document.getElementById('editArea');
                 editArea.value = song.lyrics; 
                 
-                // Přizpůsobení výšky bezprostředně po načtení textu
                 setTimeout(() => autoResizeTextarea(editArea), 10); 
-                
                 document.getElementById('editBaseKey').innerHTML = keys; document.getElementById('editBaseKey').value = song.baseKey || 0;
             } else {
                 viewContent.style.display = 'block'; editContent.style.display = 'none'; saveBtn.style.display = 'none'; 
                 toggleBtn.innerText = '✏️'; toggleBtn.style.background = '#eab308';
+                
+                // Vrácení navigačních prvků zpět (vlastnost mizení a probouzení zůstává)
+                scrollPnl.style.display = 'flex';
+                navBtnPnl.style.display = 'flex';
             }
         };
 
@@ -1010,14 +1026,10 @@
     });
 
     document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible' && window.location.search.includes('song=')) {
-            checkSharedSong();
-        }
+        if (document.visibilityState === 'visible' && window.location.search.includes('song=')) { checkSharedSong(); }
     });
     
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(err => console.error('SW Error:', err)); });
-    }
+    if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(err => console.error('SW Error:', err)); }); }
 </script>
 </body>
 </html>
