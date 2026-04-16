@@ -7,37 +7,85 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#1e293b">
+    <meta name="theme-color" content="#f8f9fa">
     <title>Muzikant</title>
     <style>
-        /* --- BAREVNÁ TÉMATA (v24.4) --- */
+        /* --- BAREVNÁ TÉMATA - MATERIAL DESIGN (v25.0) --- */
         :root, [data-day-theme="classic"] {
-            --bg: #f8fafc; --text: #1e293b; --card-bg: #ffffff; --nav-bg: #1e293b;
-            --nav-text: #ffffff; --primary: #2563eb; --accent: #059669; --chord: #2563eb;
-            --border: #e2e8f0; --muted: #64748b;
+            --bg: #f8f9fa; /* Světlé, čisté pozadí Google Apps */
+            --text: #202124;
+            --card-bg: #ffffff;
+            --nav-bg: #ffffff;
+            --nav-text: #5f6368;
+            --nav-active-bg: #e8f0fe;
+            --nav-active-text: #1a73e8;
+            --primary: #1a73e8; /* Google modrá */
+            --accent: #1e8e3e; /* Google zelená */
+            --chord: #1a73e8;
+            --border: #dadce0;
+            --muted: #5f6368;
+            --shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+            --card-shadow: none;
+            --card-border: 1px solid #dadce0;
         }
 
         [data-day-theme="retro"] {
-            --bg: #fdf6e3; --text: #4c4031; --card-bg: #fbf1c7; --nav-bg: #3c3836;
-            --nav-text: #fdf6e3; --primary: #b58900; --accent: #859900; --chord: #cb4b16;
-            --border: #d5c4a1; --muted: #7c6f64;
+            --bg: #fdf6e3;
+            --text: #4c4031;
+            --card-bg: #fbf1c7;
+            --nav-bg: #fdf6e3;
+            --nav-text: #7c6f64;
+            --nav-active-bg: #f5e8c4;
+            --nav-active-text: #b58900;
+            --primary: #b58900;
+            --accent: #859900;
+            --chord: #cb4b16;
+            --border: #d5c4a1;
+            --muted: #7c6f64;
+            --shadow: 0 4px 6px -1px rgba(76,64,49,0.12);
+            --card-shadow: none;
+            --card-border: 1px solid #d5c4a1;
         }
 
         [data-day-theme="marine"] {
-            --bg: #f0f9ff; --text: #0c4a6e; --card-bg: #ffffff; --nav-bg: #075985;
-            --nav-text: #f0f9ff; --primary: #0284c7; --accent: #059669; --chord: #0ea5e9;
-            --border: #bae6fd; --muted: #475569;
+            --bg: #f0f9ff;
+            --text: #0c4a6e;
+            --card-bg: #ffffff;
+            --nav-bg: #ffffff;
+            --nav-text: #475569;
+            --nav-active-bg: #e0f2fe;
+            --nav-active-text: #0284c7;
+            --primary: #0284c7;
+            --accent: #059669;
+            --chord: #0ea5e9;
+            --border: #bae6fd;
+            --muted: #475569;
+            --shadow: 0 4px 6px -1px rgba(2,132,199,0.12);
+            --card-shadow: none;
+            --card-border: 1px solid #bae6fd;
         }
 
         [data-theme="dark"] {
-            --bg: #0f172a; --text: #f1f5f9; --card-bg: #1e293b; --nav-bg: #020617;
-            --nav-text: #f8fafc; --primary: #3b82f6; --accent: #10b981; --chord: #60a5fa;
-            --border: #334155; --muted: #94a3b8;
+            --bg: #202124; /* Google Dark Mode pozadí */
+            --text: #e8eaed;
+            --card-bg: #2d2d2d;
+            --nav-bg: #202124;
+            --nav-text: #9aa0a6;
+            --nav-active-bg: #3c4043;
+            --nav-active-text: #8ab4f8;
+            --primary: #8ab4f8;
+            --accent: #81c995;
+            --chord: #8ab4f8;
+            --border: #5f6368;
+            --muted: #9aa0a6;
+            --shadow: 0 4px 6px -1px rgba(0,0,0,0.4);
+            --card-shadow: none;
+            --card-border: 1px solid #5f6368;
         }
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { 
-            font-family: -apple-system, sans-serif;
+            font-family: 'Google Sans', Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
             background: var(--bg); color: var(--text);
             margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; 
             transition: background 0.3s, color 0.3s;
@@ -45,76 +93,117 @@
 
         .top-nav { 
             display: flex; justify-content: space-between; align-items: center; 
-            background: var(--nav-bg); color: var(--nav-text); 
-            padding: 25px 15px 15px 15px; 
+            background: var(--nav-bg); color: var(--text); 
+            padding: 25px 20px 15px 20px; 
             z-index: 1000; flex-shrink: 0;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            border-bottom: 1px solid var(--border);
             transition: transform 0.3s ease-in-out, margin-top 0.3s, background 0.3s;
         }
         .top-nav.hidden { transform: translateY(-100%); position: absolute; width: 100%; }
 
-        .app-title { font-weight: bold; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;}
-        .nav-icons { display: flex; gap: 6px; align-items: center; }
+        .app-title { font-weight: 600; font-size: 1.2rem; display: flex; align-items: center; gap: 8px;}
+        .nav-icons { display: flex; gap: 4px; align-items: center; }
         
         .nav-btn { 
-            background: rgba(255,255,255,0.15); color: var(--nav-text); border: none; 
-            font-size: 18px; width: 42px; height: 42px; border-radius: 10px; 
+            background: transparent; color: var(--nav-text); border: none; 
+            font-size: 20px; width: 44px; height: 44px; border-radius: 50%; 
             cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: background 0.2s, color 0.2s;
         }
-        .nav-btn.active { background: var(--primary); border: 2px solid white; }
+        .nav-btn:hover { background: rgba(128,128,128,0.1); }
+        .nav-btn.active { background: var(--nav-active-bg); color: var(--nav-active-text); }
 
-        .main-content { flex-grow: 1; overflow-y: auto; padding: 15px; position: relative; -webkit-overflow-scrolling: touch; scroll-behavior: auto; }
+        .main-content { flex-grow: 1; overflow-y: auto; padding: 20px 15px; position: relative; -webkit-overflow-scrolling: touch; scroll-behavior: auto; }
         .view { display: none; max-width: 900px; margin: 0 auto; padding-bottom: 120px; }
         .view.active { display: block; }
 
         .card { 
-            background: var(--card-bg); padding: 15px; border-radius: 12px; margin-bottom: 10px; 
+            background: var(--card-bg); padding: 16px 20px; border-radius: 12px; margin-bottom: 12px; 
             display: flex; justify-content: space-between; align-items: center; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 1px solid var(--border); 
-            cursor: pointer; transition: background 0.3s;
+            box-shadow: var(--card-shadow); border: var(--card-border); 
+            cursor: pointer; transition: box-shadow 0.2s, background 0.2s, transform 0.1s;
         }
+        .card:hover { box-shadow: var(--shadow); transform: translateY(-1px); }
         
-        .btn { padding: 12px 16px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; color: white; font-size: 14px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
-        .btn-green { background: var(--accent); } .btn-red { background: #ef4444; } .btn-gray { background: var(--muted); } .btn-blue { background: var(--primary); }
-        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+        .btn { 
+            padding: 10px 20px; border-radius: 24px; border: none; cursor: pointer; 
+            font-weight: 500; font-family: inherit; color: white; font-size: 14px; 
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px; 
+            box-shadow: 0 1px 2px 0 rgba(0,0,0,0.15); transition: background 0.2s, box-shadow 0.2s;
+        }
+        .btn:hover { box-shadow: var(--shadow); }
+        .btn-green { background: var(--accent); } .btn-red { background: #ea4335; } 
+        .btn-gray { background: var(--muted); } .btn-blue { background: var(--primary); }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--primary); box-shadow: none; }
+        .btn-outline:hover { background: rgba(128,128,128,0.05); }
 
-        input, textarea, select { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text); font-size: 16px; transition: background 0.3s, color 0.3s; }
+        input, textarea, select { 
+            width: 100%; padding: 14px 16px; margin-bottom: 12px; border-radius: 8px; 
+            border: 1px solid var(--border); background: var(--card-bg); color: var(--text); 
+            font-size: 16px; font-family: inherit; transition: border 0.2s, box-shadow 0.2s, background 0.3s, color 0.3s; 
+        }
+        input:focus, textarea:focus, select:focus {
+            outline: none; border-color: var(--primary); box-shadow: inset 0 0 0 1px var(--primary);
+        }
 
-        /* Styly pro štítky */
-        .tag-btn { padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text); cursor: pointer; font-size: 14px; font-weight: 500; transition: 0.2s; }
-        .tag-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
-        .song-tag-badge { font-size: 10px; background: var(--muted); color: white; padding: 2px 6px; border-radius: 10px; margin-right: 4px; font-weight: normal; }
+        /* Styly pro štítky (Chips) */
+        .tag-btn { 
+            padding: 8px 16px; border-radius: 20px; border: 1px solid var(--border); 
+            background: transparent; color: var(--text); cursor: pointer; font-size: 14px; 
+            font-weight: 500; transition: 0.2s; 
+        }
+        .tag-btn:hover { background: rgba(128,128,128,0.05); }
+        .tag-btn.active { background: var(--nav-active-bg); color: var(--nav-active-text); border-color: var(--nav-active-bg); }
+        
+        .song-tag-badge { 
+            font-size: 11px; background: var(--border); color: var(--text); padding: 4px 10px; 
+            border-radius: 12px; margin-right: 6px; font-weight: 500; display: inline-block;
+        }
 
-        #displayAreaWrapper { width: 100%; border-radius: 10px; border: 1px solid var(--border); background: var(--card-bg); padding: 15px 80px 40px 15px; box-sizing: border-box; overflow-x: auto; transition: background 0.3s; }
-        #displayArea { font-family: 'Consolas', monospace; line-height: 1.2; }
+        #displayAreaWrapper { 
+            width: 100%; border-radius: 12px; border: var(--card-border); 
+            background: var(--card-bg); padding: 20px 80px 40px 20px; box-sizing: border-box; 
+            overflow-x: auto; transition: background 0.3s; box-shadow: var(--card-shadow);
+        }
+        #displayArea { font-family: 'Consolas', monospace; line-height: 1.3; }
         
         .magnet-line { display: flex; flex-wrap: wrap; }
         .magnet-block { display: inline-flex; flex-direction: column; justify-content: flex-end; }
         .magnet-chord { min-height: 1.2em; white-space: pre; }
         .magnet-text { white-space: pre; }
 
-        .chord { color: var(--chord); font-weight: bold; cursor: pointer; border-radius: 4px; padding: 0 2px; margin: 0 -2px; }
-        .chord:active { background: rgba(0,0,0,0.1); }
+        .chord { color: var(--chord); font-weight: 600; cursor: pointer; border-radius: 4px; padding: 0 2px; margin: 0 -2px; transition: background 0.2s; }
+        .chord:active, .chord:hover { background: var(--nav-active-bg); }
         
-        #chordTooltip { position: fixed; display: none; z-index: 5000; background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); padding: 10px; transform: translate(-50%, -100%); margin-top: -15px; pointer-events: none; }
+        #chordTooltip { position: fixed; display: none; z-index: 5000; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); padding: 12px; transform: translate(-50%, -100%); margin-top: -15px; pointer-events: none; }
 
-        .scroll-panel { position: fixed; right: 10px; top: 50%; transform: translateY(-50%); background: var(--card-bg); border-radius: 40px; width: 60px; display: flex; flex-direction: column; align-items: center; padding: 20px 0; gap: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); z-index: 100; border: 1px solid var(--border); transition: opacity 0.4s ease, background 0.3s; }
+        /* Plovoucí ovladače (FAB styl) */
+        .scroll-panel { position: fixed; right: 15px; top: 50%; transform: translateY(-50%); background: var(--card-bg); border-radius: 40px; width: 60px; display: flex; flex-direction: column; align-items: center; padding: 20px 0; gap: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100; border: none; transition: opacity 0.4s ease, background 0.3s; }
         .scroll-panel.faded { opacity: 0.15; pointer-events: none; }
-        .speed-slider { appearance: none; width: 200px; height: 12px; background: var(--border); border-radius: 6px; transform: rotate(-90deg); margin: 90px 0; }
-        .play-btn { width: 50px; height: 50px; border-radius: 50%; border: none; background: var(--primary); color: white; font-size: 20px; }
+        .speed-slider { appearance: none; width: 200px; height: 6px; background: var(--border); border-radius: 6px; transform: rotate(-90deg); margin: 90px 0; }
+        .speed-slider::-webkit-slider-thumb { appearance: none; width: 18px; height: 18px; background: var(--primary); border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+        
+        .play-btn { width: 50px; height: 50px; border-radius: 50%; border: none; background: var(--primary); color: white; font-size: 20px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); transition: transform 0.1s; }
+        .play-btn:active { transform: scale(0.95); }
 
-        .nav-buttons-panel { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 20px; z-index: 100; transition: opacity 0.4s ease; }
+        .nav-buttons-panel { position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%); display: flex; gap: 24px; z-index: 100; transition: opacity 0.4s ease; }
         .nav-buttons-panel.faded { opacity: 0.15; pointer-events: none; }
-        .nav-arrow-btn { width: 55px; height: 55px; border-radius: 50%; background: var(--primary); color: white; border: none; font-size: 24px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); cursor: pointer; }
+        .nav-arrow-btn { width: 56px; height: 56px; border-radius: 50%; background: var(--primary); color: white; border: none; font-size: 24px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.2); cursor: pointer; transition: transform 0.1s; }
+        .nav-arrow-btn:active { transform: scale(0.95); }
 
-        .font-controls { display: flex; gap: 5px; background: var(--card-bg); border: 1px solid var(--border); padding: 5px; border-radius: 10px; align-items: center; transition: background 0.3s; }
-        .font-btn { background: var(--nav-bg); color:var(--nav-text); border: none; padding: 8px 14px; border-radius: 6px; font-weight: bold; transition: background 0.3s;}
+        .font-controls { display: flex; gap: 5px; background: var(--card-bg); border: var(--card-border); padding: 6px; border-radius: 20px; align-items: center; transition: background 0.3s; }
+        .font-btn { background: transparent; color: var(--text); border: none; padding: 6px 14px; border-radius: 16px; font-weight: 600; transition: background 0.2s;}
+        .font-btn:hover { background: rgba(128,128,128,0.1); }
 
-        #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 12px 25px; border-radius: 30px; display: none; z-index: 3000; font-weight: bold; }
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 3000; align-items: center; justify-content: center; backdrop-filter: blur(3px); }
-        .modal-content { background: var(--card-bg); color: var(--text); padding: 25px; border-radius: 15px; max-width: 320px; width: 90%; text-align: center; transition: background 0.3s; max-height: 90vh; overflow-y: auto;}
+        #toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #323232; color: white; padding: 14px 24px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.2); display: none; z-index: 4000; font-weight: 500; font-size: 14px; letter-spacing: 0.3px;}
+        
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 3000; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
+        .modal-content { background: var(--card-bg); color: var(--text); padding: 30px 25px; border-radius: 16px; max-width: 360px; width: 90%; text-align: center; transition: background 0.3s; max-height: 90vh; overflow-y: auto; box-shadow: 0 24px 38px 3px rgba(0,0,0,0.14), 0 9px 46px 8px rgba(0,0,0,0.12), 0 11px 15px -7px rgba(0,0,0,0.2);}
 
         .hidden-file { display: none; }
+        
+        h1, h2, h3 { font-weight: 500; margin-top: 0; color: var(--text); }
+        h1 { font-size: 1.5rem; margin-bottom: 20px; }
     </style>
 </head>
 <body>
@@ -126,43 +215,43 @@
 
     <div class="modal-overlay" id="confirmModal">
         <div class="modal-content">
-            <h3 style="margin-top:0;">Potvrdit akci</h3>
-            <p id="confirmText" style="color: var(--muted); margin-bottom:20px;"></p>
-            <div style="display:flex; justify-content:center; gap:10px;">
-                <button class="btn btn-gray" id="cancelConfirmBtn">Zrušit</button>
-                <button class="btn btn-red" id="confirmYesBtn">Ano</button>
+            <h3>Potvrdit akci</h3>
+            <p id="confirmText" style="color: var(--muted); margin-bottom:25px; font-size:15px;"></p>
+            <div style="display:flex; justify-content:center; gap:12px;">
+                <button class="btn btn-outline" id="cancelConfirmBtn">Zrušit</button>
+                <button class="btn btn-blue" id="confirmYesBtn">Ano</button>
             </div>
         </div>
     </div>
 
     <div class="modal-overlay" id="shareModal">
         <div class="modal-content">
-            <h3 style="margin-top:0;">Sdílet píseň</h3>
+            <h3>Sdílet píseň</h3>
             <p style="color: var(--muted); margin-bottom:10px; font-size: 14px;">Odkaz na tuto píseň:</p>
-            <input type="text" id="shareUrlInput" readonly style="margin-bottom:15px; font-size: 12px; background: var(--bg); cursor: text;">
-            <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:20px;">
-                <button class="btn btn-blue" id="copyShareBtn">📋 Zkopírovat odkaz</button>
-                <button class="btn btn-green" id="whatsappShareBtn" style="background:#25D366; color:white;">💬 WhatsApp Web</button>
-                <button class="btn btn-gray" id="emailShareBtn">📧 Poslat e-mailem</button>
+            <input type="text" id="shareUrlInput" readonly style="margin-bottom:20px; font-size: 13px; background: var(--bg); cursor: text;">
+            <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:25px;">
+                <button class="btn btn-outline" id="copyShareBtn">📋 Zkopírovat odkaz</button>
+                <button class="btn btn-green" id="whatsappShareBtn" style="background:#25D366; color:white; border:none;">💬 WhatsApp Web</button>
+                <button class="btn btn-outline" id="emailShareBtn">📧 Poslat e-mailem</button>
             </div>
-            <button class="btn btn-outline" id="closeShareModalBtn" style="width:100%;">Zavřít</button>
+            <button class="btn btn-gray" id="closeShareModalBtn" style="width:100%; background:transparent; color:var(--muted);">Zavřít</button>
         </div>
     </div>
 
     <div class="modal-overlay" id="playlistSelectModal">
         <div class="modal-content">
-            <h3 style="margin-top:0;">Přidat do playlistu</h3>
-            <div id="playlistOptions" style="display:flex; flex-direction:column; gap:10px; margin-bottom:20px;"></div>
-            <button class="btn btn-gray" id="closePlaylistSelectBtn">Zrušit</button>
+            <h3>Přidat do playlistu</h3>
+            <div id="playlistOptions" style="display:flex; flex-direction:column; gap:10px; margin-bottom:25px;"></div>
+            <button class="btn btn-outline" id="closePlaylistSelectBtn" style="width:100%;">Zrušit</button>
         </div>
     </div>
 
     <div class="modal-overlay" id="settingsModal">
         <div class="modal-content">
-            <h3 style="margin-top:0;">Nastavení</h3>
+            <h3>Nastavení</h3>
             
-            <div style="text-align:left; margin-bottom:15px;">
-                <label style="font-weight:bold; display:block; margin-bottom:8px; color:var(--muted); font-size:14px;">Zvolte zobrazení hmatů pro:</label>
+            <div style="text-align:left; margin-bottom:20px;">
+                <label style="font-weight:500; display:block; margin-bottom:8px; color:var(--text); font-size:14px;">Zvolte zobrazení hmatů pro:</label>
                 <select id="instrumentSelect">
                     <option value="guitar">Kytara (6 strun)</option>
                     <option value="ukulele">Ukulele (4 struny)</option>
@@ -172,26 +261,26 @@
                 </select>
             </div>
 
-            <div style="text-align:left; margin-bottom:25px;">
-                <label style="font-weight:bold; display:block; margin-bottom:8px; color:var(--muted); font-size:14px;">Barevné téma (Denní režim):</label>
+            <div style="text-align:left; margin-bottom:30px;">
+                <label style="font-weight:500; display:block; margin-bottom:8px; color:var(--text); font-size:14px;">Barevné téma (Denní režim):</label>
                 <select id="dayThemeSelect">
-                    <option value="classic">Klasik (Bílá)</option>
-                    <option value="retro">Retro (Béžová)</option>
-                    <option value="marine">Marine (Modrá)</option>
+                    <option value="classic">Klasik (Světlé)</option>
+                    <option value="retro">Retro (Béžové)</option>
+                    <option value="marine">Marine (Modré)</option>
                 </select>
             </div>
 
             <button class="btn btn-blue" id="closeSettingsBtn" style="width:100%;">Zavřít</button>
-            <div style="margin-top:20px; font-size:12px; color:var(--muted);">Verze: v24.4</div>
+            <div style="margin-top:20px; font-size:12px; color:var(--muted);">Verze: v25.0</div>
         </div>
     </div>
 
     <div class="modal-overlay" id="libraryFilterModal">
         <div class="modal-content">
-            <h3 style="margin-top:0;">Filtrovat podle štítků</h3>
-            <div id="filterTagsContainer" style="display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin-bottom:20px;"></div>
-            <div style="display:flex; justify-content:center; gap:10px;">
-                <button class="btn btn-red" id="clearFiltersBtn">Vymazat</button>
+            <h3>Filtrovat podle štítků</h3>
+            <div id="filterTagsContainer" style="display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin-bottom:25px;"></div>
+            <div style="display:flex; justify-content:center; gap:12px;">
+                <button class="btn btn-outline" id="clearFiltersBtn">Vymazat</button>
                 <button class="btn btn-blue" id="closeLibraryFilterBtn">Použít filtry</button>
             </div>
         </div>
@@ -199,13 +288,13 @@
 
     <div class="modal-overlay" id="songTagsModal">
         <div class="modal-content">
-            <h3 style="margin-top:0;">Štítky k písni</h3>
+            <h3>Štítky k písni</h3>
             
-            <div id="songTagsContainer" style="display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin-bottom:15px;"></div>
+            <div id="songTagsContainer" style="display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin-bottom:20px;"></div>
             
-            <div style="display:flex; gap:5px; margin-top: 15px; border-top: 1px solid var(--border); padding-top: 15px; margin-bottom: 20px;">
+            <div style="display:flex; gap:8px; margin-top: 15px; border-top: 1px solid var(--border); padding-top: 20px; margin-bottom: 25px;">
                 <input type="text" id="newTagInput" placeholder="Vlastní štítek..." style="margin-bottom:0; flex-grow:1;">
-                <button class="btn btn-green" id="addNewTagBtn" style="padding:10px 15px;">+</button>
+                <button class="btn btn-outline" id="addNewTagBtn" style="padding:10px 16px;">+</button>
             </div>
 
             <button class="btn btn-blue" id="closeSongTagsBtn" style="width:100%;">Hotovo</button>
@@ -228,41 +317,41 @@
         <div id="view-add" class="view">
             <h1>Nová píseň</h1>
             <input type="text" id="titleInput" placeholder="Název písně">
-            <div style="display:flex; gap:10px; align-items:center; margin-bottom:10px; background:var(--card-bg); padding:10px; border-radius:8px; border:1px solid var(--border);">
-                <label style="font-weight:bold;">Výchozí tónina textu:</label>
-                <select id="addBaseKey"></select>
+            <div style="display:flex; gap:10px; align-items:center; margin-bottom:15px; background:var(--card-bg); padding:12px 16px; border-radius:12px; border:var(--card-border); box-shadow:var(--card-shadow);">
+                <label style="font-weight:500;">Výchozí tónina textu:</label>
+                <select id="addBaseKey" style="margin-bottom:0; flex-grow:1;"></select>
             </div>
             <textarea id="lyricsInput" style="min-height: 300px; overflow-y: hidden; resize: none; font-family: monospace;" placeholder="Sem vlož text a akordy..."></textarea>
-            <button class="btn btn-green" style="width:100%;" id="saveNewSongBtn">Uložit do knihovny</button>
+            <button class="btn btn-blue" style="width:100%; margin-top:10px;" id="saveNewSongBtn">Uložit do knihovny</button>
         </div>
 
         <div id="view-library" class="view active">
-            <h1>Knihovna <span id="songCount" style="font-size: 0.9rem; color: var(--muted); font-weight: normal; margin-left: 5px;"></span></h1>
+            <h1 style="display:flex; align-items:baseline;">Knihovna <span id="songCount" style="font-size: 0.9rem; color: var(--muted); font-weight: normal; margin-left: 8px;"></span></h1>
             
-            <div style="display:flex; gap:10px; margin-bottom: 10px;">
-                <input type="text" id="searchInput" placeholder="Hledat píseň..." style="flex-grow:1; margin-bottom:0;">
-                <button class="btn btn-outline" id="openLibraryFilterBtn" title="Štítky a Filtry" style="padding:12px; position:relative;">
+            <div style="display:flex; gap:10px; margin-bottom: 20px;">
+                <input type="text" id="searchInput" placeholder="Hledat píseň..." style="flex-grow:1; margin-bottom:0; border-radius:24px; padding-left:20px;">
+                <button class="btn btn-outline" id="openLibraryFilterBtn" title="Štítky a Filtry" style="padding:12px; position:relative; border-radius:50%; width:46px; height:46px;">
                     🏷️
-                    <span id="activeFilterBadge" style="display:none; position:absolute; top:-5px; right:-5px; background:var(--accent); color:white; border-radius:50%; width:18px; height:18px; font-size:10px; align-items:center; justify-content:center;"></span>
+                    <span id="activeFilterBadge" style="display:none; position:absolute; top:-2px; right:-2px; background:var(--accent); color:white; border-radius:50%; width:20px; height:20px; font-size:11px; align-items:center; justify-content:center; border:2px solid var(--bg);"></span>
                 </button>
             </div>
 
             <div id="libraryList"></div>
             
-            <div style="margin-top:40px; border-top:1px solid var(--border); padding-top:20px;">
-                <h3>Záloha celé knihovny</h3>
-                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <div style="margin-top:50px; border-top:1px solid var(--border); padding-top:30px;">
+                <h3 style="color:var(--muted); font-size:14px; text-transform:uppercase; letter-spacing:0.5px;">Záloha knihovny</h3>
+                <div style="display:flex; gap:12px; flex-wrap:wrap;">
                     <button class="btn btn-outline" id="exportAllBtn">📤 Exportovat vše</button>
-                    <button class="btn btn-outline" id="triggerImportAllBtn">📥 Importovat zálohu</button>
+                    <button class="btn btn-outline" id="triggerImportAllBtn">📥 Importovat</button>
                 </div>
             </div>
         </div>
 
         <div id="view-playlists" class="view">
             <h1>Playlisty</h1>
-            <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:20px;">
+            <div style="display:flex; flex-direction:column; gap:15px; margin-bottom:30px;">
                 <div style="display:flex; gap:10px;">
-                    <input type="text" id="newPlaylistName" placeholder="Název nového playlistu..." style="margin-bottom:0;">
+                    <input type="text" id="newPlaylistName" placeholder="Název nového playlistu..." style="margin-bottom:0; border-radius:24px; padding-left:20px;">
                     <button class="btn btn-blue" id="createPlaylistBtn">Vytvořit</button>
                 </div>
                 <button class="btn btn-outline" id="triggerImportPlaylistBtn">📥 Importovat playlist pro kapelu</button>
@@ -271,34 +360,34 @@
         </div>
 
         <div id="view-playlist-detail" class="view">
-            <button class="btn btn-gray" id="backToPlaylistsBtn" style="margin-bottom:10px;">← Zpět na seznam</button>
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <button class="btn btn-outline" id="backToPlaylistsBtn" style="margin-bottom:20px; border:none; padding-left:0;">← Zpět na seznam</button>
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:25px;">
                 <h1 id="currentPlaylistTitle" style="margin:0;"></h1>
                 <button class="btn btn-outline" id="exportPlaylistBtn">📤 Exportovat</button>
             </div>
-            <div id="playlistItemsContainer" style="margin-top:20px;"></div>
+            <div id="playlistItemsContainer"></div>
         </div>
 
         <div id="view-player" class="view">
-            <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:15px; align-items:center;">
-                <button class="btn btn-blue" id="backFromPlayerBtn">← Zpět</button>
-                <button class="btn btn-blue" id="toggleEditBtn" style="background:#eab308">✏️</button>
-                <button class="btn btn-blue" id="playerTagsBtn" title="Přidat štítky">🏷️</button>
-                <button class="btn btn-blue" id="playerShareBtn" title="Sdílet píseň">🔁</button>
-                <button class="btn btn-green" id="saveEditBtn" style="display:none;">💾 Uložit text</button>
-                <button class="btn btn-green" id="fixKeyBtn" title="Uložit aktuální tóninu">💾 Tóninu</button>
-                <button class="btn btn-blue" id="playerAddToPlaylistBtn" title="Přidat do playlistu">📑+</button>
+            <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px; align-items:center;">
+                <button class="btn btn-outline" id="backFromPlayerBtn" style="border:none; padding-left:0; padding-right:10px;">← Zpět</button>
+                <button class="btn btn-outline" id="toggleEditBtn" style="border:none; background:rgba(234, 179, 8, 0.1); color:#ca8a04;">✏️</button>
+                <button class="btn btn-outline" id="playerTagsBtn" title="Přidat štítky" style="border:none;">🏷️</button>
+                <button class="btn btn-outline" id="playerShareBtn" title="Sdílet píseň" style="border:none;">🔁</button>
+                <button class="btn btn-blue" id="saveEditBtn" style="display:none;">💾 Uložit text</button>
+                <button class="btn btn-outline" id="fixKeyBtn" title="Uložit aktuální tóninu" style="border:none;">💾 Tóninu</button>
+                <button class="btn btn-outline" id="playerAddToPlaylistBtn" title="Přidat do playlistu" style="border:none;">📑+</button>
                 
-                <div class="font-controls">
+                <div class="font-controls" style="margin-left:auto;">
                     <button class="font-btn" id="fontMinusBtn">A-</button>
                     <button class="font-btn" id="fontPlusBtn">A+</button>
                 </div>
             </div>
             
             <div id="playerViewContent">
-                <div id="keyButtons" style="display:flex; flex-wrap:wrap; gap:5px; margin-bottom:15px;"></div>
-                <div id="playerActiveTags" style="margin-bottom:5px;"></div>
-                <h1 id="displayTitle" style="margin:0 0 10px 0;"></h1>
+                <div id="keyButtons" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:20px;"></div>
+                <div id="playerActiveTags" style="margin-bottom:10px;"></div>
+                <h1 id="displayTitle" style="margin:0 0 15px 0;"></h1>
                 <div id="displayAreaWrapper">
                     <div id="displayArea"></div>
                 </div>
@@ -306,9 +395,9 @@
             
             <div id="playerEditContent" style="display:none;">
                 <input type="text" id="editTitleInput" placeholder="Název písně">
-                <div style="display:flex; gap:10px; align-items:center; margin-bottom:10px; background:var(--card-bg); padding:10px; border-radius:8px; border:1px solid var(--border);">
-                    <label style="font-weight:bold;">Tónina zapsaného textu:</label>
-                    <select id="editBaseKey"></select>
+                <div style="display:flex; gap:10px; align-items:center; margin-bottom:15px; background:var(--card-bg); padding:12px 16px; border-radius:12px; border:var(--card-border); box-shadow:var(--card-shadow);">
+                    <label style="font-weight:500;">Tónina zapsaného textu:</label>
+                    <select id="editBaseKey" style="margin-bottom:0; flex-grow:1;"></select>
                 </div>
                 <textarea id="editArea" style="min-height: 300px; overflow-y: hidden; resize: none; font-family: monospace;" placeholder="Text s akordy..."></textarea>
             </div>
@@ -394,26 +483,23 @@
     const scrollPanel = document.getElementById('scrollPanel');
     const chordTooltip = document.getElementById('chordTooltip');
 
-    // --- OPRAVENÁ FUNKCE PRO AUTOMATICKÉ ROZTAŽENÍ S FIXACÍ SCROLLU ---
     function autoResizeTextarea(el) {
         const container = document.getElementById('scrollContainer');
-        const currentScroll = container.scrollTop; // Uložení přesné pozice pohledu
+        const currentScroll = container.scrollTop; 
         
-        el.style.height = 'auto'; // Uvolnění výšky pro přepočet (tohle způsobuje ten skok)
-        el.style.height = el.scrollHeight + 'px'; // Okamžité nastavení nové výšky
+        el.style.height = 'auto'; 
+        el.style.height = el.scrollHeight + 'px'; 
         
-        container.scrollTop = currentScroll; // Vracíme obrazovku přesně tam, kde byla
+        container.scrollTop = currentScroll; 
     }
 
-    // Funkce pro zrušení edit módu při opuštění přehrávače
     function resetEditMode() {
         if (isEditMode) {
-            document.getElementById('toggleEditBtn').click(); // Nasimulujeme kliknutí pro bezpečný návrat z úprav
+            document.getElementById('toggleEditBtn').click(); 
         }
     }
 
     function wakeUpPanels() {
-        // Panely probudíme jen tehdy, pokud zrovna neupravujeme text
         if (!isEditMode) {
             scrollPanel.classList.remove('faded'); navButtonsPanel.classList.remove('faded');
             clearTimeout(fadeTimeout);
@@ -460,7 +546,6 @@
         document.getElementById('view-' + viewId).classList.add('active');
         if(document.getElementById('nav-' + viewId)) document.getElementById('nav-' + viewId).classList.add('active');
         
-        // Zobrazení panelů (scroll + šipky) POUZE v playeru a POUZE pokud se zrovna neupravuje text
         scrollPanel.style.display = (viewId === 'player' && !isEditMode) ? 'flex' : 'none';
         navButtonsPanel.style.display = (viewId === 'player' && !isEditMode) ? 'flex' : 'none';
         
@@ -565,19 +650,19 @@
             if (!tempQueue.includes(sIdx)) return;
             
             const tagsHtml = (song.tags && song.tags.length > 0) 
-                ? `<div style="margin-top:4px;">` + song.tags.map(t => `<span class="song-tag-badge">${t}</span>`).join('') + `</div>` 
+                ? `<div style="margin-top:8px;">` + song.tags.map(t => `<span class="song-tag-badge">${t}</span>`).join('') + `</div>` 
                 : '';
 
             const card = document.createElement('div'); card.className = 'card';
             card.innerHTML = `
-                <div style="flex-grow:1;"><b>${song.title}</b>${tagsHtml}</div>
-                <div style="display:flex; gap:5px;">
-                    <button class="btn btn-blue" onclick="event.stopPropagation(); openAddToPlaylistModal(${sIdx})" style="padding:8px;" title="Přidat do playlistu">📑+</button>
-                    <button class="btn btn-red" onclick="event.stopPropagation(); deleteSong(${sIdx})" style="padding:8px;">🗑</button>
+                <div style="flex-grow:1; font-weight: 500;">${song.title}${tagsHtml}</div>
+                <div style="display:flex; gap:6px;">
+                    <button class="btn btn-outline" onclick="event.stopPropagation(); openAddToPlaylistModal(${sIdx})" style="padding:10px; border:none; background:rgba(128,128,128,0.1);" title="Přidat do playlistu">📑+</button>
+                    <button class="btn btn-red" onclick="event.stopPropagation(); deleteSong(${sIdx})" style="padding:10px; border:none; background:rgba(234, 67, 53, 0.1); color:#ea4335;">🗑</button>
                 </div>
             `;
             card.onclick = () => { 
-                resetEditMode(); // Zrušení edit módu před otevřením nové písně
+                resetEditMode();
                 currentQueue = [...tempQueue]; currentQueueIndex = currentQueue.indexOf(sIdx); currentSongIndex = sIdx;
                 targetKeyIndex = song.preferredKey !== undefined ? song.preferredKey : (song.baseKey || 0); 
                 showView('player'); renderPlayer(); 
@@ -620,8 +705,11 @@
         container.innerHTML = '';
         db.playlists.forEach((pl, idx) => {
             const card = document.createElement('div'); card.className = 'card';
-            card.innerHTML = `<b style="flex-grow:1;">📁 ${pl.name} (${pl.songIds ? pl.songIds.length : 0})</b>
-                <div style="display:flex; gap:5px;"><button class="btn btn-blue" onclick="event.stopPropagation(); renamePlaylist(${idx})" style="padding:8px;">✏️</button><button class="btn btn-red" onclick="event.stopPropagation(); deletePlaylist(${idx})" style="padding:8px;">🗑</button></div>`;
+            card.innerHTML = `<b style="flex-grow:1; font-weight:500;">📁 ${pl.name} <span style="color:var(--muted); font-weight:normal; font-size:12px; margin-left:5px;">(${pl.songIds ? pl.songIds.length : 0})</span></b>
+                <div style="display:flex; gap:6px;">
+                    <button class="btn btn-outline" onclick="event.stopPropagation(); renamePlaylist(${idx})" style="padding:10px; border:none; background:rgba(128,128,128,0.1);">✏️</button>
+                    <button class="btn btn-red" onclick="event.stopPropagation(); deletePlaylist(${idx})" style="padding:10px; border:none; background:rgba(234, 67, 53, 0.1); color:#ea4335;">🗑</button>
+                </div>`;
             card.onclick = () => openPlaylist(idx); container.appendChild(card);
         });
     }
@@ -655,13 +743,13 @@
                     pl.songIds.splice(itemIdx, 0, draggedId); saveData(); renderPlaylistItems();
                 }
             };
-            card.innerHTML = `<div style="display:flex; flex-direction:column; gap:4px; margin-right:12px; cursor:grab;">
-                <button class="btn btn-gray" onclick="event.stopPropagation(); moveSongInPlaylist(${itemIdx}, -1)" style="padding:4px 8px; font-size:10px;">▲</button>
-                <button class="btn btn-gray" onclick="event.stopPropagation(); moveSongInPlaylist(${itemIdx}, 1)" style="padding:4px 8px; font-size:10px;">▼</button></div>
-                <b style="flex-grow:1;">${itemIdx + 1}. ${song.title}</b>
-                <button class="btn btn-red" onclick="event.stopPropagation(); removeFromPlaylist(${itemIdx})" style="padding:8px;">➖</button>`;
+            card.innerHTML = `<div style="display:flex; flex-direction:column; gap:4px; margin-right:16px; cursor:grab;">
+                <button class="btn btn-outline" onclick="event.stopPropagation(); moveSongInPlaylist(${itemIdx}, -1)" style="padding:4px 8px; font-size:10px; border:none; background:rgba(128,128,128,0.1); color:var(--text);">▲</button>
+                <button class="btn btn-outline" onclick="event.stopPropagation(); moveSongInPlaylist(${itemIdx}, 1)" style="padding:4px 8px; font-size:10px; border:none; background:rgba(128,128,128,0.1); color:var(--text);">▼</button></div>
+                <div style="flex-grow:1; font-weight:500;"><span style="color:var(--muted); margin-right:6px;">${itemIdx + 1}.</span> ${song.title}</div>
+                <button class="btn btn-red" onclick="event.stopPropagation(); removeFromPlaylist(${itemIdx})" style="padding:10px; border:none; background:rgba(234, 67, 53, 0.1); color:#ea4335;">➖</button>`;
             card.onclick = () => { 
-                resetEditMode(); // Zrušení edit módu před otevřením
+                resetEditMode();
                 currentQueue = [...pl.songIds]; currentQueueIndex = itemIdx; currentSongIndex = songIdx; 
                 targetKeyIndex = song.preferredKey !== undefined ? song.preferredKey : (song.baseKey || 0); showView('player'); renderPlayer(); 
             };
@@ -740,8 +828,13 @@
     function renderKeyButtons() {
         const container = document.getElementById('keyButtons'); container.innerHTML = '';
         notes.forEach((note, index) => {
-            const btn = document.createElement('button'); btn.className = 'btn'; btn.style = "padding:8px 12px; background:var(--card-bg); color:var(--text); border:1px solid var(--border);";
-            if(index === targetKeyIndex) { btn.style.background = "var(--primary)"; btn.style.color = "white"; }
+            const btn = document.createElement('button'); btn.className = 'btn btn-outline'; 
+            btn.style.padding = "6px 12px"; btn.style.fontSize = "13px";
+            if(index === targetKeyIndex) { 
+                btn.style.background = "var(--nav-active-bg)"; 
+                btn.style.color = "var(--nav-active-text)"; 
+                btn.style.border = "1px solid var(--primary)";
+            }
             btn.innerText = note; btn.onclick = () => { targetKeyIndex = index; renderPlayer(); };
             container.appendChild(btn);
         });
@@ -757,8 +850,8 @@
         if (!chordData) return `<div style="padding:10px; font-size:14px; text-align:center;">Akord<br><b style="color:var(--primary)">${chordName}</b><br>nenalezen pro tento nástroj</div>`;
         let numStrings = chordData.f.length; let spacing = 50 / (numStrings - 1);
         let isDark = document.body.getAttribute('data-theme') === 'dark';
-        let strokeColor = isDark ? '#f8fafc' : '#1e293b'; let dotColor = '#2563eb';
-        let svg = `<div style="text-align:center; font-weight:bold; margin-bottom:5px; color:${strokeColor}">${chordName}</div>`;
+        let strokeColor = isDark ? '#f8fafc' : '#202124'; let dotColor = 'var(--primary)';
+        let svg = `<div style="text-align:center; font-weight:600; margin-bottom:8px; color:${strokeColor}">${chordName}</div>`;
         svg += `<svg width="70" height="90" viewBox="0 0 70 90" xmlns="http://www.w3.org/2000/svg" style="font-family:sans-serif;">`;
         if (chordData.b && chordData.b > 1) svg += `<text x="0" y="24" font-size="12" fill="${strokeColor}">${chordData.b}</text>`;
         svg += `<path d="M 15 15 L 65 15 L 65 85 L 15 85 Z" fill="none" stroke="${strokeColor}" stroke-width="1.5"/>`;
@@ -889,7 +982,7 @@
         document.getElementById('playPauseBtn').onclick = () => isScrolling ? stopScroll() : startScroll();
         
         document.getElementById('backFromPlayerBtn').onclick = () => { 
-            resetEditMode(); // Vypne edit mód před návratem
+            resetEditMode(); 
             stopScroll(); 
             showView(lastView); 
         };
@@ -988,9 +1081,10 @@
 
             if (isEditMode) { 
                 viewContent.style.display = 'none'; editContent.style.display = 'block'; saveBtn.style.display = 'inline-flex'; 
-                toggleBtn.innerText = '❌'; toggleBtn.style.background = '#ef4444'; 
+                toggleBtn.innerText = '❌'; 
+                toggleBtn.style.background = 'rgba(234, 67, 53, 0.1)'; 
+                toggleBtn.style.color = '#ea4335';
                 
-                // Úplné skrytí navigačních prvků během editace
                 scrollPnl.style.display = 'none';
                 navBtnPnl.style.display = 'none';
 
@@ -1004,9 +1098,10 @@
                 document.getElementById('editBaseKey').innerHTML = keys; document.getElementById('editBaseKey').value = song.baseKey || 0;
             } else {
                 viewContent.style.display = 'block'; editContent.style.display = 'none'; saveBtn.style.display = 'none'; 
-                toggleBtn.innerText = '✏️'; toggleBtn.style.background = '#eab308';
+                toggleBtn.innerText = '✏️'; 
+                toggleBtn.style.background = 'rgba(234, 179, 8, 0.1)';
+                toggleBtn.style.color = '#ca8a04';
                 
-                // Vrácení navigačních prvků zpět (vlastnost mizení a probouzení zůstává)
                 scrollPnl.style.display = 'flex';
                 navBtnPnl.style.display = 'flex';
             }
