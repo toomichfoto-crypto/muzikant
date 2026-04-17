@@ -12,7 +12,7 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-        /* --- BAREVNÁ TÉMATA - MATERIAL DESIGN (v25.2) --- */
+        /* --- BAREVNÁ TÉMATA - MATERIAL DESIGN (v25.3) --- */
         :root, [data-day-theme="classic"] {
             --bg: #f8f9fa; 
             --text: #202124;
@@ -133,13 +133,25 @@
             padding: 10px 20px; border-radius: 24px; border: none; cursor: pointer; 
             font-weight: 500; font-family: inherit; color: white; font-size: 14px; 
             display: inline-flex; align-items: center; justify-content: center; gap: 8px; 
-            box-shadow: 0 1px 2px 0 rgba(0,0,0,0.15); transition: background 0.2s, box-shadow 0.2s;
+            box-shadow: 0 1px 2px 0 rgba(0,0,0,0.15); transition: background 0.2s, box-shadow 0.2s, color 0.2s;
         }
         .btn:hover { box-shadow: var(--shadow); }
         .btn-green { background: var(--accent); } .btn-red { background: #ea4335; } 
         .btn-gray { background: var(--muted); } .btn-blue { background: var(--primary); }
         .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); box-shadow: none; }
         .btn-outline:hover { background: rgba(128,128,128,0.05); }
+
+        /* Tlačítko Zrušit */
+        .btn-cancel {
+            background: rgba(234, 67, 53, 0.1);
+            color: #ea4335;
+            border: none;
+            box-shadow: none;
+            font-weight: 600;
+        }
+        .btn-cancel:hover {
+            background: rgba(234, 67, 53, 0.2);
+        }
 
         input, textarea, select { 
             width: 100%; padding: 14px 16px; margin-bottom: 12px; border-radius: 8px; 
@@ -179,7 +191,8 @@
         
         #chordTooltip { position: fixed; display: none; z-index: 5000; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); padding: 12px; transform: translate(-50%, -100%); margin-top: -15px; pointer-events: none; }
 
-        .scroll-panel { position: fixed; right: 15px; top: 50%; transform: translateY(-50%); background: var(--card-bg); border-radius: 40px; width: 60px; display: flex; flex-direction: column; align-items: center; padding: 20px 0; gap: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100; border: none; transition: opacity 0.4s ease, background 0.3s; }
+        /* Panel pro posuvník posunutý mírně níže (top: 60%) */
+        .scroll-panel { position: fixed; right: 15px; top: 60%; transform: translateY(-50%); background: var(--card-bg); border-radius: 40px; width: 60px; display: flex; flex-direction: column; align-items: center; padding: 20px 0; gap: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100; border: none; transition: opacity 0.4s ease, background 0.3s; }
         .scroll-panel.faded { opacity: 0.15; pointer-events: none; }
         .speed-slider { appearance: none; width: 200px; height: 6px; background: var(--border); border-radius: 6px; transform: rotate(-90deg); margin: 90px 0; }
         .speed-slider::-webkit-slider-thumb { appearance: none; width: 18px; height: 18px; background: var(--primary); border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
@@ -195,6 +208,15 @@
         .font-controls { display: flex; gap: 5px; background: var(--card-bg); border: var(--card-border); padding: 6px; border-radius: 20px; align-items: center; transition: background 0.3s; box-shadow: var(--card-shadow); }
         .font-btn { background: transparent; color: var(--text); border: none; padding: 6px 12px; border-radius: 16px; font-weight: 600; display: flex; align-items: center; justify-content: center; transition: background 0.2s;}
         .font-btn:hover { background: rgba(128,128,128,0.1); }
+
+        /* Zvýrazněné aktivní tlačítko tóniny */
+        .key-btn { transition: all 0.2s; }
+        .key-btn.active {
+            background-color: var(--text) !important;
+            color: var(--bg) !important;
+            border-color: var(--text) !important;
+            font-weight: bold;
+        }
 
         #toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #323232; color: white; padding: 14px 24px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.2); display: none; z-index: 4000; font-weight: 500; font-size: 14px; letter-spacing: 0.3px;}
         
@@ -219,7 +241,7 @@
             <h3>Potvrdit akci</h3>
             <p id="confirmText" style="color: var(--muted); margin-bottom:25px; font-size:15px;"></p>
             <div style="display:flex; justify-content:center; gap:12px;">
-                <button class="btn btn-outline" id="cancelConfirmBtn">Zrušit</button>
+                <button class="btn btn-cancel" id="cancelConfirmBtn">Zrušit</button>
                 <button class="btn btn-blue" id="confirmYesBtn">Ano</button>
             </div>
         </div>
@@ -241,7 +263,7 @@
                     <svg viewBox="0 0 24 24" width="20" height="20"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg> Poslat e-mailem
                 </button>
             </div>
-            <button class="btn btn-gray" id="closeShareModalBtn" style="width:100%; background:transparent; color:var(--muted);">Zavřít</button>
+            <button class="btn btn-cancel" id="closeShareModalBtn" style="width:100%;">Zavřít</button>
         </div>
     </div>
 
@@ -249,7 +271,7 @@
         <div class="modal-content">
             <h3>Přidat do playlistu</h3>
             <div id="playlistOptions" style="display:flex; flex-direction:column; gap:10px; margin-bottom:25px;"></div>
-            <button class="btn btn-outline" id="closePlaylistSelectBtn" style="width:100%;">Zrušit</button>
+            <button class="btn btn-cancel" id="closePlaylistSelectBtn" style="width:100%;">Zrušit</button>
         </div>
     </div>
 
@@ -278,7 +300,7 @@
             </div>
 
             <button class="btn btn-blue" id="closeSettingsBtn" style="width:100%;">Zavřít</button>
-            <div style="margin-top:20px; font-size:12px; color:var(--muted);">Verze: v25.2</div>
+            <div style="margin-top:20px; font-size:12px; color:var(--muted);">Verze: v25.3</div>
         </div>
     </div>
 
@@ -431,15 +453,6 @@
                 <button class="btn btn-outline" id="playerAddToPlaylistBtn" title="Přidat do playlistu" style="border:none; color:var(--text);">
                     <svg viewBox="0 0 24 24" width="20" height="20"><path d="M14 10H2v2h12v-2zm0-4H2v2h12V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM2 16h8v-2H2v2z"/></svg>
                 </button>
-                
-                <div class="font-controls">
-                    <button class="font-btn" id="fontMinusBtn">
-                        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M.99 19h2.42l1.27-3.58h5.65L11.59 19h2.42L8.75 5h-2.5L.99 19zm4.42-5.61L7.44 7.6h.12l2.03 5.79H5.41zM24 11v2h-8v-2h8z"/></svg>
-                    </button>
-                    <button class="font-btn" id="fontPlusBtn">
-                        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M.99 19h2.42l1.27-3.58h5.65L11.59 19h2.42L8.75 5h-2.5L.99 19zm4.42-5.61L7.44 7.6h.12l2.03 5.79H5.41zM24 11v2h-8v-2h8zM21 8h-2v3h-3v2h3v3h2v-3h3v-2h-3z"/></svg>
-                    </button>
-                </div>
             </div>
             
             <div id="playerViewContent">
@@ -907,12 +920,11 @@
     function renderKeyButtons() {
         const container = document.getElementById('keyButtons'); container.innerHTML = '';
         notes.forEach((note, index) => {
-            const btn = document.createElement('button'); btn.className = 'btn btn-outline'; 
+            const btn = document.createElement('button'); 
+            btn.className = 'btn btn-outline key-btn'; 
             btn.style.padding = "6px 12px"; btn.style.fontSize = "13px";
             if(index === targetKeyIndex) { 
-                btn.style.background = "var(--nav-active-bg)"; 
-                btn.style.color = "var(--nav-active-text)"; 
-                btn.style.borderColor = "var(--nav-active-bg)";
+                btn.classList.add('active');
             }
             btn.innerText = note; btn.onclick = () => { targetKeyIndex = index; renderPlayer(); };
             container.appendChild(btn);
@@ -1073,7 +1085,6 @@
         lyricsInput.addEventListener('input', () => autoResizeTextarea(lyricsInput));
         editArea.addEventListener('input', () => autoResizeTextarea(editArea));
 
-        // --- Logika mazacího křížku ve vyhledávání ---
         const searchInput = document.getElementById('searchInput');
         const clearSearchBtn = document.getElementById('clearSearchBtn');
         
