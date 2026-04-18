@@ -12,7 +12,7 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-        /* --- BAREVNÁ TÉMATA - MATERIAL DESIGN (v26.2) --- */
+        /* --- BAREVNÁ TÉMATA - MATERIAL DESIGN (v26.3) --- */
         :root, [data-day-theme="classic"] {
             --bg: #f8f9fa;
             --text: #202124;
@@ -353,7 +353,7 @@
             </div>
 
             <button class="btn btn-blue" id="closeSettingsBtn" style="width:100%;">Zavřít</button>
-            <div style="margin-top:20px; font-size:12px; color:var(--muted);">Verze: v26.2</div>
+            <div style="margin-top:20px; font-size:12px; color:var(--muted);">Verze: v26.3</div>
         </div>
     </div>
 
@@ -1042,9 +1042,9 @@
         lastTime = currentTime; 
         if (delta > 100) { requestAnimationFrame(scrollStep); return; } 
         
-        // Velmi plynulý a pomalý výpočet (jemnější krok, poloviční maximální rychlost)
+        // Sníženo o dalších 35 % (z 0.5 na 0.325)
         const val = parseInt(speedSlider.value);
-        const speedPxPerSec = val * 0.5; // dříve 1.2, nyní 0.5 pro mnohem jemnější rozsah
+        const speedPxPerSec = val * 0.325; 
         scrollPos += speedPxPerSec * (delta / 1000); 
         
         scrollContainer.scrollTop = scrollPos; 
