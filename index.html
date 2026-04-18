@@ -12,9 +12,9 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-        /* --- BAREVNÁ TÉMATA - MATERIAL DESIGN (v26.0) --- */
+        /* --- BAREVNÁ TÉMATA - MATERIAL DESIGN (v26.1) --- */
         :root, [data-day-theme="classic"] {
-            --bg: #f8f9fa; 
+            --bg: #f8f9fa;
             --text: #202124;
             --card-bg: #ffffff;
             --nav-bg: #1a73e8;
@@ -22,7 +22,7 @@
             --nav-active-bg: rgba(255, 255, 255, 0.2);
             --nav-active-text: #ffffff;
             --primary: #1a73e8; 
-            --accent: #1e8e3e; 
+            --accent: #1e8e3e;
             --chord: #1a73e8;
             --border: #dadce0;
             --muted: #5f6368;
@@ -68,7 +68,7 @@
         }
 
         [data-theme="dark"] {
-            --bg: #202124; 
+            --bg: #202124;
             --text: #e8eaed;
             --card-bg: #2d2d2d;
             --nav-bg: #171717;
@@ -96,7 +96,8 @@
         svg { fill: currentColor; display: block; }
 
         .top-nav { 
-            display: flex; justify-content: space-between; align-items: center; 
+            display: flex;
+            justify-content: space-between; align-items: center; 
             background: var(--nav-bg); color: var(--nav-text); 
             padding: 25px 20px 15px 20px; 
             z-index: 1000; flex-shrink: 0;
@@ -109,7 +110,8 @@
         .nav-icons { display: flex; gap: 4px; align-items: center; }
         
         .nav-btn { 
-            background: transparent; color: var(--nav-text); border: none; 
+            background: transparent;
+            color: var(--nav-text); border: none; 
             width: 44px; height: 44px; border-radius: 50%; 
             cursor: pointer; display: flex; align-items: center; justify-content: center;
             transition: background 0.2s, color 0.2s;
@@ -117,12 +119,14 @@
         .nav-btn:hover { background: rgba(255,255,255,0.1); }
         .nav-btn.active { background: var(--nav-active-bg); color: var(--nav-active-text); }
 
-        .main-content { flex-grow: 1; overflow-y: auto; padding: 20px 15px; position: relative; -webkit-overflow-scrolling: touch; scroll-behavior: auto; }
+        .main-content { flex-grow: 1; overflow-y: auto; padding: 20px 15px; position: relative;
+            -webkit-overflow-scrolling: touch; scroll-behavior: auto; }
         .view { display: none; max-width: 900px; margin: 0 auto; padding-bottom: 120px; }
         .view.active { display: block; }
 
         .card { 
-            background: var(--card-bg); padding: 16px 20px; border-radius: 12px; margin-bottom: 12px; 
+            background: var(--card-bg);
+            padding: 16px 20px; border-radius: 12px; margin-bottom: 12px; 
             display: flex; justify-content: space-between; align-items: center; 
             box-shadow: var(--card-shadow); border: var(--card-border); 
             cursor: pointer; transition: box-shadow 0.2s, background 0.2s, transform 0.1s;
@@ -188,15 +192,20 @@
         
         #chordTooltip { position: fixed; display: none; z-index: 5000; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); padding: 12px; transform: translate(-50%, -100%); margin-top: -15px; pointer-events: none; }
 
-        /* Panel pro posuvník a Metronom (TAP) */
+        /* Panel pro posuvník */
         .scroll-panel { position: fixed; right: 15px; top: 60%; transform: translateY(-50%); background: var(--card-bg); border-radius: 40px; width: 60px; display: flex; flex-direction: column; align-items: center; padding: 15px 0; gap: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100; border: none; transition: opacity 0.4s ease, background 0.3s; }
         .scroll-panel.faded { opacity: 0.15; pointer-events: none; }
         .speed-slider { appearance: none; width: 170px; height: 6px; background: var(--border); border-radius: 6px; transform: rotate(-90deg); margin: 75px 0; }
         .speed-slider::-webkit-slider-thumb { appearance: none; width: 18px; height: 18px; background: var(--primary); border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
         
-        /* Tlačítko TAP Metronomu */
-        .tap-btn { width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--primary); background: transparent; color: var(--text); font-weight: bold; font-size: 12px; cursor: pointer; transition: background 0.1s; display: flex; align-items: center; justify-content: center;}
-        .tap-btn:active { background: var(--primary); color: white; }
+        /* Tlačítka rychlosti (+/-) */
+        .speed-btn {
+            width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border); 
+            background: var(--card-bg); color: var(--text); font-weight: bold; font-size: 20px; 
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: background 0.2s, transform 0.1s; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .speed-btn:active { transform: scale(0.95); background: var(--border); }
 
         .play-btn { width: 50px; height: 50px; border-radius: 50%; border: none; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 8px rgba(0,0,0,0.2); transition: transform 0.1s; }
         .play-btn:active { transform: scale(0.95); }
@@ -205,12 +214,6 @@
         .nav-buttons-panel.faded { opacity: 0.15; pointer-events: none; }
         .nav-arrow-btn { width: 56px; height: 56px; border-radius: 50%; background: var(--primary); color: white; border: none; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.2); cursor: pointer; transition: transform 0.1s; }
         .nav-arrow-btn:active { transform: scale(0.95); }
-
-        /* Animace vizuálního metronomu */
-        @keyframes pulse-beat {
-            0% { opacity: 1; transform: scale(1.15); box-shadow: 0 0 20px var(--accent); background: var(--accent); }
-            100% { opacity: 0.8; transform: scale(1); box-shadow: 0 4px 12px rgba(0,0,0,0.2); background: var(--primary); }
-        }
 
         .font-controls { display: flex; gap: 5px; background: var(--card-bg); border: var(--card-border); padding: 4px 6px; border-radius: 20px; align-items: center; transition: background 0.3s; box-shadow: var(--card-shadow); }
         .font-btn { background: transparent; color: var(--text); border: none; padding: 6px 12px; border-radius: 16px; font-weight: 600; display: flex; align-items: center; justify-content: center; transition: background 0.2s; cursor: pointer;}
@@ -306,7 +309,7 @@
             </div>
 
             <button class="btn btn-blue" id="closeSettingsBtn" style="width:100%;">Zavřít</button>
-            <div style="margin-top:20px; font-size:12px; color:var(--muted);">Verze: v26.0</div>
+            <div style="margin-top:20px; font-size:12px; color:var(--muted);">Verze: v26.1</div>
         </div>
     </div>
 
@@ -492,8 +495,10 @@
     </div>
 
     <div id="scrollPanel" class="scroll-panel" style="display: none;">
-        <button id="tapTempoBtn" class="tap-btn" title="Tap Tempo (Metronom)">TAP</button>
-        <input type="range" id="speedSlider" class="speed-slider" min="0" max="100" value="30">
+        <button id="speedPlusBtn" class="speed-btn" title="Zrychlit">+</button>
+        <input type="range" id="speedSlider" class="speed-slider" min="1" max="100" value="20">
+        <button id="speedMinusBtn" class="speed-btn" title="Zpomalit">-</button>
+        
         <button id="playPauseBtn" class="play-btn">
             <svg viewBox="0 0 24 24" width="28" height="28" style="margin-left:3px;"><path d="M8 5v14l11-7z"/></svg>
         </button>
@@ -533,11 +538,6 @@
 
     let currentFontSize = parseInt(localStorage.getItem('muzikant_font_size')) || 20;
     
-    // Proměnné pro Metronom
-    let currentBpm = 0;
-    let beatIntervalId = null;
-    let tapTimes = [];
-
     const baseTags = ['Rock', 'Pop', 'Folk', 'Country', 'Metal', 'Punk', 'Ostatní'];
     let activeLibraryFilters = [];
 
@@ -593,76 +593,27 @@
     const navButtonsPanel = document.getElementById('navButtonsPanel');
     const scrollPanel = document.getElementById('scrollPanel');
     const chordTooltip = document.getElementById('chordTooltip');
+    const speedSlider = document.getElementById('speedSlider');
 
-    // Metronom a Auto-scroll Sync
-    function updateMetronomeUI() {
-        const btn = document.getElementById('tapTempoBtn');
-        btn.innerText = currentBpm >= 30 ? currentBpm : 'TAP';
-        
-        clearInterval(beatIntervalId);
-        const arrows = document.querySelectorAll('.nav-arrow-btn');
-        arrows.forEach(a => a.style.animation = 'none');
-
-        if (currentBpm >= 30) {
-            const interval = 60000 / currentBpm;
-            beatIntervalId = setInterval(() => {
-                if (isScrolling) {
-                    arrows.forEach(a => {
-                        a.style.animation = 'none';
-                        void a.offsetWidth; // Trigger reflow (restart animace)
-                        a.style.animation = `pulse-beat ${interval/1000}s cubic-bezier(0.1, 0.8, 0.3, 1)`;
-                    });
-                }
-            }, interval);
-        }
-    }
-
-    document.getElementById('tapTempoBtn').onclick = () => {
-        const now = performance.now();
-        // Reset měření, pokud je pauza delší než 2 vteřiny
-        if (tapTimes.length > 0 && now - tapTimes[tapTimes.length - 1] > 2000) {
-            tapTimes = [];
-        }
-        tapTimes.push(now);
-        if (tapTimes.length > 4) tapTimes.shift(); // Počítáme průměr z posledních 3 intervalů
-
-        if (tapTimes.length > 1) {
-            let intervals = [];
-            for (let i = 1; i < tapTimes.length; i++) {
-                intervals.push(tapTimes[i] - tapTimes[i - 1]);
-            }
-            const avgInterval = intervals.reduce((a, b) => a + b) / intervals.length;
-            currentBpm = Math.round(60000 / avgInterval);
-            
-            // Přepočet BPM na hodnotu posuvníku (zajištění synchronizace textu s tepem)
-            let requiredSpeed = (currentBpm * 40) / 60000;
-            let newSlider = Math.round(Math.cbrt(requiredSpeed * 400000));
-            newSlider = Math.min(100, Math.max(0, newSlider));
-            document.getElementById('speedSlider').value = newSlider;
-            
-            if (currentSongIndex !== null) {
-                db.songs[currentSongIndex].bpm = currentBpm;
-                db.songs[currentSongIndex].scrollSpeed = newSlider;
-                saveData();
-            }
-            updateMetronomeUI();
-        }
+    // Tlačítka pro jemné ladění rychlosti (+/-)
+    document.getElementById('speedPlusBtn').onclick = () => {
+        speedSlider.value = Math.min(100, parseInt(speedSlider.value) + 1);
+        saveSpeed();
+    };
+    
+    document.getElementById('speedMinusBtn').onclick = () => {
+        speedSlider.value = Math.max(1, parseInt(speedSlider.value) - 1);
+        saveSpeed();
     };
 
-    document.getElementById('speedSlider').addEventListener('input', (e) => {
-        // Pokud pohneme posuvníkem manuálně, přepočítáme BPM, aby zobrazení odpovídalo realitě
-        const val = e.target.value;
-        const speedPxMs = Math.pow(val, 3) / 400000;
-        currentBpm = Math.round((speedPxMs * 60000) / 40);
-        if (currentBpm < 30) currentBpm = 0; 
-        updateMetronomeUI();
-        
+    speedSlider.addEventListener('input', saveSpeed);
+
+    function saveSpeed() {
         if (currentSongIndex !== null) {
-            db.songs[currentSongIndex].scrollSpeed = val;
-            db.songs[currentSongIndex].bpm = currentBpm;
+            db.songs[currentSongIndex].scrollSpeed = parseInt(speedSlider.value);
             saveData();
         }
-    });
+    }
 
     function autoResizeTextarea(el) {
         const container = document.getElementById('scrollContainer');
@@ -967,11 +918,8 @@
         document.getElementById('displayTitle').innerText = song.title || "";
         document.getElementById('displayArea').style.fontSize = currentFontSize + 'px';
         
-        // Načtení uloženého tempa a rychlosti posuvníku
-        const savedSpeed = song.scrollSpeed !== undefined ? song.scrollSpeed : 30;
-        document.getElementById('speedSlider').value = savedSpeed;
-        currentBpm = song.bpm || 0;
-        updateMetronomeUI();
+        const savedSpeed = song.scrollSpeed !== undefined ? song.scrollSpeed : 20;
+        speedSlider.value = savedSpeed;
 
         renderKeyButtons(); renderPlayerTags();
         chordTooltip.style.display = 'none';
@@ -1047,9 +995,19 @@
         const delta = currentTime - lastTime; 
         lastTime = currentTime; 
         if (delta > 100) { requestAnimationFrame(scrollStep); return; } 
-        const speed = Math.pow(document.getElementById('speedSlider').value, 3) / 400000; 
-        scrollPos += speed * (delta / 16.66); 
+        
+        // Velmi plynulý a pomalý výpočet (hodnota 20 = 24 pixelů za sekundu)
+        const val = parseInt(speedSlider.value);
+        const speedPxPerSec = val * 1.2; 
+        scrollPos += speedPxPerSec * (delta / 1000); 
+        
         scrollContainer.scrollTop = scrollPos; 
+        
+        if (scrollContainer.scrollTop + scrollContainer.clientHeight >= scrollContainer.scrollHeight - 2) {
+            stopScroll();
+            return;
+        }
+
         requestAnimationFrame(scrollStep); 
     }
     function stopScroll() { 
