@@ -245,6 +245,39 @@
         }
 
         #toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #323232; color: white; padding: 14px 24px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.2); display: none; z-index: 4000; font-weight: 500; font-size: 14px; letter-spacing: 0.3px;}
+
+        #backupBanner {
+            display: none; flex-shrink: 0;
+            background: #fff3cd; color: #7a4f00;
+            border-bottom: 1px solid #f0c040;
+            padding: 10px 16px;
+            align-items: center; gap: 10px;
+            font-size: 13px; font-weight: 500;
+            z-index: 999;
+            transition: background 0.3s;
+        }
+        [data-theme="dark"] #backupBanner {
+            background: #3a2e00; color: #ffd966;
+            border-bottom-color: #5a4500;
+        }
+        #backupBanner .backup-text { flex-grow: 1; line-height: 1.4; }
+        #backupNowBtn {
+            background: #e6a800; color: white; border: none;
+            padding: 7px 14px; border-radius: 20px;
+            font-size: 12px; font-weight: 600; cursor: pointer;
+            white-space: nowrap; flex-shrink: 0;
+            font-family: inherit;
+            transition: background 0.2s;
+        }
+        #backupNowBtn:hover { background: #c98f00; }
+        #backupDismissBtn {
+            background: transparent; border: none; cursor: pointer;
+            color: #7a4f00; padding: 4px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0.6; transition: opacity 0.2s;
+        }
+        [data-theme="dark"] #backupDismissBtn { color: #ffd966; }
+        #backupDismissBtn:hover { opacity: 1; }
         
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 3000; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
         .modal-content { background: var(--card-bg); color: var(--text); padding: 30px 25px; border-radius: 16px; max-width: 360px; width: 90%; text-align: center; transition: background 0.3s; max-height: 90vh; overflow-y: auto; box-shadow: 0 24px 38px 3px rgba(0,0,0,0.14), 0 9px 46px 8px rgba(0,0,0,0.12), 0 11px 15px -7px rgba(0,0,0,0.2);}
@@ -261,8 +294,6 @@
     <div id="chordTooltip"></div>
     <input type="file" id="importAllInput" class="hidden-file" accept=".json">
     <input type="file" id="importPlaylistInput" class="hidden-file" accept=".json">
-
-    <div class="modal-overlay" id="confirmModal">
         <div class="modal-content">
             <h3>Potvrdit akci</h3>
             <p id="confirmText" style="color: var(--muted); margin-bottom:25px; font-size:15px;"></p>
@@ -326,7 +357,7 @@
             </div>
 
             <button class="btn btn-blue" id="closeSettingsBtn" style="width:100%;">Zavřít</button>
-            <div style="margin-top:20px; font-size:12px; color:var(--muted);">Verze: v26.6</div>
+            <div style="margin-top:20px; font-size:12px; color:var(--muted);">Verze: v26.7</div>
         </div>
     </div>
 
@@ -380,6 +411,14 @@
                 <svg viewBox="0 0 24 24" width="24" height="24"><path d="M4 10h12v2H4zm0-4h12v2H4zm0 8h8v2H4zm10 0v6l5-3z"/></svg>
             </button>
         </div>
+    </div>
+
+
+    <div id="backupBanner">
+        <svg viewBox="0 0 24 24" width="20" height="20" style="flex-shrink:0; fill:#e6a800;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+        <span class="backup-text" id="backupBannerText">Nezálohoval/a jsi již delší dobu. Záloha chrání tvá data.</span>
+        <button id="backupNowBtn">Zálohovat nyní</button>
+        <button id="backupDismissBtn" title="Zavřít"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
     </div>
 
     <div class="main-content" id="scrollContainer">
@@ -545,6 +584,13 @@
     };
     let db = { songs: [], playlists: [] };
     const DB_KEY = 'muzikant_db_v17';
+    const BACKUP_KEY = 'muzikant_backup_info';
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    // iOS: připomínka po 7 dnech nebo 10 písních; Android/desktop: po 14 dnech nebo 15 písních
+    const BACKUP_REMINDER_DAYS = isIOS ? 7 : 14;
+    const BACKUP_REMINDER_SONGS = isIOS ? 10 : 15;
+    // Při zavření banneru bez zálohy se znovu zobrazí za 5 dní
+    const BACKUP_SNOOZE_DAYS = 5;
     const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B', 'H'];
     const CHORD_REGEX_STR = "(^|\\s|\\[|\\(|\\|)([A-H][#b]?(?:m|mi|maj|min|dim|sus|add|aug|2|4|5|6|7|9|11|13|Δ|\\+)*(?:\\/[A-H][#b]?)?)(?=\\s|\\]|\\)|\\||$|,)";
     let currentInstrument = localStorage.getItem('muzikant_instrument') || 'guitar';
@@ -692,7 +738,86 @@
         document.getElementById('dayThemeSelect').value = currentDayTheme;
     }
 
-    function saveData() { localStorage.setItem(DB_KEY, JSON.stringify(db)); }
+    function saveData() {
+        localStorage.setItem(DB_KEY, JSON.stringify(db));
+        checkBackupReminder();
+    }
+
+    // --- OCHRANA DAT: zálohovací systém ---
+
+    function getBackupInfo() {
+        try { return JSON.parse(localStorage.getItem(BACKUP_KEY)) || {}; }
+        catch(e) { return {}; }
+    }
+
+    function saveBackupInfo(info) {
+        localStorage.setItem(BACKUP_KEY, JSON.stringify(info));
+    }
+
+    function recordBackupDone() {
+        saveBackupInfo({
+            lastBackup: Date.now(),
+            songCountAtBackup: db.songs.length,
+            snoozedUntil: null
+        });
+        hideBanner();
+    }
+
+    function hideBanner() {
+        document.getElementById('backupBanner').style.display = 'none';
+    }
+
+    function checkBackupReminder() {
+        if (db.songs.length < 1) { hideBanner(); return; }
+
+        const info = getBackupInfo();
+        const now = Date.now();
+        const DAY = 86400000;
+
+        // Uživatel odložil banner — čekáme
+        if (info.snoozedUntil && now < info.snoozedUntil) { hideBanner(); return; }
+
+        const daysSinceBackup = info.lastBackup
+            ? (now - info.lastBackup) / DAY
+            : Infinity;
+        const songsSinceBackup = info.lastBackup
+            ? db.songs.length - (info.songCountAtBackup || 0)
+            : db.songs.length;
+
+        const tooLong = daysSinceBackup >= BACKUP_REMINDER_DAYS;
+        const tooManySongs = songsSinceBackup >= BACKUP_REMINDER_SONGS;
+
+        if (tooLong || tooManySongs) {
+            showBanner(tooLong, daysSinceBackup, songsSinceBackup);
+        } else {
+            hideBanner();
+        }
+    }
+
+    function showBanner(byTime, daysSince, songsSince) {
+        const banner = document.getElementById('backupBanner');
+        const textEl = document.getElementById('backupBannerText');
+
+        let msg;
+        if (isIOS) {
+            if (byTime) {
+                const days = Math.floor(daysSince);
+                msg = `Na iPhonu/iPadu mohou být data smazána. Nezálohoval/a jsi ${days} dní.`;
+            } else {
+                msg = `Na iPhonu/iPadu mohou být data smazána. Přibylo ${songsSince} nových písní bez zálohy.`;
+            }
+        } else {
+            if (byTime) {
+                const days = Math.floor(daysSince);
+                msg = `Nezálohoval/a jsi již ${days} dní. Doporučujeme zálohu knihovny.`;
+            } else {
+                msg = `Přibylo ${songsSince} nových písní bez zálohy. Doporučujeme zálohovat.`;
+            }
+        }
+
+        textEl.textContent = msg;
+        banner.style.display = 'flex';
+    }
     
     function notify(msg) { const t = document.getElementById('toast');
         t.innerText = msg; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 3000);
@@ -1167,8 +1292,12 @@
         document.getElementById('dayThemeSelect').onchange = (e) => { currentDayTheme = e.target.value; localStorage.setItem('muzikant_day_theme', currentDayTheme); document.body.setAttribute('data-day-theme', currentDayTheme); notify('Téma změněno'); };
         document.getElementById('themeToggle').onclick = () => { const isDark = document.body.getAttribute('data-theme') === 'dark'; isDark ? document.body.removeAttribute('data-theme') : document.body.setAttribute('data-theme', 'dark'); localStorage.setItem('muzikant_theme', isDark ? 'light' : 'dark'); };
         
-        document.getElementById('exportAllBtn').onclick = () => { const a = document.createElement('a');
-            a.href = URL.createObjectURL(new Blob([JSON.stringify(db)], {type: 'application/json'})); a.download = `muzikant_zaloha.json`; a.click(); };
+        document.getElementById('exportAllBtn').onclick = () => {
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([JSON.stringify(db)], {type: 'application/json'}));
+            a.download = `muzikant_zaloha.json`; a.click();
+            recordBackupDone();
+        };
         document.getElementById('triggerImportAllBtn').onclick = () => document.getElementById('importAllInput').click();
         document.getElementById('importAllInput').onchange = (e) => { 
             if(!e.target.files[0]) return;
@@ -1248,8 +1377,24 @@
             saveData(); renderPlayer(); document.getElementById('toggleEditBtn').click(); notify('Uloženo');
         };
         
+        // --- Zálohovací banner ---
+        document.getElementById('backupNowBtn').onclick = () => {
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([JSON.stringify(db)], {type: 'application/json'}));
+            a.download = `muzikant_zaloha.json`; a.click();
+            recordBackupDone();
+            notify('Záloha stažena');
+        };
+        document.getElementById('backupDismissBtn').onclick = () => {
+            const info = getBackupInfo();
+            info.snoozedUntil = Date.now() + BACKUP_SNOOZE_DAYS * 86400000;
+            saveBackupInfo(info);
+            hideBanner();
+        };
+
         checkSharedSong();
         if (!window.location.search.includes('song=')) { showView('library'); }
+        checkBackupReminder();
     });
 
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && window.location.search.includes('song=')) { checkSharedSong(); } });
