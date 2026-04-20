@@ -1,11 +1,10 @@
-const CACHE_NAME = 'muzikant-cache-v24'; // Povýšeno na v24
+const CACHE_NAME = 'muzikant-cache-v26';
 const ASSETS = [
     './',
     './index.html',
     './manifest.json',
     './icon-512.png'
 ];
-
 // Instalace a uložení souborů do mezipaměti
 self.addEventListener('install', (e) => {
     e.waitUntil(
@@ -14,7 +13,6 @@ self.addEventListener('install', (e) => {
         })
     );
 });
-
 // Zajištění fungování offline
 self.addEventListener('fetch', (e) => {
     e.respondWith(

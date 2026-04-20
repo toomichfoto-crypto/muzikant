@@ -606,6 +606,27 @@
     const scrollPanel = document.getElementById('scrollPanel');
     const chordTooltip = document.getElementById('chordTooltip');
     const speedSlider = document.getElementById('speedSlider');
+
+    // --- OPRAVA: pomocná funkce pro bezpečné vkládání textu do HTML ---
+    function escapeHtml(str) {
+        const d = document.createElement('div');
+        d.textContent = str || '';
+        return d.innerHTML;
+    }
+
+    // --- OPRAVA: kódování UTF-8 pro sdílení bez zastaralých escape/unescape ---
+    function encodeToBase64Url(str) {
+        const bytes = new TextEncoder().encode(str);
+        const binStr = Array.from(bytes, b => String.fromCharCode(b)).join('');
+        return btoa(binStr).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    }
+
+    function decodeFromBase64Url(str) {
+        const padded = str.replace(/-/g, '+').replace(/_/g, '/');
+        const binStr = atob(padded);
+        const bytes = Uint8Array.from(binStr, c => c.charCodeAt(0));
+        return new TextDecoder().decode(bytes);
+    }
     
     // Tlačítka pro jemné ladění rychlosti (+/-)
     document.getElementById('speedPlusBtn').onclick = () => {
@@ -748,7 +769,8 @@
         const container = document.getElementById('playerActiveTags');
         const songTags = db.songs[currentSongIndex].tags || [];
         if(songTags.length === 0) { container.innerHTML = ''; return; }
-        container.innerHTML = songTags.map(tag => `<span class="song-tag-badge">${tag}</span>`).join('');
+        // OPRAVA: escapeHtml pro štítky
+        container.innerHTML = songTags.map(tag => `<span class="song-tag-badge">${escapeHtml(tag)}</span>`).join('');
     }
 
     function renderLibrary(filterText = '') {
@@ -781,13 +803,14 @@
             
             if (!tempQueue.includes(sIdx)) return;
             
+            // OPRAVA: escapeHtml pro název písně a štítky
             const tagsHtml = (song.tags && song.tags.length > 0) 
-                ? `<div style="margin-top:8px;">` + song.tags.map(t => `<span class="song-tag-badge">${t}</span>`).join('') + `</div>` 
+                ? `<div style="margin-top:8px;">` + song.tags.map(t => `<span class="song-tag-badge">${escapeHtml(t)}</span>`).join('') + `</div>` 
                 : '';
 
             const card = document.createElement('div'); card.className = 'card';
             card.innerHTML = `
-                <div style="flex-grow:1; font-weight: 500;">${song.title}${tagsHtml}</div>
+                <div style="flex-grow:1; font-weight: 500;">${escapeHtml(song.title)}${tagsHtml}</div>
                 <div style="display:flex; gap:6px;">
                     <button class="btn btn-outline" onclick="event.stopPropagation(); openAddToPlaylistModal(${sIdx})" style="padding:10px; border:none; background:rgba(128,128,128,0.1);" title="Přidat do playlistu">${IC.addPl}</button>
                     <button class="btn btn-red" onclick="event.stopPropagation(); deleteSong(${sIdx})" style="padding:10px; border:none; background:rgba(234, 67, 53, 0.1); color:#ea4335;" title="Smazat">${IC.trash}</button>
@@ -837,7 +860,8 @@
         container.innerHTML = '';
         db.playlists.forEach((pl, idx) => {
             const card = document.createElement('div'); card.className = 'card';
-            card.innerHTML = `<div style="display:flex; align-items:center; gap:8px; flex-grow:1; font-weight:500;">${IC.folder} ${pl.name} <span style="color:var(--muted); font-weight:normal; font-size:12px;">(${pl.songIds ? pl.songIds.length : 0})</span></div>
+            // OPRAVA: escapeHtml pro název playlistu
+            card.innerHTML = `<div style="display:flex; align-items:center; gap:8px; flex-grow:1; font-weight:500;">${IC.folder} ${escapeHtml(pl.name)} <span style="color:var(--muted); font-weight:normal; font-size:12px;">(${pl.songIds ? pl.songIds.length : 0})</span></div>
                 <div style="display:flex; gap:6px;">
                     <button class="btn btn-outline" onclick="event.stopPropagation(); renamePlaylist(${idx})" style="padding:10px; border:none; background:rgba(128,128,128,0.1);" title="Přejmenovat">${IC.edit}</button>
                     <button class="btn btn-red" onclick="event.stopPropagation(); deletePlaylist(${idx})" style="padding:10px; border:none; background:rgba(234, 67, 53, 0.1); color:#ea4335;" title="Smazat">${IC.trash}</button>
@@ -866,14 +890,34 @@
             card.ondragend = () => { card.style.opacity = '1'; };
             card.ondragover = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
             card.ondrop = (e) => { e.preventDefault(); if (draggedItemIndex !== null && draggedItemIndex !== itemIdx) { const draggedId = pl.songIds.splice(draggedItemIndex, 1)[0]; pl.songIds.splice(itemIdx, 0, draggedId); saveData(); renderPlaylistItems(); } };
+            // OPRAVA: escapeHtml pro název písně
             card.innerHTML = `<div style="display:flex; flex-direction:column; gap:4px; margin-right:16px; cursor:grab;">
                 <button class="btn btn-outline" onclick="event.stopPropagation(); moveSongInPlaylist(${itemIdx}, -1)" style="padding:4px 8px; border:none; background:rgba(128,128,128,0.1); color:var(--text);">${IC.up}</button>
                 <button class="btn btn-outline" onclick="event.stopPropagation(); moveSongInPlaylist(${itemIdx}, 1)" style="padding:4px 8px; border:none; background:rgba(128,128,128,0.1); color:var(--text);">${IC.down}</button></div>
-                <div style="flex-grow:1; font-weight:500;"><span style="color:var(--muted); margin-right:6px;">${itemIdx + 1}.</span> ${song.title}</div>
+                <div style="flex-grow:1; font-weight:500;"><span style="color:var(--muted); margin-right:6px;">${itemIdx + 1}.</span> ${escapeHtml(song.title)}</div>
                 <button class="btn btn-red" onclick="event.stopPropagation(); removeFromPlaylist(${itemIdx})" style="padding:10px; border:none; background:rgba(234, 67, 53, 0.1); color:#ea4335;" title="Odebrat z playlistu">${IC.remove}</button>`;
             card.onclick = () => { resetEditMode(); currentQueue = [...pl.songIds]; currentQueueIndex = itemIdx; currentSongIndex = songIdx; targetKeyIndex = song.preferredKey !== undefined ? song.preferredKey : (song.baseKey || 0); showView('player'); renderPlayer(); };
             container.appendChild(card);
         });
+    }
+
+    // OPRAVA: chybějící funkce pro přesun písně v playlistu
+    function moveSongInPlaylist(itemIdx, direction) {
+        const pl = db.playlists[activePlaylistIdx];
+        const newIdx = itemIdx + direction;
+        if (newIdx < 0 || newIdx >= pl.songIds.length) return;
+        [pl.songIds[itemIdx], pl.songIds[newIdx]] = [pl.songIds[newIdx], pl.songIds[itemIdx]];
+        saveData();
+        renderPlaylistItems();
+    }
+
+    // OPRAVA: chybějící funkce pro odebrání písně z playlistu
+    function removeFromPlaylist(itemIdx) {
+        const pl = db.playlists[activePlaylistIdx];
+        pl.songIds.splice(itemIdx, 1);
+        saveData();
+        renderPlaylistItems();
+        notify('Odebráno z playlistu');
     }
 
     function isChordLine(line) {
@@ -909,14 +953,14 @@
                     blokAkordu += znakA; blokTextu += znakT;
                     if (znakT === ' ' && znakA === ' ') {
                         let prepocitanyAkord = blokAkordu.replace(regex, (match, prefix, chordName) => { return prefix + '<span class="chord">' + transposeChord(chordName, fromKey, toKey) + '</span>'; });
-                        vysledneHTML += `<span class="magnet-block"><span class="magnet-chord">${prepocitanyAkord}</span><span class="magnet-text">${blokTextu}</span></span>`;
+                        vysledneHTML += `<span class="magnet-block"><span class="magnet-chord">${prepocitanyAkord}</span><span class="magnet-text">${escapeHtml(blokTextu)}</span></span>`;
                         blokAkordu = ''; blokTextu = '';
                     }
                 }
                 
                 if (blokTextu.length > 0 || blokAkordu.length > 0) {
                     let prepocitanyAkord = blokAkordu.replace(regex, (match, prefix, chordName) => { return prefix + '<span class="chord">' + transposeChord(chordName, fromKey, toKey) + '</span>'; });
-                    vysledneHTML += `<span class="magnet-block"><span class="magnet-chord">${prepocitanyAkord}</span><span class="magnet-text">${blokTextu}</span></span>`;
+                    vysledneHTML += `<span class="magnet-block"><span class="magnet-chord">${prepocitanyAkord}</span><span class="magnet-text">${escapeHtml(blokTextu)}</span></span>`;
                 }
 
                 vysledneHTML += '</div>';
@@ -926,7 +970,7 @@
                 else if (isChordLine(radek)) {
                     let transposedLine = radek.replace(regex, (match, prefix, chordName) => { return prefix + '<span class="chord">' + transposeChord(chordName, fromKey, toKey) + '</span>'; });
                     vysledneHTML += `<div class="magnet-line"><span class="magnet-block"><span class="magnet-chord">${transposedLine}</span><span class="magnet-text"> </span></span></div>`;
-                } else { vysledneHTML += `<div class="magnet-line"><span class="magnet-block"><span class="magnet-chord"> </span><span class="magnet-text">${radek}</span></span></div>`; }
+                } else { vysledneHTML += `<div class="magnet-line"><span class="magnet-block"><span class="magnet-chord"> </span><span class="magnet-text">${escapeHtml(radek)}</span></span></div>`; }
             }
         }
         return vysledneHTML;
@@ -968,11 +1012,11 @@
         if (!currentDB[cleanName] && cleanName.includes('7')) cleanName = cleanName.replace('7', '');
         let chordData = currentDB[cleanName];
         if (!chordData) { let match = chordName.match(/^[A-H][#b]?(mi|m)?/); if(match) chordData = currentDB[match[0]]; }
-        if (!chordData) return `<div style="padding:10px; font-size:14px; text-align:center;">Akord<br><b style="color:var(--primary)">${chordName}</b><br>nenalezen pro tento nástroj</div>`;
+        if (!chordData) return `<div style="padding:10px; font-size:14px; text-align:center;">Akord<br><b style="color:var(--primary)">${escapeHtml(chordName)}</b><br>nenalezen pro tento nástroj</div>`;
         let numStrings = chordData.f.length; let spacing = 50 / (numStrings - 1);
         let isDark = document.body.getAttribute('data-theme') === 'dark';
         let strokeColor = isDark ? '#f8fafc' : '#202124'; let dotColor = 'var(--primary)';
-        let svg = `<div style="text-align:center; font-weight:600; margin-bottom:8px; color:${strokeColor}">${chordName}</div>`;
+        let svg = `<div style="text-align:center; font-weight:600; margin-bottom:8px; color:${strokeColor}">${escapeHtml(chordName)}</div>`;
         svg += `<svg width="70" height="90" viewBox="0 0 70 90" xmlns="http://www.w3.org/2000/svg" style="font-family:sans-serif;">`;
         if (chordData.b && chordData.b > 1) svg += `<text x="0" y="24" font-size="12" fill="${strokeColor}">${chordData.b}</text>`;
         svg += `<path d="M 15 15 L 65 15 L 65 85 L 15 85 Z" fill="none" stroke="${strokeColor}" stroke-width="1.5"/>`;
@@ -1014,7 +1058,6 @@
         lastTime = currentTime; 
         if (delta > 100) { requestAnimationFrame(scrollStep); return; } 
         
-        // Sníženo o dalších 35 % (z 0.5 na 0.325)
         const val = parseInt(speedSlider.value);
         const speedPxPerSec = val * 0.325; 
         scrollPos += speedPxPerSec * (delta / 1000); 
@@ -1038,9 +1081,8 @@
         
         if (songParam) {
             try {
-                songParam = songParam.replace(/-/g, '+').replace(/_/g, '/');
-                while (songParam.length % 4) { songParam += '='; } 
-                const jsonStr = decodeURIComponent(escape(atob(songParam)));
+                // OPRAVA: nahrazení zastaralého escape/atob za TextDecoder
+                const jsonStr = decodeFromBase64Url(songParam);
                 const importedSong = JSON.parse(jsonStr);
                 
                 if (importedSong && importedSong.title && importedSong.lyrics) {
@@ -1063,7 +1105,15 @@
     function openShareModal(shareUrl, songTitle) {
         const input = document.getElementById('shareUrlInput');
         input.value = shareUrl; document.getElementById('shareModal').style.display = 'flex';
-        document.getElementById('copyShareBtn').onclick = () => { input.select(); input.setSelectionRange(0, 99999); if (navigator.clipboard && window.isSecureContext) { navigator.clipboard.writeText(shareUrl).then(() => { notify('Odkaz zkopírován'); }).catch(() => { document.execCommand('copy'); notify('Odkaz zkopírován (Fallback)'); }); } else { document.execCommand('copy'); notify('Odkaz zkopírován (Fallback)'); } };
+        document.getElementById('copyShareBtn').onclick = () => {
+            input.select(); input.setSelectionRange(0, 99999);
+            navigator.clipboard.writeText(shareUrl)
+                .then(() => { notify('Odkaz zkopírován'); })
+                .catch(() => {
+                    // Fallback pro starší prohlížeče
+                    try { document.execCommand('copy'); notify('Odkaz zkopírován'); } catch(err) { notify('Kopírování selhalo'); }
+                });
+        };
         document.getElementById('whatsappShareBtn').onclick = () => { const waText = encodeURIComponent(`Posílám ti píseň "${songTitle}" s akordy z aplikace Muzikant! 🎸\n\n${shareUrl}`); window.open(`https://api.whatsapp.com/send?text=${waText}`, '_blank'); };
         document.getElementById('emailShareBtn').onclick = () => { const subject = encodeURIComponent(`Muzikant: ${songTitle}`); const body = encodeURIComponent(`Posílám ti píseň "${songTitle}" s akordy z aplikace Muzikant! 🎸\n\nOdkaz si otevři v telefonu nebo na počítači:\n${shareUrl}`); window.location.href = `mailto:?subject=${subject}&body=${body}`; };
     }
@@ -1097,7 +1147,8 @@
             const song = db.songs[currentSongIndex];
             const exportObj = { title: song.title, lyrics: song.lyrics, baseKey: song.baseKey, preferredKey: targetKeyIndex };
             const jsonStr = JSON.stringify(exportObj);
-            const base64str = btoa(unescape(encodeURIComponent(jsonStr))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+            // OPRAVA: nahrazení zastaralého btoa/unescape za TextEncoder
+            const base64str = encodeToBase64Url(jsonStr);
             const shareUrl = window.location.origin + window.location.pathname + '?song=' + base64str;
             if (navigator.share) {
                 try { await navigator.share({ title: `Muzikant: ${song.title}`, text: `Posílám ti píseň "${song.title}" s akordy z aplikace Muzikant! 🎸`, url: shareUrl }); } 
@@ -1147,8 +1198,11 @@
             };
             r.readAsText(e.target.files[0]); e.target.value = '';
         };
-        document.getElementById('saveNewSongBtn').onclick = () => { 
-            db.songs.push({ title: document.getElementById('titleInput').value, lyrics: document.getElementById('lyricsInput').value, baseKey: parseInt(document.getElementById('addBaseKey').value), tags: [] });
+        // OPRAVA: validace prázdného názvu při ukládání písně
+        document.getElementById('saveNewSongBtn').onclick = () => {
+            const title = document.getElementById('titleInput').value.trim();
+            if (!title) { notify('Zadej prosím název písně'); return; }
+            db.songs.push({ title: title, lyrics: document.getElementById('lyricsInput').value, baseKey: parseInt(document.getElementById('addBaseKey').value), tags: [] });
             saveData(); showView('library'); notify('Přidáno'); 
             document.getElementById('titleInput').value = ''; document.getElementById('lyricsInput').value = ''; autoResizeTextarea(document.getElementById('lyricsInput'));
         };
@@ -1178,8 +1232,8 @@
                 toggleBtn.innerHTML = IC.close; toggleBtn.style.background = 'rgba(234, 67, 53, 0.1)'; toggleBtn.style.color = '#ea4335';
                 scrollPnl.style.display = 'none'; navBtnPnl.style.display = 'none';
                 const song = db.songs[currentSongIndex]; document.getElementById('editTitleInput').value = song.title; 
-                const editArea = document.getElementById('editArea'); editArea.value = song.lyrics;
-                setTimeout(() => autoResizeTextarea(editArea), 10); 
+                const editAreaEl = document.getElementById('editArea'); editAreaEl.value = song.lyrics;
+                setTimeout(() => autoResizeTextarea(editAreaEl), 10); 
                 document.getElementById('editBaseKey').innerHTML = keys; document.getElementById('editBaseKey').value = song.baseKey || 0;
             } else {
                 viewContent.style.display = 'block';
