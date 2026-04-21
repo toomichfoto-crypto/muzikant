@@ -392,7 +392,7 @@
             </div>
 
             <button class="btn btn-blue" id="closeSettingsBtn" style="width:100%;">Zavřít</button>
-            <div style="margin-top:20px; font-size:12px; color:var(--muted);">Verze: v27.1</div>
+            <div style="margin-top:20px; font-size:12px; color:var(--muted);">Verze: v27.3</div>
         </div>
     </div>
 
@@ -1034,6 +1034,33 @@
             else countElement.innerText = `(celkem ${db.songs.length})`;
         }
 
+        // Prázdný stav — žádné písně vůbec
+        if (db.songs.length === 0) {
+            list.innerHTML = `
+                <div style="text-align:center; padding:40px 20px; color:var(--muted);">
+                    <svg viewBox="0 0 24 24" width="56" height="56" style="display:block; margin:0 auto 20px; opacity:0.35; fill:var(--muted);"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+                    <h2 style="font-size:1.2rem; font-weight:600; color:var(--text); margin-bottom:10px;">Knihovna je prázdná</h2>
+                    <p style="font-size:14px; line-height:1.7; margin-bottom:24px;">
+                        Přidej svou první píseň kliknutím na <strong>+</strong> vpravo nahoře.<br>
+                        Nebo importuj zálohu tlačítkem <svg viewBox="0 0 24 24" width="14" height="14" style="display:inline; vertical-align:middle; fill:var(--muted);"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg> v záhlaví.
+                    </p>
+                    <p style="font-size:13px; line-height:1.6; background:var(--card-bg); border-radius:12px; padding:16px; border:var(--card-border); box-shadow:var(--card-shadow);">
+                        <strong>Jak zapsat píseň s akordy?</strong><br>
+                        Napiš akordovou řadu na jeden řádek a text písně pod něj.<br>
+                        Akordy se automaticky zobrazí nad správnými slovy.
+                    </p>
+                    <pre style="font-family:var(--player-font, monospace); font-size:13px; background:var(--card-bg); border-radius:12px; padding:16px; text-align:left; margin-top:12px; border:var(--card-border); box-shadow:var(--card-shadow); overflow-x:auto; color:var(--text);">Am      G    C
+Když jsem já šel</pre>
+                </div>`;
+            return;
+        }
+
+        // Prázdný stav při hledání
+        if (tempQueue.length === 0 && (filterText || activeLibraryFilters.length > 0)) {
+            list.innerHTML = `<div style="text-align:center; padding:40px 20px; color:var(--muted); font-size:14px;">Nic nenalezeno.</div>`;
+            return;
+        }
+
         displaySongs.forEach(item => {
             const song = item.song;
             const sIdx = item.originalIndex;
@@ -1394,10 +1421,30 @@
         document.getElementById('exportAllBtn').onclick = () => { const a = document.createElement('a');
             a.href = URL.createObjectURL(new Blob([JSON.stringify(db)], {type: 'application/json'})); a.download = `muzikant_zaloha.json`; a.click(); };
         document.getElementById('triggerImportAllBtn').onclick = () => document.getElementById('importAllInput').click();
-        document.getElementById('importAllInput').onchange = (e) => { 
+        document.getElementById('importAllInput').onchange = (e) => {
             if(!e.target.files[0]) return;
-            const r = new FileReader(); 
-            r.onload = (ev) => { try { db = JSON.parse(ev.target.result); saveData(); renderLibrary(document.getElementById('searchInput').value); renderPlaylistsFolders(); notify('Obnoveno'); } catch(err) { notify('Chybný soubor zálohy'); } }; 
+            const r = new FileReader();
+            r.onload = (ev) => {
+                try {
+                    const data = JSON.parse(ev.target.result);
+                    if (!data.songs) { notify('Chybný soubor zálohy'); return; }
+                    // Merge: přidáme jen písně jejichž název ještě není v knihovně
+                    let addedSongs = 0;
+                    (data.songs || []).forEach(incoming => {
+                        const exists = db.songs.some(s => s.title.toLowerCase() === incoming.title.toLowerCase());
+                        if (!exists) { db.songs.push(incoming); addedSongs++; }
+                    });
+                    // Merge: přidáme jen playlisty jejichž název ještě není v seznamu
+                    (data.playlists || []).forEach(incoming => {
+                        const exists = db.playlists.some(p => p.name.toLowerCase() === incoming.name.toLowerCase());
+                        if (!exists) { db.playlists.push(incoming); }
+                    });
+                    saveData();
+                    renderLibrary(document.getElementById('searchInput').value);
+                    renderPlaylistsFolders();
+                    notify('Importováno — přidáno ' + addedSongs + ' nových písní');
+                } catch(err) { notify('Chybný soubor zálohy'); }
+            };
             r.readAsText(e.target.files[0]); e.target.value = '';
         };
         document.getElementById('exportPlaylistBtn').onclick = () => {
