@@ -10,10 +10,10 @@
     <meta name="theme-color" content="#1a73e8">
     <title>Muzikant</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&family=JetBrains+Mono:wght@400;500&family=Source+Code+Pro:wght@400;500&family=Fira+Code:wght@400;500&family=Inconsolata:wght@400;500&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inconsolata:wght@400;500&display=swap');
 
         /* --- BAREVNÁ TÉMATA - MATERIAL DESIGN (v27.0) --- */
-        :root { --player-font: 'Roboto Mono', 'ui-monospace', monospace; }
+        :root { --player-font: 'Inconsolata', 'ui-monospace', monospace; }
 
         :root, [data-day-theme="classic"] {
             --bg: #f8f9fa;
@@ -295,9 +295,7 @@
         .gdrive-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; background:var(--muted); }
         .gdrive-dot.on { background:#1e8e3e; }
         .gdrive-btns { display:flex; gap:8px; flex-wrap:wrap; }
-        .font-opt { width:100%; padding:10px 14px; border-radius:8px; border:1px solid var(--border); background:var(--card-bg); color:var(--text); cursor:pointer; font-size:14px; text-align:left; margin-bottom:8px; transition:border-color 0.2s,background 0.2s; font-family:inherit; }
-        .font-opt.active { border-color:var(--primary); background:rgba(128,128,128,0.08); font-weight:500; }
-        .font-opt-sub { font-size:12px; color:var(--muted); margin-top:2px; }
+
 
         .hidden-file { display: none; }
         
@@ -373,11 +371,6 @@
                 <button class="btn btn-cancel" id="gdriveDisconnectBtn" style="width:100%; margin-top:8px; display:none; font-size:12px;">Odpojit Google Drive</button>
             </div>
 
-            <div class="settings-block">
-                <label class="settings-label">Font písniček a akordů:</label>
-                <div id="fontOptionsContainer"></div>
-            </div>
-
             <div style="text-align:left; margin-bottom:20px;">
                 <label class="settings-label">Zobrazení hmatů pro:</label>
                 <select id="instrumentSelect">
@@ -399,7 +392,7 @@
             </div>
 
             <button class="btn btn-blue" id="closeSettingsBtn" style="width:100%;">Zavřít</button>
-            <div style="margin-top:20px; font-size:12px; color:var(--muted);">Verze: v27.0</div>
+            <div style="margin-top:20px; font-size:12px; color:var(--muted);">Verze: v27.1</div>
         </div>
     </div>
 
@@ -649,7 +642,7 @@
     // 4. Authorized JavaScript origins → URL tvé aplikace (např. https://uzivatel.github.io)
     // 5. Zkopíruj Client ID sem:
     // =====================================================================
-    const GDRIVE_CLIENT_ID = '917333597478-88g2m8u0hgm8650ubtcshka5dqr1sep7.apps.googleusercontent.com';
+    const GDRIVE_CLIENT_ID = 'VAS_CLIENT_ID.apps.googleusercontent.com';
     const GDRIVE_FILE_NAME = 'muzikant_db.json';
     const GDRIVE_CONNECTED_KEY = 'muzikant_gdrive';
     const GDRIVE_SYNC_KEY = 'muzikant_gdrive_sync';
@@ -658,39 +651,6 @@
     let gFileId = null;
     let gConnected = localStorage.getItem(GDRIVE_CONNECTED_KEY) === '1';
 
-    // =====================================================================
-    // KONFIGURACE - FONTY PŘEHRÁVAČE
-    // =====================================================================
-    const PLAYER_FONTS = [
-        { id: 'roboto-mono',     name: 'Roboto Mono',     css: "'Roboto Mono', monospace",     sample: 'Am  G   C  — text písně' },
-        { id: 'jetbrains-mono',  name: 'JetBrains Mono',  css: "'JetBrains Mono', monospace",  sample: 'Am  G   C  — text písně' },
-        { id: 'source-code-pro', name: 'Source Code Pro', css: "'Source Code Pro', monospace", sample: 'Am  G   C  — text písně' },
-        { id: 'fira-code',       name: 'Fira Code',       css: "'Fira Code', monospace",       sample: 'Am  G   C  — text písně' },
-        { id: 'inconsolata',     name: 'Inconsolata',     css: "'Inconsolata', monospace",     sample: 'Am  G   C  — text písně' },
-    ];
-    let currentFontId = localStorage.getItem('muzikant_font') || 'roboto-mono';
-
-    function applyPlayerFont(fontId) {
-        const font = PLAYER_FONTS.find(f => f.id === fontId) || PLAYER_FONTS[0];
-        document.documentElement.style.setProperty('--player-font', font.css);
-        currentFontId = fontId;
-        localStorage.setItem('muzikant_font', fontId);
-        renderFontOptions();
-    }
-
-    function renderFontOptions() {
-        const container = document.getElementById('fontOptionsContainer');
-        if (!container) return;
-        container.innerHTML = '';
-        PLAYER_FONTS.forEach(font => {
-            const btn = document.createElement('button');
-            btn.className = 'font-opt' + (font.id === currentFontId ? ' active' : '');
-            btn.innerHTML = `<div style="font-family:${font.css}; font-size:15px;">${font.name}</div>
-                             <div class="font-opt-sub" style="font-family:${font.css};">${font.sample}</div>`;
-            btn.onclick = () => applyPlayerFont(font.id);
-            container.appendChild(btn);
-        });
-    }
 
     let db = { songs: [], playlists: [] };
     const DB_KEY = 'muzikant_db_v17';
@@ -848,11 +808,23 @@
             if (r.ok) {
                 const data = await r.json();
                 if (data.songs) {
-                    db.songs = data.songs || []; db.playlists = data.playlists || [];
-                    saveData(); renderLibrary(document.getElementById('searchInput').value);
+                    // Merge: přidáme pouze písně jejichž název ještě není v knihovně
+                    let added = 0;
+                    (data.songs || []).forEach(incoming => {
+                        const exists = db.songs.some(s => s.title.toLowerCase() === incoming.title.toLowerCase());
+                        if (!exists) { db.songs.push(incoming); added++; }
+                    });
+                    // Playlisty: přidáme pouze playlisty jejichž název ještě není v seznamu
+                    (data.playlists || []).forEach(incoming => {
+                        const exists = db.playlists.some(p => p.name.toLowerCase() === incoming.name.toLowerCase());
+                        if (!exists) { db.playlists.push(incoming); }
+                    });
+                    saveData();
+                    renderLibrary(document.getElementById('searchInput').value);
                     const ts = new Date().toLocaleString('cs');
                     localStorage.setItem(GDRIVE_SYNC_KEY, ts);
-                    updateGdriveUI(); notify('Staženo z Google Drive ✓');
+                    updateGdriveUI();
+                    notify('Staženo ✓ — přidáno ' + added + ' nových písní');
                 } else { notify('Data na Drive jsou poškozena'); }
             } else { notify('Chyba stahování (' + r.status + ')'); }
         } catch(e) { notify('Chyba připojení k Drive'); }
@@ -1371,7 +1343,6 @@
     document.getElementById('closeShareModalBtn').onclick = () => { document.getElementById('shareModal').style.display = 'none'; };
     document.addEventListener('DOMContentLoaded', () => {
         loadData();
-        applyPlayerFont(currentFontId);
         const keys = notes.map((n, i) => `<option value="${i}">${n}</option>`).join('');
         document.getElementById('addBaseKey').innerHTML = keys;
         
@@ -1412,7 +1383,6 @@
         document.getElementById('playerTagsBtn').onclick = () => { renderSongTagsModal(); document.getElementById('songTagsModal').style.display = 'flex'; };
         document.getElementById('closeSongTagsBtn').onclick = () => document.getElementById('songTagsModal').style.display = 'none';
         document.getElementById('nav-settings').onclick = () => {
-            renderFontOptions();
             updateGdriveUI();
             document.getElementById('settingsModal').style.display = 'flex';
         };
