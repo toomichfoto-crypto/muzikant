@@ -10,9 +10,11 @@
     <meta name="theme-color" content="#1a73e8">
     <title>Muzikant</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&family=JetBrains+Mono:wght@400;500&family=Source+Code+Pro:wght@400;500&family=Fira+Code:wght@400;500&family=Inconsolata:wght@400;500&display=swap');
 
-        /* --- BAREVNÁ TÉMATA - MATERIAL DESIGN (v26.5) --- */
+        /* --- BAREVNÁ TÉMATA - MATERIAL DESIGN (v27.0) --- */
+        :root { --player-font: 'Roboto Mono', 'ui-monospace', monospace; }
+
         :root, [data-day-theme="classic"] {
             --bg: #f8f9fa;
             --text: #202124;
@@ -23,7 +25,7 @@
             --nav-active-text: #ffffff;
             --primary: #1a73e8; 
             --accent: #1e8e3e;
-            --chord: #1a73e8;
+            --chord: #cb4b16;
             --border: #dadce0;
             --muted: #5f6368;
             --shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
@@ -32,15 +34,15 @@
         }
 
         [data-day-theme="retro"] {
-            --bg: #fdf6e3;
+            --bg: #fdf3dc;
             --text: #4c4031;
-            --card-bg: #fbf1c7;
+            --card-bg: #f4e6be;
             --nav-bg: #5c4a3d;
             --nav-text: #fdf6e3;
             --nav-active-bg: rgba(255, 255, 255, 0.15);
             --nav-active-text: #ffffff;
             --primary: #b58900;
-            --accent: #859900;
+            --accent: #8b5e00;
             --chord: #cb4b16;
             --border: #d5c4a1;
             --muted: #7c6f64;
@@ -59,11 +61,47 @@
             --nav-active-text: #ffffff;
             --primary: #0284c7;
             --accent: #059669;
-            --chord: #0ea5e9;
+            --chord: #cb4b16;
             --border: #bae6fd;
             --muted: #475569;
             --shadow: 0 4px 6px -1px rgba(2,132,199,0.12);
             --card-shadow: 0 1px 3px rgba(2,132,199,0.08);
+            --card-border: 1px solid transparent;
+        }
+
+        [data-day-theme="marine"] {
+            --bg: #f0f9ff;
+            --text: #0c4a6e;
+            --card-bg: #ffffff;
+            --nav-bg: #0369a1;
+            --nav-text: #ffffff;
+            --nav-active-bg: rgba(255, 255, 255, 0.2);
+            --nav-active-text: #ffffff;
+            --primary: #0284c7;
+            --accent: #059669;
+            --chord: #cb4b16;
+            --border: #bae6fd;
+            --muted: #475569;
+            --shadow: 0 4px 6px -1px rgba(2,132,199,0.12);
+            --card-shadow: 0 1px 3px rgba(2,132,199,0.08);
+            --card-border: 1px solid transparent;
+        }
+
+        [data-day-theme="lavender"] {
+            --bg: #f5f3ff;
+            --text: #2e1065;
+            --card-bg: #ede9fe;
+            --nav-bg: #5b21b6;
+            --nav-text: #ffffff;
+            --nav-active-bg: rgba(255, 255, 255, 0.2);
+            --nav-active-text: #ffffff;
+            --primary: #7c3aed;
+            --accent: #059669;
+            --chord: #cb4b16;
+            --border: #ddd6fe;
+            --muted: #6d28d9;
+            --shadow: 0 4px 6px -1px rgba(109,40,217,0.12);
+            --card-shadow: 0 1px 3px rgba(109,40,217,0.08);
             --card-border: 1px solid transparent;
         }
 
@@ -166,7 +204,7 @@
         
         /* MODERNÍ MONOSPACE FONT PRO ZACHOVÁNÍ ZAROVNÁNÍ */
         textarea {
-            font-family: 'ui-monospace', 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace !important;
+            font-family: var(--player-font) !important;
             line-height: 1.5;
         }
 
@@ -196,7 +234,7 @@
         
         /* MODERNÍ MONOSPACE FONT PRO ZACHOVÁNÍ ZAROVNÁNÍ */
         #displayArea { 
-            font-family: 'ui-monospace', 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace;
+            font-family: var(--player-font);
             line-height: 1.5; 
             letter-spacing: 0; 
         }
@@ -248,6 +286,18 @@
         
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 3000; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
         .modal-content { background: var(--card-bg); color: var(--text); padding: 30px 25px; border-radius: 16px; max-width: 360px; width: 90%; text-align: center; transition: background 0.3s; max-height: 90vh; overflow-y: auto; box-shadow: 0 24px 38px 3px rgba(0,0,0,0.14), 0 9px 46px 8px rgba(0,0,0,0.12), 0 11px 15px -7px rgba(0,0,0,0.2);}
+
+
+        /* --- Google Drive a font selector --- */
+        .settings-block { text-align:left; margin-bottom:20px; padding-bottom:20px; border-bottom:1px solid var(--border); }
+        .settings-label { font-weight:500; display:block; margin-bottom:10px; color:var(--text); font-size:14px; }
+        .gdrive-status { font-size:12px; color:var(--muted); margin-bottom:10px; display:flex; align-items:center; gap:6px; }
+        .gdrive-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; background:var(--muted); }
+        .gdrive-dot.on { background:#1e8e3e; }
+        .gdrive-btns { display:flex; gap:8px; flex-wrap:wrap; }
+        .font-opt { width:100%; padding:10px 14px; border-radius:8px; border:1px solid var(--border); background:var(--card-bg); color:var(--text); cursor:pointer; font-size:14px; text-align:left; margin-bottom:8px; transition:border-color 0.2s,background 0.2s; font-family:inherit; }
+        .font-opt.active { border-color:var(--primary); background:rgba(128,128,128,0.08); font-weight:500; }
+        .font-opt-sub { font-size:12px; color:var(--muted); margin-top:2px; }
 
         .hidden-file { display: none; }
         
@@ -304,9 +354,32 @@
     <div class="modal-overlay" id="settingsModal">
         <div class="modal-content">
             <h3>Nastavení</h3>
-            
+
+            <div class="settings-block">
+                <label class="settings-label">Synchronizace Google Drive:</label>
+                <div class="gdrive-status">
+                    <span class="gdrive-dot" id="gdriveDot"></span>
+                    <span id="gdriveStatusText">Nepropojeno</span>
+                </div>
+                <div class="gdrive-btns">
+                    <button class="btn btn-outline" id="gdriveConnectBtn" style="flex:1; font-size:13px;">Propojit</button>
+                    <button class="btn btn-blue" id="gdriveUploadBtn" style="flex:1; font-size:13px; display:none;">
+                        <svg viewBox="0 0 24 24" width="14" height="14"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg> Nahrát
+                    </button>
+                    <button class="btn btn-outline" id="gdriveDownloadBtn" style="flex:1; font-size:13px; display:none;">
+                        <svg viewBox="0 0 24 24" width="14" height="14"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg> Stáhnout
+                    </button>
+                </div>
+                <button class="btn btn-cancel" id="gdriveDisconnectBtn" style="width:100%; margin-top:8px; display:none; font-size:12px;">Odpojit Google Drive</button>
+            </div>
+
+            <div class="settings-block">
+                <label class="settings-label">Font písniček a akordů:</label>
+                <div id="fontOptionsContainer"></div>
+            </div>
+
             <div style="text-align:left; margin-bottom:20px;">
-                <label style="font-weight:500; display:block; margin-bottom:8px; color:var(--text); font-size:14px;">Zvolte zobrazení hmatů pro:</label>
+                <label class="settings-label">Zobrazení hmatů pro:</label>
                 <select id="instrumentSelect">
                     <option value="guitar">Kytara (6 strun)</option>
                     <option value="ukulele">Ukulele (4 struny)</option>
@@ -317,16 +390,16 @@
             </div>
 
             <div style="text-align:left; margin-bottom:30px;">
-                <label style="font-weight:500; display:block; margin-bottom:8px; color:var(--text); font-size:14px;">Barevné téma (Denní režim):</label>
+                <label class="settings-label">Barevné téma (Denní režim):</label>
                 <select id="dayThemeSelect">
-                    <option value="classic">Klasik (Světlé)</option>
-                    <option value="retro">Retro (Béžové)</option>
                     <option value="marine">Marine (Modré)</option>
+                    <option value="retro">Retro (Béžové)</option>
+                    <option value="lavender">Levandule (Fialové)</option>
                 </select>
             </div>
 
             <button class="btn btn-blue" id="closeSettingsBtn" style="width:100%;">Zavřít</button>
-            <div style="margin-top:20px; font-size:12px; color:var(--muted);">Verze: v26.5</div>
+            <div style="margin-top:20px; font-size:12px; color:var(--muted);">Verze: v27.0</div>
         </div>
     </div>
 
@@ -530,6 +603,8 @@
         </button>
     </div>
 
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
 <script>
     const IC = {
         addPl: `<svg viewBox="0 0 24 24" width="20" height="20"><path d="M14 10H2v2h12v-2zm0-4H2v2h12V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM2 16h8v-2H2v2z"/></svg>`,
@@ -543,12 +618,87 @@
         play: `<svg viewBox="0 0 24 24" width="28" height="28" style="margin-left:3px;"><path d="M8 5v14l11-7z"/></svg>`,
         pause: `<svg viewBox="0 0 24 24" width="28" height="28"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>`
     };
+
+    // --- Pomocná funkce pro bezpečné vkládání textu ---
+    function escapeHtml(str) {
+        const d = document.createElement('div');
+        d.textContent = str || '';
+        return d.innerHTML;
+    }
+
+    // --- Kódování UTF-8 pro sdílení bez zastaralých escape/unescape ---
+    function encodeToBase64Url(str) {
+        const bytes = new TextEncoder().encode(str);
+        const binStr = Array.from(bytes, b => String.fromCharCode(b)).join('');
+        return btoa(binStr).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    }
+    function decodeFromBase64Url(str) {
+        const padded = str.replace(/-/g, '+').replace(/_/g, '/');
+        const binStr = atob(padded);
+        const bytes = Uint8Array.from(binStr, c => c.charCodeAt(0));
+        return new TextDecoder().decode(bytes);
+    }
+
+
+    // =====================================================================
+    // KONFIGURACE - GOOGLE DRIVE
+    // Jak získat Client ID:
+    // 1. https://console.cloud.google.com/ → nový projekt
+    // 2. APIs & Services → zapni "Google Drive API"
+    // 3. OAuth 2.0 Client ID → typ: Web application
+    // 4. Authorized JavaScript origins → URL tvé aplikace (např. https://uzivatel.github.io)
+    // 5. Zkopíruj Client ID sem:
+    // =====================================================================
+    const GDRIVE_CLIENT_ID = 'VAS_CLIENT_ID.apps.googleusercontent.com';
+    const GDRIVE_FILE_NAME = 'muzikant_db.json';
+    const GDRIVE_CONNECTED_KEY = 'muzikant_gdrive';
+    const GDRIVE_SYNC_KEY = 'muzikant_gdrive_sync';
+
+    let gToken = null;
+    let gFileId = null;
+    let gConnected = localStorage.getItem(GDRIVE_CONNECTED_KEY) === '1';
+
+    // =====================================================================
+    // KONFIGURACE - FONTY PŘEHRÁVAČE
+    // =====================================================================
+    const PLAYER_FONTS = [
+        { id: 'roboto-mono',     name: 'Roboto Mono',     css: "'Roboto Mono', monospace",     sample: 'Am  G   C  — text písně' },
+        { id: 'jetbrains-mono',  name: 'JetBrains Mono',  css: "'JetBrains Mono', monospace",  sample: 'Am  G   C  — text písně' },
+        { id: 'source-code-pro', name: 'Source Code Pro', css: "'Source Code Pro', monospace", sample: 'Am  G   C  — text písně' },
+        { id: 'fira-code',       name: 'Fira Code',       css: "'Fira Code', monospace",       sample: 'Am  G   C  — text písně' },
+        { id: 'inconsolata',     name: 'Inconsolata',     css: "'Inconsolata', monospace",     sample: 'Am  G   C  — text písně' },
+    ];
+    let currentFontId = localStorage.getItem('muzikant_font') || 'roboto-mono';
+
+    function applyPlayerFont(fontId) {
+        const font = PLAYER_FONTS.find(f => f.id === fontId) || PLAYER_FONTS[0];
+        document.documentElement.style.setProperty('--player-font', font.css);
+        currentFontId = fontId;
+        localStorage.setItem('muzikant_font', fontId);
+        renderFontOptions();
+    }
+
+    function renderFontOptions() {
+        const container = document.getElementById('fontOptionsContainer');
+        if (!container) return;
+        container.innerHTML = '';
+        PLAYER_FONTS.forEach(font => {
+            const btn = document.createElement('button');
+            btn.className = 'font-opt' + (font.id === currentFontId ? ' active' : '');
+            btn.innerHTML = `<div style="font-family:${font.css}; font-size:15px;">${font.name}</div>
+                             <div class="font-opt-sub" style="font-family:${font.css};">${font.sample}</div>`;
+            btn.onclick = () => applyPlayerFont(font.id);
+            container.appendChild(btn);
+        });
+    }
+
     let db = { songs: [], playlists: [] };
     const DB_KEY = 'muzikant_db_v17';
     const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B', 'H'];
     const CHORD_REGEX_STR = "(^|\\s|\\[|\\(|\\|)([A-H][#b]?(?:m|mi|maj|min|dim|sus|add|aug|2|4|5|6|7|9|11|13|Δ|\\+)*(?:\\/[A-H][#b]?)?)(?=\\s|\\]|\\)|\\||$|,)";
     let currentInstrument = localStorage.getItem('muzikant_instrument') || 'guitar';
-    let currentDayTheme = localStorage.getItem('muzikant_day_theme') || 'classic';
+    let currentDayTheme = localStorage.getItem('muzikant_day_theme') || 'marine';
+    if (currentDayTheme === 'classic') { currentDayTheme = 'marine'; localStorage.setItem('muzikant_day_theme', 'marine'); }
     document.body.setAttribute('data-day-theme', currentDayTheme);
 
     let currentFontSize = parseInt(localStorage.getItem('muzikant_font_size')) || 20;
@@ -606,29 +756,145 @@
     const scrollPanel = document.getElementById('scrollPanel');
     const chordTooltip = document.getElementById('chordTooltip');
     const speedSlider = document.getElementById('speedSlider');
-
-    // --- OPRAVA: pomocná funkce pro bezpečné vkládání textu do HTML ---
-    function escapeHtml(str) {
-        const d = document.createElement('div');
-        d.textContent = str || '';
-        return d.innerHTML;
-    }
-
-    // --- OPRAVA: kódování UTF-8 pro sdílení bez zastaralých escape/unescape ---
-    function encodeToBase64Url(str) {
-        const bytes = new TextEncoder().encode(str);
-        const binStr = Array.from(bytes, b => String.fromCharCode(b)).join('');
-        return btoa(binStr).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-    }
-
-    function decodeFromBase64Url(str) {
-        const padded = str.replace(/-/g, '+').replace(/_/g, '/');
-        const binStr = atob(padded);
-        const bytes = Uint8Array.from(binStr, c => c.charCodeAt(0));
-        return new TextDecoder().decode(bytes);
-    }
     
     // Tlačítka pro jemné ladění rychlosti (+/-)
+
+    // =====================================================================
+    // GOOGLE DRIVE FUNKCE
+    // =====================================================================
+    function gdriveInit() {
+        if (typeof google === 'undefined' || GDRIVE_CLIENT_ID.startsWith('VAS')) {
+            updateGdriveUI(); return;
+        }
+        window._gClient = google.accounts.oauth2.initTokenClient({
+            client_id: GDRIVE_CLIENT_ID,
+            scope: 'https://www.googleapis.com/auth/drive.appdata',
+            callback: (resp) => {
+                if (resp.error) { notify('Chyba přihlášení Google'); return; }
+                gToken = resp.access_token;
+                gConnected = true;
+                localStorage.setItem(GDRIVE_CONNECTED_KEY, '1');
+                updateGdriveUI();
+                notify('Google Drive propojen');
+            }
+        });
+        updateGdriveUI();
+    }
+
+    function gdriveConnect() {
+        if (!window._gClient) { notify('Google Drive není nakonfigurováno'); return; }
+        window._gClient.requestAccessToken({ prompt: 'select_account' });
+    }
+
+    async function gdriveEnsureToken() {
+        if (gToken) return true;
+        if (!window._gClient) return false;
+        return new Promise(resolve => {
+            const orig = window._gClient.callback;
+            window._gClient.callback = (resp) => {
+                window._gClient.callback = orig;
+                if (resp.error) { resolve(false); return; }
+                gToken = resp.access_token;
+                resolve(true);
+            };
+            window._gClient.requestAccessToken({ prompt: '' });
+        });
+    }
+
+    async function gdriveFindFile() {
+        const r = await fetch(
+            'https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name%3D%22' + GDRIVE_FILE_NAME + '%22&fields=files(id)',
+            { headers: { Authorization: 'Bearer ' + gToken } }
+        );
+        const d = await r.json();
+        if (d.files && d.files.length > 0) gFileId = d.files[0].id;
+    }
+
+    async function gdriveUpload() {
+        if (!await gdriveEnsureToken()) { notify('Přihlášení k Google selhalo'); return; }
+        try {
+            notify('Nahrávám do Google Drive...');
+            if (!gFileId) await gdriveFindFile();
+            const boundary = 'muz' + Date.now();
+            const meta = gFileId ? {} : { name: GDRIVE_FILE_NAME, parents: ['appDataFolder'] };
+            const body = '--' + boundary + '\r\nContent-Type: application/json\r\n\r\n' + JSON.stringify(meta) +
+                         '\r\n--' + boundary + '\r\nContent-Type: application/json\r\n\r\n' + JSON.stringify(db) +
+                         '\r\n--' + boundary + '--';
+            const url = gFileId
+                ? 'https://www.googleapis.com/upload/drive/v3/files/' + gFileId + '?uploadType=multipart'
+                : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&spaces=appDataFolder';
+            const r = await fetch(url, {
+                method: gFileId ? 'PATCH' : 'POST',
+                headers: { 'Authorization': 'Bearer ' + gToken, 'Content-Type': 'multipart/related; boundary=' + boundary },
+                body
+            });
+            if (r.ok) {
+                const d = await r.json(); gFileId = d.id;
+                const ts = new Date().toLocaleString('cs');
+                localStorage.setItem(GDRIVE_SYNC_KEY, ts);
+                updateGdriveUI(); notify('Nahráno do Google Drive ✓');
+            } else { notify('Chyba nahrávání (' + r.status + ')'); }
+        } catch(e) { notify('Chyba připojení k Drive'); }
+    }
+
+    async function gdriveDownload() {
+        if (!await gdriveEnsureToken()) { notify('Přihlášení k Google selhalo'); return; }
+        try {
+            notify('Stahuji z Google Drive...');
+            if (!gFileId) await gdriveFindFile();
+            if (!gFileId) { notify('Na Drive zatím nejsou data. Nejdříve Nahraj.'); return; }
+            const r = await fetch('https://www.googleapis.com/drive/v3/files/' + gFileId + '?alt=media',
+                { headers: { Authorization: 'Bearer ' + gToken } });
+            if (r.ok) {
+                const data = await r.json();
+                if (data.songs) {
+                    db.songs = data.songs || []; db.playlists = data.playlists || [];
+                    saveData(); renderLibrary(document.getElementById('searchInput').value);
+                    const ts = new Date().toLocaleString('cs');
+                    localStorage.setItem(GDRIVE_SYNC_KEY, ts);
+                    updateGdriveUI(); notify('Staženo z Google Drive ✓');
+                } else { notify('Data na Drive jsou poškozena'); }
+            } else { notify('Chyba stahování (' + r.status + ')'); }
+        } catch(e) { notify('Chyba připojení k Drive'); }
+    }
+
+    function gdriveDisconnect() {
+        gToken = null; gFileId = null; gConnected = false;
+        localStorage.removeItem(GDRIVE_CONNECTED_KEY);
+        localStorage.removeItem(GDRIVE_SYNC_KEY);
+        updateGdriveUI(); notify('Google Drive odpojen');
+    }
+
+    function updateGdriveUI() {
+        const dot = document.getElementById('gdriveDot');
+        const txt = document.getElementById('gdriveStatusText');
+        const conBtn = document.getElementById('gdriveConnectBtn');
+        const upBtn = document.getElementById('gdriveUploadBtn');
+        const dlBtn = document.getElementById('gdriveDownloadBtn');
+        const disBtn = document.getElementById('gdriveDisconnectBtn');
+        if (!dot) return;
+        const notCfg = GDRIVE_CLIENT_ID.startsWith('VAS');
+        const lastSync = localStorage.getItem(GDRIVE_SYNC_KEY);
+        if (notCfg) {
+            txt.textContent = 'Není nakonfigurováno';
+            dot.className = 'gdrive-dot';
+            conBtn.style.display = 'flex'; conBtn.disabled = true;
+            upBtn.style.display = 'none'; dlBtn.style.display = 'none'; disBtn.style.display = 'none';
+            return;
+        }
+        if (gConnected) {
+            txt.textContent = lastSync ? 'Poslední sync: ' + lastSync : 'Propojeno';
+            dot.className = 'gdrive-dot on';
+            conBtn.style.display = 'none';
+            upBtn.style.display = 'flex'; dlBtn.style.display = 'flex'; disBtn.style.display = 'block';
+        } else {
+            txt.textContent = 'Nepropojeno';
+            dot.className = 'gdrive-dot';
+            conBtn.style.display = 'flex'; conBtn.disabled = false;
+            upBtn.style.display = 'none'; dlBtn.style.display = 'none'; disBtn.style.display = 'none';
+        }
+    }
+
     document.getElementById('speedPlusBtn').onclick = () => {
         speedSlider.value = Math.min(100, parseInt(speedSlider.value) + 1);
         saveSpeed();
@@ -769,8 +1035,7 @@
         const container = document.getElementById('playerActiveTags');
         const songTags = db.songs[currentSongIndex].tags || [];
         if(songTags.length === 0) { container.innerHTML = ''; return; }
-        // OPRAVA: escapeHtml pro štítky
-        container.innerHTML = songTags.map(tag => `<span class="song-tag-badge">${escapeHtml(tag)}</span>`).join('');
+        container.innerHTML = songTags.map(tag => `<span class="song-tag-badge">${tag}</span>`).join('');
     }
 
     function renderLibrary(filterText = '') {
@@ -803,9 +1068,8 @@
             
             if (!tempQueue.includes(sIdx)) return;
             
-            // OPRAVA: escapeHtml pro název písně a štítky
             const tagsHtml = (song.tags && song.tags.length > 0) 
-                ? `<div style="margin-top:8px;">` + song.tags.map(t => `<span class="song-tag-badge">${escapeHtml(t)}</span>`).join('') + `</div>` 
+                ? `<div style="margin-top:8px;">` + song.tags.map(t => `<span class="song-tag-badge">${t}</span>`).join('') + `</div>` 
                 : '';
 
             const card = document.createElement('div'); card.className = 'card';
@@ -860,8 +1124,7 @@
         container.innerHTML = '';
         db.playlists.forEach((pl, idx) => {
             const card = document.createElement('div'); card.className = 'card';
-            // OPRAVA: escapeHtml pro název playlistu
-            card.innerHTML = `<div style="display:flex; align-items:center; gap:8px; flex-grow:1; font-weight:500;">${IC.folder} ${escapeHtml(pl.name)} <span style="color:var(--muted); font-weight:normal; font-size:12px;">(${pl.songIds ? pl.songIds.length : 0})</span></div>
+            card.innerHTML = `<div style="display:flex; align-items:center; gap:8px; flex-grow:1; font-weight:500;">${IC.folder} ${pl.name} <span style="color:var(--muted); font-weight:normal; font-size:12px;">(${pl.songIds ? pl.songIds.length : 0})</span></div>
                 <div style="display:flex; gap:6px;">
                     <button class="btn btn-outline" onclick="event.stopPropagation(); renamePlaylist(${idx})" style="padding:10px; border:none; background:rgba(128,128,128,0.1);" title="Přejmenovat">${IC.edit}</button>
                     <button class="btn btn-red" onclick="event.stopPropagation(); deletePlaylist(${idx})" style="padding:10px; border:none; background:rgba(234, 67, 53, 0.1); color:#ea4335;" title="Smazat">${IC.trash}</button>
@@ -890,34 +1153,27 @@
             card.ondragend = () => { card.style.opacity = '1'; };
             card.ondragover = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
             card.ondrop = (e) => { e.preventDefault(); if (draggedItemIndex !== null && draggedItemIndex !== itemIdx) { const draggedId = pl.songIds.splice(draggedItemIndex, 1)[0]; pl.songIds.splice(itemIdx, 0, draggedId); saveData(); renderPlaylistItems(); } };
-            // OPRAVA: escapeHtml pro název písně
             card.innerHTML = `<div style="display:flex; flex-direction:column; gap:4px; margin-right:16px; cursor:grab;">
                 <button class="btn btn-outline" onclick="event.stopPropagation(); moveSongInPlaylist(${itemIdx}, -1)" style="padding:4px 8px; border:none; background:rgba(128,128,128,0.1); color:var(--text);">${IC.up}</button>
                 <button class="btn btn-outline" onclick="event.stopPropagation(); moveSongInPlaylist(${itemIdx}, 1)" style="padding:4px 8px; border:none; background:rgba(128,128,128,0.1); color:var(--text);">${IC.down}</button></div>
-                <div style="flex-grow:1; font-weight:500;"><span style="color:var(--muted); margin-right:6px;">${itemIdx + 1}.</span> ${escapeHtml(song.title)}</div>
+                <div style="flex-grow:1; font-weight:500;"><span style="color:var(--muted); margin-right:6px;">${itemIdx + 1}.</span> ${song.title}</div>
                 <button class="btn btn-red" onclick="event.stopPropagation(); removeFromPlaylist(${itemIdx})" style="padding:10px; border:none; background:rgba(234, 67, 53, 0.1); color:#ea4335;" title="Odebrat z playlistu">${IC.remove}</button>`;
             card.onclick = () => { resetEditMode(); currentQueue = [...pl.songIds]; currentQueueIndex = itemIdx; currentSongIndex = songIdx; targetKeyIndex = song.preferredKey !== undefined ? song.preferredKey : (song.baseKey || 0); showView('player'); renderPlayer(); };
             container.appendChild(card);
         });
     }
 
-    // OPRAVA: chybějící funkce pro přesun písně v playlistu
+
     function moveSongInPlaylist(itemIdx, direction) {
         const pl = db.playlists[activePlaylistIdx];
         const newIdx = itemIdx + direction;
         if (newIdx < 0 || newIdx >= pl.songIds.length) return;
         [pl.songIds[itemIdx], pl.songIds[newIdx]] = [pl.songIds[newIdx], pl.songIds[itemIdx]];
-        saveData();
-        renderPlaylistItems();
+        saveData(); renderPlaylistItems();
     }
-
-    // OPRAVA: chybějící funkce pro odebrání písně z playlistu
     function removeFromPlaylist(itemIdx) {
-        const pl = db.playlists[activePlaylistIdx];
-        pl.songIds.splice(itemIdx, 1);
-        saveData();
-        renderPlaylistItems();
-        notify('Odebráno z playlistu');
+        db.playlists[activePlaylistIdx].songIds.splice(itemIdx, 1);
+        saveData(); renderPlaylistItems(); notify('Odebráno z playlistu');
     }
 
     function isChordLine(line) {
@@ -953,14 +1209,14 @@
                     blokAkordu += znakA; blokTextu += znakT;
                     if (znakT === ' ' && znakA === ' ') {
                         let prepocitanyAkord = blokAkordu.replace(regex, (match, prefix, chordName) => { return prefix + '<span class="chord">' + transposeChord(chordName, fromKey, toKey) + '</span>'; });
-                        vysledneHTML += `<span class="magnet-block"><span class="magnet-chord">${prepocitanyAkord}</span><span class="magnet-text">${escapeHtml(blokTextu)}</span></span>`;
+                        vysledneHTML += `<span class="magnet-block"><span class="magnet-chord">${prepocitanyAkord}</span><span class="magnet-text">${blokTextu}</span></span>`;
                         blokAkordu = ''; blokTextu = '';
                     }
                 }
                 
                 if (blokTextu.length > 0 || blokAkordu.length > 0) {
                     let prepocitanyAkord = blokAkordu.replace(regex, (match, prefix, chordName) => { return prefix + '<span class="chord">' + transposeChord(chordName, fromKey, toKey) + '</span>'; });
-                    vysledneHTML += `<span class="magnet-block"><span class="magnet-chord">${prepocitanyAkord}</span><span class="magnet-text">${escapeHtml(blokTextu)}</span></span>`;
+                    vysledneHTML += `<span class="magnet-block"><span class="magnet-chord">${prepocitanyAkord}</span><span class="magnet-text">${blokTextu}</span></span>`;
                 }
 
                 vysledneHTML += '</div>';
@@ -970,7 +1226,7 @@
                 else if (isChordLine(radek)) {
                     let transposedLine = radek.replace(regex, (match, prefix, chordName) => { return prefix + '<span class="chord">' + transposeChord(chordName, fromKey, toKey) + '</span>'; });
                     vysledneHTML += `<div class="magnet-line"><span class="magnet-block"><span class="magnet-chord">${transposedLine}</span><span class="magnet-text"> </span></span></div>`;
-                } else { vysledneHTML += `<div class="magnet-line"><span class="magnet-block"><span class="magnet-chord"> </span><span class="magnet-text">${escapeHtml(radek)}</span></span></div>`; }
+                } else { vysledneHTML += `<div class="magnet-line"><span class="magnet-block"><span class="magnet-chord"> </span><span class="magnet-text">${radek}</span></span></div>`; }
             }
         }
         return vysledneHTML;
@@ -1012,11 +1268,11 @@
         if (!currentDB[cleanName] && cleanName.includes('7')) cleanName = cleanName.replace('7', '');
         let chordData = currentDB[cleanName];
         if (!chordData) { let match = chordName.match(/^[A-H][#b]?(mi|m)?/); if(match) chordData = currentDB[match[0]]; }
-        if (!chordData) return `<div style="padding:10px; font-size:14px; text-align:center;">Akord<br><b style="color:var(--primary)">${escapeHtml(chordName)}</b><br>nenalezen pro tento nástroj</div>`;
+        if (!chordData) return `<div style="padding:10px; font-size:14px; text-align:center;">Akord<br><b style="color:var(--primary)">${chordName}</b><br>nenalezen pro tento nástroj</div>`;
         let numStrings = chordData.f.length; let spacing = 50 / (numStrings - 1);
         let isDark = document.body.getAttribute('data-theme') === 'dark';
         let strokeColor = isDark ? '#f8fafc' : '#202124'; let dotColor = 'var(--primary)';
-        let svg = `<div style="text-align:center; font-weight:600; margin-bottom:8px; color:${strokeColor}">${escapeHtml(chordName)}</div>`;
+        let svg = `<div style="text-align:center; font-weight:600; margin-bottom:8px; color:${strokeColor}">${chordName}</div>`;
         svg += `<svg width="70" height="90" viewBox="0 0 70 90" xmlns="http://www.w3.org/2000/svg" style="font-family:sans-serif;">`;
         if (chordData.b && chordData.b > 1) svg += `<text x="0" y="24" font-size="12" fill="${strokeColor}">${chordData.b}</text>`;
         svg += `<path d="M 15 15 L 65 15 L 65 85 L 15 85 Z" fill="none" stroke="${strokeColor}" stroke-width="1.5"/>`;
@@ -1058,6 +1314,7 @@
         lastTime = currentTime; 
         if (delta > 100) { requestAnimationFrame(scrollStep); return; } 
         
+        // Sníženo o dalších 35 % (z 0.5 na 0.325)
         const val = parseInt(speedSlider.value);
         const speedPxPerSec = val * 0.325; 
         scrollPos += speedPxPerSec * (delta / 1000); 
@@ -1081,7 +1338,8 @@
         
         if (songParam) {
             try {
-                // OPRAVA: nahrazení zastaralého escape/atob za TextDecoder
+                songParam = songParam.replace(/-/g, '+').replace(/_/g, '/');
+                while (songParam.length % 4) { songParam += '='; } 
                 const jsonStr = decodeFromBase64Url(songParam);
                 const importedSong = JSON.parse(jsonStr);
                 
@@ -1105,15 +1363,7 @@
     function openShareModal(shareUrl, songTitle) {
         const input = document.getElementById('shareUrlInput');
         input.value = shareUrl; document.getElementById('shareModal').style.display = 'flex';
-        document.getElementById('copyShareBtn').onclick = () => {
-            input.select(); input.setSelectionRange(0, 99999);
-            navigator.clipboard.writeText(shareUrl)
-                .then(() => { notify('Odkaz zkopírován'); })
-                .catch(() => {
-                    // Fallback pro starší prohlížeče
-                    try { document.execCommand('copy'); notify('Odkaz zkopírován'); } catch(err) { notify('Kopírování selhalo'); }
-                });
-        };
+        document.getElementById('copyShareBtn').onclick = () => { input.select(); input.setSelectionRange(0, 99999); if (navigator.clipboard && window.isSecureContext) { navigator.clipboard.writeText(shareUrl).then(() => { notify('Odkaz zkopírován'); }).catch(() => { document.execCommand('copy'); notify('Odkaz zkopírován (Fallback)'); }); } else { document.execCommand('copy'); notify('Odkaz zkopírován (Fallback)'); } };
         document.getElementById('whatsappShareBtn').onclick = () => { const waText = encodeURIComponent(`Posílám ti píseň "${songTitle}" s akordy z aplikace Muzikant! 🎸\n\n${shareUrl}`); window.open(`https://api.whatsapp.com/send?text=${waText}`, '_blank'); };
         document.getElementById('emailShareBtn').onclick = () => { const subject = encodeURIComponent(`Muzikant: ${songTitle}`); const body = encodeURIComponent(`Posílám ti píseň "${songTitle}" s akordy z aplikace Muzikant! 🎸\n\nOdkaz si otevři v telefonu nebo na počítači:\n${shareUrl}`); window.location.href = `mailto:?subject=${subject}&body=${body}`; };
     }
@@ -1121,6 +1371,7 @@
     document.getElementById('closeShareModalBtn').onclick = () => { document.getElementById('shareModal').style.display = 'none'; };
     document.addEventListener('DOMContentLoaded', () => {
         loadData();
+        applyPlayerFont(currentFontId);
         const keys = notes.map((n, i) => `<option value="${i}">${n}</option>`).join('');
         document.getElementById('addBaseKey').innerHTML = keys;
         
@@ -1147,7 +1398,6 @@
             const song = db.songs[currentSongIndex];
             const exportObj = { title: song.title, lyrics: song.lyrics, baseKey: song.baseKey, preferredKey: targetKeyIndex };
             const jsonStr = JSON.stringify(exportObj);
-            // OPRAVA: nahrazení zastaralého btoa/unescape za TextEncoder
             const base64str = encodeToBase64Url(jsonStr);
             const shareUrl = window.location.origin + window.location.pathname + '?song=' + base64str;
             if (navigator.share) {
@@ -1161,7 +1411,11 @@
         document.getElementById('clearFiltersBtn').onclick = () => { activeLibraryFilters = []; updateFilterBadge(); renderLibrary(document.getElementById('searchInput').value); renderFilterTagsModal(); };
         document.getElementById('playerTagsBtn').onclick = () => { renderSongTagsModal(); document.getElementById('songTagsModal').style.display = 'flex'; };
         document.getElementById('closeSongTagsBtn').onclick = () => document.getElementById('songTagsModal').style.display = 'none';
-        document.getElementById('nav-settings').onclick = () => { document.getElementById('settingsModal').style.display = 'flex'; };
+        document.getElementById('nav-settings').onclick = () => {
+            renderFontOptions();
+            updateGdriveUI();
+            document.getElementById('settingsModal').style.display = 'flex';
+        };
         document.getElementById('closeSettingsBtn').onclick = () => { document.getElementById('settingsModal').style.display = 'none'; };
         document.getElementById('instrumentSelect').onchange = (e) => { currentInstrument = e.target.value; localStorage.setItem('muzikant_instrument', currentInstrument); notify('Nástroj změněn'); };
         document.getElementById('dayThemeSelect').onchange = (e) => { currentDayTheme = e.target.value; localStorage.setItem('muzikant_day_theme', currentDayTheme); document.body.setAttribute('data-day-theme', currentDayTheme); notify('Téma změněno'); };
@@ -1198,11 +1452,10 @@
             };
             r.readAsText(e.target.files[0]); e.target.value = '';
         };
-        // OPRAVA: validace prázdného názvu při ukládání písně
-        document.getElementById('saveNewSongBtn').onclick = () => {
-            const title = document.getElementById('titleInput').value.trim();
-            if (!title) { notify('Zadej prosím název písně'); return; }
-            db.songs.push({ title: title, lyrics: document.getElementById('lyricsInput').value, baseKey: parseInt(document.getElementById('addBaseKey').value), tags: [] });
+        document.getElementById('saveNewSongBtn').onclick = () => { 
+            const _t = document.getElementById('titleInput').value.trim();
+            if (!_t) { notify('Zadej prosím název písně'); return; }
+            db.songs.push({ title: _t, lyrics: document.getElementById('lyricsInput').value, baseKey: parseInt(document.getElementById('addBaseKey').value), tags: [] });
             saveData(); showView('library'); notify('Přidáno'); 
             document.getElementById('titleInput').value = ''; document.getElementById('lyricsInput').value = ''; autoResizeTextarea(document.getElementById('lyricsInput'));
         };
@@ -1232,8 +1485,8 @@
                 toggleBtn.innerHTML = IC.close; toggleBtn.style.background = 'rgba(234, 67, 53, 0.1)'; toggleBtn.style.color = '#ea4335';
                 scrollPnl.style.display = 'none'; navBtnPnl.style.display = 'none';
                 const song = db.songs[currentSongIndex]; document.getElementById('editTitleInput').value = song.title; 
-                const editAreaEl = document.getElementById('editArea'); editAreaEl.value = song.lyrics;
-                setTimeout(() => autoResizeTextarea(editAreaEl), 10); 
+                const editArea = document.getElementById('editArea'); editArea.value = song.lyrics;
+                setTimeout(() => autoResizeTextarea(editArea), 10); 
                 document.getElementById('editBaseKey').innerHTML = keys; document.getElementById('editBaseKey').value = song.baseKey || 0;
             } else {
                 viewContent.style.display = 'block';
@@ -1248,11 +1501,17 @@
             saveData(); renderPlayer(); document.getElementById('toggleEditBtn').click(); notify('Uloženo');
         };
         
+        document.getElementById('gdriveConnectBtn').onclick = gdriveConnect;
+        document.getElementById('gdriveUploadBtn').onclick = gdriveUpload;
+        document.getElementById('gdriveDownloadBtn').onclick = gdriveDownload;
+        document.getElementById('gdriveDisconnectBtn').onclick = gdriveDisconnect;
+
         checkSharedSong();
         if (!window.location.search.includes('song=')) { showView('library'); }
     });
 
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && window.location.search.includes('song=')) { checkSharedSong(); } });
+    setTimeout(gdriveInit, 1200);
     if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(err => console.error('SW Error:', err)); }); }
 </script>
 </body>
