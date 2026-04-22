@@ -421,7 +421,7 @@
             </p>
 
             <p style="font-size:14px; line-height:1.7; color:var(--text); margin-bottom:20px;">
-                Aplikaci vytvořil <strong>[Tvoje jméno]</strong> pro vlastní potřebu a rozhodl se ji sdílet zdarma s ostatními muzikanty. Pokud ti aplikace pomáhá, můžeš podpořit její další vývoj dobrovolným příspěvkem.
+                Aplikaci vytvořil <strong>Honza</strong> pro vlastní potřebu a rozhodl se ji sdílet zdarma s ostatními muzikanty. Pokud ti aplikace pomáhá, můžeš podpořit její další vývoj dobrovolným příspěvkem.
             </p>
 
             <div style="border-top:1px solid var(--border); padding-top:16px; margin-bottom:20px;">
@@ -1493,9 +1493,7 @@ Když jsem já šel</pre>
         };
         document.getElementById('closeInfoBtn').onclick = () => { document.getElementById('infoModal').style.display = 'none'; };
         document.getElementById('donateBtn').onclick = () => {
-            // Sem vlož svůj Revolut nebo Ko-fi odkaz:
-            // window.open('https://revolut.me/tvujlink', '_blank');
-            notify('Odkaz na donate bude brzy přidán');
+            window.open('https://revolut.me/jan2ps43', '_blank');
         };
         document.getElementById('instrumentSelect').onchange = (e) => { currentInstrument = e.target.value; localStorage.setItem('muzikant_instrument', currentInstrument); notify('Nástroj změněn'); };
         document.getElementById('dayThemeSelect').onchange = (e) => { currentDayTheme = e.target.value; localStorage.setItem('muzikant_day_theme', currentDayTheme); document.body.setAttribute('data-day-theme', currentDayTheme); notify('Téma změněno'); };
