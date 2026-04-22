@@ -392,7 +392,61 @@
             </div>
 
             <button class="btn btn-blue" id="closeSettingsBtn" style="width:100%;">Zavřít</button>
-            <div style="margin-top:20px; font-size:12px; color:var(--muted);">Verze: v27.3</div>
+            <div style="margin-top:20px; display:flex; align-items:center; justify-content:space-between;">
+                <button id="donateBtn" title="Podpořit vývoj" style="background:none; border:none; cursor:pointer; color:var(--muted); display:flex; align-items:center; gap:6px; font-size:12px; font-family:inherit; padding:4px 0; transition:color 0.2s;">
+                    <svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                    Podpořit vývoj
+                </button>
+                <span style="font-size:12px; color:var(--muted);">Verze: v27.4</span>
+                <button id="infoBtn" title="O aplikaci" style="background:none; border:none; cursor:pointer; color:var(--muted); display:flex; align-items:center; gap:6px; font-size:12px; font-family:inherit; padding:4px 0; transition:color 0.2s;">
+                    O aplikaci
+                    <svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="infoModal">
+        <div class="modal-content" style="text-align:left;">
+            <h3 style="text-align:center;">O aplikaci</h3>
+
+            <div style="text-align:center; margin-bottom:20px;">
+                <svg viewBox="0 0 24 24" width="48" height="48" style="display:inline-block; fill:var(--primary);"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+                <div style="font-weight:600; font-size:1.1rem; margin-top:8px;">Muzikant</div>
+                <div style="font-size:12px; color:var(--muted);">Verze v27.4</div>
+            </div>
+
+            <p style="font-size:14px; line-height:1.7; color:var(--text); margin-bottom:16px;">
+                Muzikant je bezplatná aplikace pro muzikanty, kapely a zpěváky. Umožňuje spravovat texty písní s akordy, transponovat do libovolné tóniny a pohodlně je číst při hraní.
+            </p>
+
+            <p style="font-size:14px; line-height:1.7; color:var(--text); margin-bottom:20px;">
+                Aplikaci vytvořil <strong>[Tvoje jméno]</strong> pro vlastní potřebu a rozhodl se ji sdílet zdarma s ostatními muzikanty. Pokud ti aplikace pomáhá, můžeš podpořit její další vývoj dobrovolným příspěvkem.
+            </p>
+
+            <div style="border-top:1px solid var(--border); padding-top:16px; margin-bottom:20px;">
+                <div style="font-weight:600; font-size:13px; margin-bottom:12px; color:var(--text);">Jak používat aplikaci</div>
+                <div style="font-size:13px; line-height:1.8; color:var(--muted);">
+                    <b style="color:var(--text);">Přidání písně</b> — klikni na + vpravo nahoře. Napiš název, interpreta a vlož text s akordy.<br>
+                    <b style="color:var(--text);">Formát akordů</b> — napiš akordy na jeden řádek, text písně pod něj. Akordy se zobrazí nad správnými slovy.<br>
+                    <b style="color:var(--text);">Transpozice</b> — v přehrávači klikni na tlačítko s tóninou. Akordy se přepočítají automaticky.<br>
+                    <b style="color:var(--text);">Sdílení</b> — ikona sdílení v přehrávači vygeneruje odkaz který lze poslat komukoli.<br>
+                    <b style="color:var(--text);">Záloha</b> — v knihovně použij tlačítka exportu a importu pro zálohu na zařízení nebo sync přes Google Drive.
+                </div>
+            </div>
+
+            <div style="border-top:1px solid var(--border); padding-top:16px; margin-bottom:20px;">
+                <div style="font-size:13px; line-height:1.8; color:var(--muted);">
+                    <b style="color:var(--text);">Příklad zápisu písně:</b>
+                </div>
+                <pre style="font-family:var(--player-font, monospace); font-size:13px; background:var(--bg); border-radius:8px; padding:12px; margin-top:8px; color:var(--text); overflow-x:auto;">Am      G    C
+Když jsem já šel
+
+F       G       Am
+přes ty hory zelený</pre>
+            </div>
+
+            <button class="btn btn-blue" id="closeInfoBtn" style="width:100%;">Zavřít</button>
         </div>
     </div>
 
@@ -453,6 +507,7 @@
         <div id="view-add" class="view">
             <h1>Nová píseň</h1>
             <input type="text" id="titleInput" placeholder="Název písně">
+            <input type="text" id="artistInput" placeholder="Interpret (nepovinné)">
             <div style="display:flex; gap:10px; align-items:center; margin-bottom:15px; background:var(--card-bg); padding:12px 16px; border-radius:12px; border:var(--card-border); box-shadow:var(--card-shadow);">
                 <label style="font-weight:500;">Výchozí tónina textu:</label>
                 <select id="addBaseKey" style="margin-bottom:0; flex-grow:1;"></select>
@@ -560,7 +615,8 @@
             <div id="playerViewContent">
                 <div id="keyButtons" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:20px;"></div>
                 <div id="playerActiveTags" style="margin-bottom:10px;"></div>
-                <h1 id="displayTitle" style="margin:0 0 15px 0;"></h1>
+                <h1 id="displayTitle" style="margin:0 0 4px 0;"></h1>
+                <div id="displayArtist" style="font-size:14px; color:var(--muted); margin-bottom:15px; font-family:inherit;"></div>
                 <div id="displayAreaWrapper">
                     <div id="displayArea"></div>
                 </div>
@@ -568,6 +624,7 @@
             
             <div id="playerEditContent" style="display:none;">
                 <input type="text" id="editTitleInput" placeholder="Název písně">
+                <input type="text" id="editArtistInput" placeholder="Interpret (nepovinné)">
                 <div style="display:flex; gap:10px; align-items:center; margin-bottom:15px; background:var(--card-bg); padding:12px 16px; border-radius:12px; border:var(--card-border); box-shadow:var(--card-shadow);">
                     <label style="font-weight:500;">Tónina zapsaného textu:</label>
                     <select id="editBaseKey" style="margin-bottom:0; flex-grow:1;"></select>
@@ -1016,12 +1073,22 @@
         const countElement = document.getElementById('songCount');
         
         let displaySongs = db.songs.map((song, index) => { return { song: song, originalIndex: index }; });
-        displaySongs.sort((a, b) => a.song.title.localeCompare(b.song.title));
+        displaySongs.sort((a, b) => {
+            const artistA = (a.song.artist || '').toLowerCase();
+            const artistB = (b.song.artist || '').toLowerCase();
+            if (artistA && artistB && artistA !== artistB) return artistA.localeCompare(artistB, 'cs');
+            return a.song.title.localeCompare(b.song.title, 'cs');
+        });
 
         let tempQueue = [];
         
         displaySongs.forEach(item => {
-            if (filterText && !item.song.title.toLowerCase().includes(filterText.toLowerCase())) return;
+            if (filterText) {
+                const q = filterText.toLowerCase();
+                const inTitle = item.song.title.toLowerCase().includes(q);
+                const inArtist = item.song.artist && item.song.artist.toLowerCase().includes(q);
+                if (!inTitle && !inArtist) return;
+            }
             if (activeLibraryFilters.length > 0) {
                 const songTags = item.song.tags || [];
                 const matchesAll = activeLibraryFilters.every(t => songTags.includes(t));
@@ -1073,7 +1140,11 @@ Když jsem já šel</pre>
 
             const card = document.createElement('div'); card.className = 'card';
             card.innerHTML = `
-                <div style="flex-grow:1; font-weight: 500;">${escapeHtml(song.title)}${tagsHtml}</div>
+                <div style="flex-grow:1;">
+                    <div style="font-weight:500;">${escapeHtml(song.title)}</div>
+                    ${song.artist ? `<div style="font-size:12px; color:var(--muted); margin-top:2px;">${escapeHtml(song.artist)}</div>` : ''}
+                    ${tagsHtml}
+                </div>
                 <div style="display:flex; gap:6px;">
                     <button class="btn btn-outline" onclick="event.stopPropagation(); openAddToPlaylistModal(${sIdx})" style="padding:10px; border:none; background:rgba(128,128,128,0.1);" title="Přidat do playlistu">${IC.addPl}</button>
                     <button class="btn btn-red" onclick="event.stopPropagation(); deleteSong(${sIdx})" style="padding:10px; border:none; background:rgba(234, 67, 53, 0.1); color:#ea4335;" title="Smazat">${IC.trash}</button>
@@ -1235,6 +1306,8 @@ Když jsem já šel</pre>
         const song = db.songs[currentSongIndex];
         document.getElementById('displayArea').innerHTML = renderPlayerText(song.lyrics || "", song.baseKey || 0, targetKeyIndex);
         document.getElementById('displayTitle').innerText = song.title || "";
+        const artistEl = document.getElementById('displayArtist');
+        if (artistEl) artistEl.innerText = song.artist || "";
         document.getElementById('displayArea').style.fontSize = currentFontSize + 'px';
         const savedSpeed = song.scrollSpeed !== undefined ? song.scrollSpeed : 20;
         speedSlider.value = savedSpeed;
@@ -1414,6 +1487,16 @@ Když jsem já šel</pre>
             document.getElementById('settingsModal').style.display = 'flex';
         };
         document.getElementById('closeSettingsBtn').onclick = () => { document.getElementById('settingsModal').style.display = 'none'; };
+        document.getElementById('infoBtn').onclick = () => {
+            document.getElementById('settingsModal').style.display = 'none';
+            document.getElementById('infoModal').style.display = 'flex';
+        };
+        document.getElementById('closeInfoBtn').onclick = () => { document.getElementById('infoModal').style.display = 'none'; };
+        document.getElementById('donateBtn').onclick = () => {
+            // Sem vlož svůj Revolut nebo Ko-fi odkaz:
+            // window.open('https://revolut.me/tvujlink', '_blank');
+            notify('Odkaz na donate bude brzy přidán');
+        };
         document.getElementById('instrumentSelect').onchange = (e) => { currentInstrument = e.target.value; localStorage.setItem('muzikant_instrument', currentInstrument); notify('Nástroj změněn'); };
         document.getElementById('dayThemeSelect').onchange = (e) => { currentDayTheme = e.target.value; localStorage.setItem('muzikant_day_theme', currentDayTheme); document.body.setAttribute('data-day-theme', currentDayTheme); notify('Téma změněno'); };
         document.getElementById('themeToggle').onclick = () => { const isDark = document.body.getAttribute('data-theme') === 'dark'; isDark ? document.body.removeAttribute('data-theme') : document.body.setAttribute('data-theme', 'dark'); localStorage.setItem('muzikant_theme', isDark ? 'light' : 'dark'); };
@@ -1472,9 +1555,9 @@ Když jsem já šel</pre>
         document.getElementById('saveNewSongBtn').onclick = () => { 
             const _t = document.getElementById('titleInput').value.trim();
             if (!_t) { notify('Zadej prosím název písně'); return; }
-            db.songs.push({ title: _t, lyrics: document.getElementById('lyricsInput').value, baseKey: parseInt(document.getElementById('addBaseKey').value), tags: [] });
+            db.songs.push({ title: _t, artist: document.getElementById('artistInput').value.trim(), lyrics: document.getElementById('lyricsInput').value, baseKey: parseInt(document.getElementById('addBaseKey').value), tags: [] });
             saveData(); showView('library'); notify('Přidáno'); 
-            document.getElementById('titleInput').value = ''; document.getElementById('lyricsInput').value = ''; autoResizeTextarea(document.getElementById('lyricsInput'));
+            document.getElementById('titleInput').value = ''; document.getElementById('artistInput').value = ''; document.getElementById('lyricsInput').value = ''; autoResizeTextarea(document.getElementById('lyricsInput'));
         };
         
         document.getElementById('createPlaylistBtn').onclick = () => { const name = document.getElementById('newPlaylistName').value.trim();
@@ -1501,7 +1584,7 @@ Když jsem já šel</pre>
                 editContent.style.display = 'block'; saveBtn.style.display = 'inline-flex'; 
                 toggleBtn.innerHTML = IC.close; toggleBtn.style.background = 'rgba(234, 67, 53, 0.1)'; toggleBtn.style.color = '#ea4335';
                 scrollPnl.style.display = 'none'; navBtnPnl.style.display = 'none';
-                const song = db.songs[currentSongIndex]; document.getElementById('editTitleInput').value = song.title; 
+                const song = db.songs[currentSongIndex]; document.getElementById('editTitleInput').value = song.title; document.getElementById('editArtistInput').value = song.artist || ''; 
                 const editArea = document.getElementById('editArea'); editArea.value = song.lyrics;
                 setTimeout(() => autoResizeTextarea(editArea), 10); 
                 document.getElementById('editBaseKey').innerHTML = keys; document.getElementById('editBaseKey').value = song.baseKey || 0;
@@ -1514,7 +1597,7 @@ Když jsem já šel</pre>
         };
         document.getElementById('saveEditBtn').onclick = () => {
             const song = db.songs[currentSongIndex];
-            song.title = document.getElementById('editTitleInput').value; song.lyrics = document.getElementById('editArea').value; song.baseKey = parseInt(document.getElementById('editBaseKey').value);
+            song.title = document.getElementById('editTitleInput').value; song.artist = document.getElementById('editArtistInput').value.trim(); song.lyrics = document.getElementById('editArea').value; song.baseKey = parseInt(document.getElementById('editBaseKey').value);
             saveData(); renderPlayer(); document.getElementById('toggleEditBtn').click(); notify('Uloženo');
         };
         
