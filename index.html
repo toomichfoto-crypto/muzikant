@@ -778,6 +778,7 @@ přes ty hory zelený</pre>
     let currentSongIndex = null, activePlaylistIdx = null, targetKeyIndex = 0;
     let currentQueue = [], currentQueueIndex = 0;
     let lastView = 'library', isEditMode = false, isScrolling = false, scrollPos = 0, lastTime = 0;
+    let libraryScrollPos = 0; // Uložená pozice scrollu v knihovně
     let confirmAction = null, fadeTimeout = null, tooltipTimeout = null;
     let draggedItemIndex = null;
     
@@ -1008,18 +1009,35 @@ přes ty hory zelený</pre>
     }
 
     function showView(viewId) {
+        // Před přepnutím: pokud opouštíme knihovnu, ulož pozici scrollu
+        if (document.getElementById('view-library').classList.contains('active')) {
+            libraryScrollPos = scrollContainer.scrollTop;
+        }
+
         document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
         document.querySelectorAll('.nav-btn').forEach(n => n.classList.remove('active'));
         document.getElementById('view-' + viewId).classList.add('active');
         if(document.getElementById('nav-' + viewId)) document.getElementById('nav-' + viewId).classList.add('active');
-        
+
         scrollPanel.style.display = (viewId === 'player' && !isEditMode) ? 'flex' : 'none';
         navButtonsPanel.style.display = (viewId === 'player' && !isEditMode) ? 'flex' : 'none';
-        
+
         chordTooltip.style.display = 'none';
-        if(viewId === 'library') { lastView = 'library'; renderLibrary(document.getElementById('searchInput').value); }
-        if(viewId === 'playlists') renderPlaylistsFolders();
-        if(viewId === 'playlist-detail') lastView = 'playlist-detail';
+
+        if (viewId === 'player') {
+            // Při otevření písně vždy na začátek
+            scrollContainer.scrollTop = 0;
+        }
+
+        if (viewId === 'library') {
+            lastView = 'library';
+            renderLibrary(document.getElementById('searchInput').value);
+            // Obnov pozici scrollu v knihovně
+            requestAnimationFrame(() => { scrollContainer.scrollTop = libraryScrollPos; });
+        }
+
+        if (viewId === 'playlists') { renderPlaylistsFolders(); scrollContainer.scrollTop = 0; }
+        if (viewId === 'playlist-detail') { lastView = 'playlist-detail'; scrollContainer.scrollTop = 0; }
     }
 
     function renderFilterTagsModal() {
@@ -1484,7 +1502,7 @@ Když jsem já šel</pre>
         searchInput.addEventListener('input', (e) => { clearSearchBtn.style.display = e.target.value ? 'block' : 'none'; renderLibrary(e.target.value); });
         clearSearchBtn.onclick = () => { searchInput.value = ''; clearSearchBtn.style.display = 'none'; renderLibrary(''); searchInput.focus(); };
         document.getElementById('nav-add').onclick = () => { showView('add'); autoResizeTextarea(lyricsInput); };
-        document.getElementById('nav-library').onclick = () => showView('library');
+        document.getElementById('nav-library').onclick = () => { libraryScrollPos = 0; showView('library'); };
         document.getElementById('nav-playlists').onclick = () => showView('playlists');
         document.getElementById('playPauseBtn').onclick = () => isScrolling ? stopScroll() : startScroll();
         
