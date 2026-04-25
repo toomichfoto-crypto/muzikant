@@ -765,7 +765,7 @@ přes ty hory zelený</pre>
     // 4. Authorized JavaScript origins → URL tvé aplikace (např. https://uzivatel.github.io)
     // 5. Zkopíruj Client ID sem:
     // =====================================================================
-    const APP_VERSION = 'v28.0';
+    const APP_VERSION = 'v28.1';
 
     const GDRIVE_CLIENT_ID = '917333597478-88g2m8u0hgm8650ubtcshka5dqr1sep7.apps.googleusercontent.com';
     const GDRIVE_FILE_NAME = 'muzikant_db.json';
@@ -857,11 +857,15 @@ přes ty hory zelený</pre>
                 db.songs.push(incoming);
                 added++;
             } else {
-                // Píseň existuje — doplň interpret pouze pokud chybí
-                if (!db.songs[existIdx].artist && incoming.artist) {
-                    db.songs[existIdx].artist = incoming.artist;
-                    updated++;
-                }
+                // Píseň existuje — přepiš vše kromě štítků a preferované tóniny
+                // (štítky a tóninu si každý uživatel nastavuje sám lokálně)
+                const kept = {
+                    tags: db.songs[existIdx].tags,
+                    preferredKey: db.songs[existIdx].preferredKey,
+                    scrollSpeed: db.songs[existIdx].scrollSpeed,
+                };
+                db.songs[existIdx] = { ...incoming, ...kept };
+                updated++;
             }
         });
         return { added, updated };
