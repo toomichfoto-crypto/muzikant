@@ -765,7 +765,7 @@ přes ty hory zelený</pre>
     // 4. Authorized JavaScript origins → URL tvé aplikace (např. https://uzivatel.github.io)
     // 5. Zkopíruj Client ID sem:
     // =====================================================================
-    const APP_VERSION = 'v27.9';
+    const APP_VERSION = 'v28.0';
 
     const GDRIVE_CLIENT_ID = '917333597478-88g2m8u0hgm8650ubtcshka5dqr1sep7.apps.googleusercontent.com';
     const GDRIVE_FILE_NAME = 'muzikant_db.json';
@@ -845,6 +845,27 @@ přes ty hory zelený</pre>
     const speedSlider = document.getElementById('speedSlider');
     
     // Tlačítka pro jemné ladění rychlosti (+/-)
+
+
+    // Smart merge: přidá nové písně, doplní interpret u existujících pokud chybí
+    function mergeSongs(incomingSongs) {
+        let added = 0, updated = 0;
+        (incomingSongs || []).forEach(incoming => {
+            const existIdx = db.songs.findIndex(s => s.title.toLowerCase() === incoming.title.toLowerCase());
+            if (existIdx === -1) {
+                // Píseň neexistuje — přidej celou
+                db.songs.push(incoming);
+                added++;
+            } else {
+                // Píseň existuje — doplň interpret pouze pokud chybí
+                if (!db.songs[existIdx].artist && incoming.artist) {
+                    db.songs[existIdx].artist = incoming.artist;
+                    updated++;
+                }
+            }
+        });
+        return { added, updated };
+    }
 
     // =====================================================================
     // GOOGLE DRIVE FUNKCE
@@ -935,12 +956,7 @@ přes ty hory zelený</pre>
             if (r.ok) {
                 const data = await r.json();
                 if (data.songs) {
-                    // Merge: přidáme pouze písně jejichž název ještě není v knihovně
-                    let added = 0;
-                    (data.songs || []).forEach(incoming => {
-                        const exists = db.songs.some(s => s.title.toLowerCase() === incoming.title.toLowerCase());
-                        if (!exists) { db.songs.push(incoming); added++; }
-                    });
+                    const { added, updated } = mergeSongs(data.songs);
                     // Playlisty: přidáme pouze playlisty jejichž název ještě není v seznamu
                     (data.playlists || []).forEach(incoming => {
                         const exists = db.playlists.some(p => p.name.toLowerCase() === incoming.name.toLowerCase());
@@ -951,7 +967,8 @@ přes ty hory zelený</pre>
                     const ts = new Date().toLocaleString('cs');
                     localStorage.setItem(GDRIVE_SYNC_KEY, ts);
                     updateGdriveUI();
-                    notify('Staženo ✓ — přidáno ' + added + ' nových písní');
+                    const msg = [added ? added + ' nových' : '', updated ? updated + ' doplněno' : ''].filter(Boolean).join(', ');
+                    notify('Staženo ✓' + (msg ? ' — ' + msg : ''));
                 } else { notify('Data na Drive jsou poškozena'); }
             } else { notify('Chyba stahování (' + r.status + ')'); }
         } catch(e) { notify('Chyba připojení k Drive'); }
@@ -1655,12 +1672,7 @@ Když jsem já šel</pre>
                 try {
                     const data = JSON.parse(ev.target.result);
                     if (!data.songs) { notify('Chybný soubor zálohy'); return; }
-                    // Merge: přidáme jen písně jejichž název ještě není v knihovně
-                    let addedSongs = 0;
-                    (data.songs || []).forEach(incoming => {
-                        const exists = db.songs.some(s => s.title.toLowerCase() === incoming.title.toLowerCase());
-                        if (!exists) { db.songs.push(incoming); addedSongs++; }
-                    });
+                    const { added: addedSongs, updated: updatedSongs } = mergeSongs(data.songs);
                     // Merge: přidáme jen playlisty jejichž název ještě není v seznamu
                     (data.playlists || []).forEach(incoming => {
                         const exists = db.playlists.some(p => p.name.toLowerCase() === incoming.name.toLowerCase());
@@ -1669,7 +1681,8 @@ Když jsem já šel</pre>
                     saveData();
                     renderLibrary(document.getElementById('searchInput').value);
                     renderPlaylistsFolders();
-                    notify('Importováno — přidáno ' + addedSongs + ' nových písní');
+                    const impMsg = [addedSongs ? addedSongs + ' nových' : '', updatedSongs ? updatedSongs + ' doplněno' : ''].filter(Boolean).join(', ');
+                    notify('Importováno' + (impMsg ? ' — ' + impMsg : ' — vše aktuální'));
                 } catch(err) { notify('Chybný soubor zálohy'); }
             };
             r.readAsText(e.target.files[0]); e.target.value = '';
