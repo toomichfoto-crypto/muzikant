@@ -1,4 +1,4 @@
-const CACHE_NAME = 'muzikant-cache-v281';
+const CACHE_NAME = 'muzikant-cache-v282';
 const ASSETS = [
     './',
     './index.html',
