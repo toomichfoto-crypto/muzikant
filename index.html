@@ -410,6 +410,55 @@
 
 
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        /* Plovoucí vyhledávací panel — zobrazí se při scrollu nahoru */
+        #floatingSearchBar {
+            position: fixed;
+            top: 0;
+            left: 0; right: 0;
+            z-index: 990;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 15px;
+            background: var(--card-bg);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+            transition: transform 0.25s ease, opacity 0.25s ease, background 0.3s;
+            transform: translateY(-100%);
+            opacity: 0;
+        }
+        #floatingSearchBar.visible {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        #floatingSearchBar input {
+            flex-grow: 1;
+            margin-bottom: 0;
+            border-radius: 24px;
+            padding-left: 18px;
+            padding-right: 36px;
+            font-size: 15px;
+        }
+        #floatingClearBtn {
+            position: absolute;
+            right: 70px;
+            background: none; border: none;
+            color: var(--muted); cursor: pointer;
+            padding: 5px; display: none;
+        }
+        #floatingScrollTopBtn {
+            width: 42px; height: 42px;
+            border-radius: 50%;
+            border: 1px solid var(--border);
+            background: var(--card-bg);
+            color: var(--text);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; flex-shrink: 0;
+            box-shadow: var(--card-shadow);
+            transition: box-shadow 0.2s;
+        }
+        #floatingScrollTopBtn:hover { box-shadow: var(--shadow); }
+
     </style>
 </head>
 <body>
@@ -836,7 +885,7 @@ přes ty hory zelený</pre>
     // 4. Authorized JavaScript origins → URL tvé aplikace (např. https://uzivatel.github.io)
     // 5. Zkopíruj Client ID sem:
     // =====================================================================
-    const APP_VERSION = 'v28.5';
+    const APP_VERSION = 'v28.6';
 
     const GDRIVE_CLIENT_ID = '917333597478-88g2m8u0hgm8650ubtcshka5dqr1sep7.apps.googleusercontent.com';
     const GDRIVE_FILE_NAME = 'muzikant_db.json';
@@ -1151,9 +1200,38 @@ přes ty hory zelený</pre>
     scrollContainer.addEventListener('touchmove', wakeUpPanels, {passive: true});
     scrollContainer.addEventListener('wheel', wakeUpPanels, {passive: true});
     scrollContainer.addEventListener('click', wakeUpPanels, {passive: true});
+    let _lastScrollTop = 0;
+
     scrollContainer.onscroll = () => {
-        if (scrollContainer.scrollTop > 50) mainHeader.classList.add('hidden');
+        const st = scrollContainer.scrollTop;
+        const libraryActive = document.getElementById('view-library').classList.contains('active');
+
+        // Horní navigace
+        if (st > 50) mainHeader.classList.add('hidden');
         else mainHeader.classList.remove('hidden');
+
+        // Plovoucí search — zobrazit jen v knihovně při scrollu nahoru
+        const floatingBar = document.getElementById('floatingSearchBar');
+        if (libraryActive && st > 120) {
+            floatingBar.style.display = 'flex';
+            if (st < _lastScrollTop) {
+                // Scrollujeme nahoru — zobrazit
+                floatingBar.classList.add('visible');
+            } else {
+                // Scrollujeme dolů — schovat
+                floatingBar.classList.remove('visible');
+            }
+        } else {
+            floatingBar.classList.remove('visible');
+            // Skryjeme úplně až po animaci
+            setTimeout(() => {
+                if (!floatingBar.classList.contains('visible')) {
+                    floatingBar.style.display = 'none';
+                }
+            }, 280);
+        }
+
+        _lastScrollTop = st;
         chordTooltip.style.display = 'none';
     };
 
@@ -1702,7 +1780,13 @@ Když jsem já šel</pre>
             renderLibrary(searchInput.value);
         };
         
-        searchInput.addEventListener('input', (e) => { clearSearchBtn.style.display = (e.target.value || activeArtistFilter) ? 'block' : 'none'; renderLibrary(e.target.value); });
+        searchInput.addEventListener('input', (e) => {
+            const val = e.target.value;
+            clearSearchBtn.style.display = (val || activeArtistFilter) ? 'block' : 'none';
+            floatingSearchInput.value = val;
+            floatingClearBtn.style.display = val ? 'block' : 'none';
+            renderLibrary(val);
+        });
         clearSearchBtn.onclick = () => {
             searchInput.value = '';
             activeArtistFilter = '';
@@ -1713,10 +1797,44 @@ Když jsem já šel</pre>
             searchInput.focus();
         };
         document.getElementById('nav-add').onclick = () => { showView('add'); autoResizeTextarea(lyricsInput); };
-        document.getElementById('nav-library').onclick = () => { libraryScrollPos = 0; showView('library'); };
+        document.getElementById('nav-library').onclick = () => {
+            libraryScrollPos = 0;
+            floatingSearchInput.value = '';
+            floatingClearBtn.style.display = 'none';
+            showView('library');
+        };
         document.getElementById('nav-playlists').onclick = () => showView('playlists');
         document.getElementById('playPauseBtn').onclick = () => isScrolling ? stopScroll() : startScroll();
         
+        // Plovoucí vyhledávací panel — handlery
+        const floatingSearchInput = document.getElementById('floatingSearchInput');
+        const floatingClearBtn = document.getElementById('floatingClearBtn');
+        const floatingScrollTopBtn = document.getElementById('floatingScrollTopBtn');
+
+        floatingSearchInput.addEventListener('input', (e) => {
+            const val = e.target.value;
+            document.getElementById('searchInput').value = val;
+            floatingClearBtn.style.display = val ? 'block' : 'none';
+            document.getElementById('clearSearchBtn').style.display = (val || activeArtistFilter) ? 'block' : 'none';
+            renderLibrary(val);
+        });
+
+        floatingClearBtn.onclick = () => {
+            floatingSearchInput.value = '';
+            document.getElementById('searchInput').value = '';
+            activeArtistFilter = '';
+            document.getElementById('artistFilterSelect').value = '';
+            document.getElementById('artistFilterSelect').className = '';
+            floatingClearBtn.style.display = 'none';
+            document.getElementById('clearSearchBtn').style.display = 'none';
+            renderLibrary('');
+            floatingSearchInput.focus();
+        };
+
+        floatingScrollTopBtn.onclick = () => {
+            scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
         document.getElementById('backFromPlayerBtn').onclick = () => { resetEditMode(); stopScroll(); showView(lastView); };
         document.getElementById('footerBackBtn').onclick = () => { resetEditMode(); stopScroll(); showView(lastView); };
         document.getElementById('footerScrollTopBtn').onclick = () => {
