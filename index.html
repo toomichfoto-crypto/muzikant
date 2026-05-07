@@ -880,7 +880,7 @@ přes ty hory zelený</pre>
     // 4. Authorized JavaScript origins → URL tvé aplikace (např. https://uzivatel.github.io)
     // 5. Zkopíruj Client ID sem:
     // =====================================================================
-    const APP_VERSION = 'v28.8';
+    const APP_VERSION = 'v28.9';
 
     const GDRIVE_CLIENT_ID = '917333597478-88g2m8u0hgm8650ubtcshka5dqr1sep7.apps.googleusercontent.com';
     const GDRIVE_FILE_NAME = 'muzikant_db.json';
@@ -895,7 +895,7 @@ přes ty hory zelený</pre>
     let db = { songs: [], playlists: [] };
     const DB_KEY = 'muzikant_db_v17';
     const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B', 'H'];
-    const CHORD_REGEX_STR = "(^|\\s|\\[|\\(|\\|)([A-H][#b]?(?:m|mi|maj|min|dim|sus|add|aug|2|4|5|6|7|9|11|13|Δ|\\+)*(?:\\/[A-H][#b]?)?)(?=\\s|\\]|\\)|\\||$|,)";
+    const CHORD_REGEX_STR = "(^|\\s|\\[|\\(|\\|)([A-H][#b]?(?:maj7|maj9|maj11|maj13|mM7|m7b5|m7|mi7|min7|dim7|hdim|sus2|sus4|add9|add11|6\\/9|7b5|7#5|7sus4|m|mi|maj|min|dim|sus|add|aug|2|4|5|6|7|9|11|13|Δ|\\+)*(?:\\/[A-H][#b]?)?)(?=\\s|\\]|\\)|\\||$|,)";
     let currentInstrument = localStorage.getItem('muzikant_instrument') || 'guitar';
     let currentDayTheme = localStorage.getItem('muzikant_day_theme') || 'marine';
     if (currentDayTheme === 'classic') { currentDayTheme = 'marine'; localStorage.setItem('muzikant_day_theme', 'marine'); }
@@ -907,18 +907,67 @@ přes ty hory zelený</pre>
     let activeArtistFilter = ''; // Aktivní filtr interpreta
     const chordDB = {
         guitar: {
-            "C": { f: [-1,3,2,0,1,0] }, "Cmi": { f: [-1,3,5,5,4,3], b: 3 }, "Cm": { f: [-1,3,5,5,4,3], b: 3 }, "C7": { f: [-1,3,2,3,1,0] },
-            "C#": { f: [-1,4,6,6,6,4], b: 4 }, "C#mi": { f: [-1,4,6,6,5,4], b: 4 }, "C#m": { f: [-1,4,6,6,5,4], b: 4 },
-            "D": { f: [-1,-1,0,2,3,2] }, "Dmi": { f: [-1,-1,0,2,3,1] }, "Dm": { f: [-1,-1,0,2,3,1] }, "D7": { f: [-1,-1,0,2,1,2] },
-            "D#": { f: [-1,6,8,8,8,6], b: 6 }, "D#mi": { f: [-1,6,8,8,7,6], b: 6 }, "D#m": { f: [-1,6,8,8,7,6], b: 6 },
-            "E": { f: [0,2,2,1,0,0] }, "Emi": { f: [0,2,2,0,0,0] }, "Em": { f: [0,2,2,0,0,0] }, "E7": { f: [0,2,0,1,0,0] },
-            "F": { f: [1,3,3,2,1,1] }, "Fmi": { f: [1,3,3,1,1,1] }, "Fm": { f: [1,3,3,1,1,1] }, "F7": { f: [1,3,1,2,1,1] },
-            "F#": { f: [2,4,4,3,2,2], b: 2 }, "F#mi": { f: [2,4,4,2,2,2], b: 2 }, "F#m": { f: [2,4,4,2,2,2], b: 2 },
-            "G": { f: [3,2,0,0,0,3] }, "Gmi": { f: [3,5,5,3,3,3], b: 3 }, "Gm": { f: [3,5,5,3,3,3], b: 3 }, "G7": { f: [3,2,0,0,0,1] },
-            "G#": { f: [4,6,6,5,4,4], b: 4 }, "G#mi": { f: [4,6,6,4,4,4], b: 4 }, "G#m": { f: [4,6,6,4,4,4], b: 4 },
-            "A": { f: [-1,0,2,2,2,0] }, "Ami": { f: [-1,0,2,2,1,0] }, "Am": { f: [-1,0,2,2,1,0] }, "A7": { f: [-1,0,2,0,2,0] },
-            "B": { f: [-1,1,3,3,3,1] }, "Bmi": { f: [-1,1,3,3,2,1] }, "Bm": { f: [-1,1,3,3,2,1] }, "B7": { f: [-1,1,3,1,3,1] }, 
-            "H": { f: [-1,2,4,4,4,2] }, "Hmi": { f: [-1,2,4,4,3,2] }, "Hm": { f: [-1,2,4,4,3,2] }, "H7": { f: [-1,2,1,2,0,2] }
+            // Dur
+            "C": { f: [-1,3,2,0,1,0] }, "D": { f: [-1,-1,0,2,3,2] }, "E": { f: [0,2,2,1,0,0] },
+            "F": { f: [1,3,3,2,1,1] }, "G": { f: [3,2,0,0,0,3] }, "A": { f: [-1,0,2,2,2,0] },
+            "B": { f: [-1,1,3,3,3,1] }, "H": { f: [-1,2,4,4,4,2] },
+            "C#": { f: [-1,4,6,6,6,4], b: 4 }, "D#": { f: [-1,6,8,8,8,6], b: 6 },
+            "F#": { f: [2,4,4,3,2,2], b: 2 }, "G#": { f: [4,6,6,5,4,4], b: 4 },
+            // Moll
+            "Cm": { f: [-1,3,5,5,4,3], b: 3 }, "Cmi": { f: [-1,3,5,5,4,3], b: 3 },
+            "Dm": { f: [-1,-1,0,2,3,1] }, "Dmi": { f: [-1,-1,0,2,3,1] },
+            "Em": { f: [0,2,2,0,0,0] }, "Emi": { f: [0,2,2,0,0,0] },
+            "Fm": { f: [1,3,3,1,1,1] }, "Fmi": { f: [1,3,3,1,1,1] },
+            "Gm": { f: [3,5,5,3,3,3], b: 3 }, "Gmi": { f: [3,5,5,3,3,3], b: 3 },
+            "Am": { f: [-1,0,2,2,1,0] }, "Ami": { f: [-1,0,2,2,1,0] },
+            "Bm": { f: [-1,1,3,3,2,1] }, "Bmi": { f: [-1,1,3,3,2,1] },
+            "Hm": { f: [-1,2,4,4,3,2] }, "Hmi": { f: [-1,2,4,4,3,2] },
+            "C#m": { f: [-1,4,6,6,5,4], b: 4 }, "C#mi": { f: [-1,4,6,6,5,4], b: 4 },
+            "D#m": { f: [-1,6,8,8,7,6], b: 6 }, "D#mi": { f: [-1,6,8,8,7,6], b: 6 },
+            "F#m": { f: [2,4,4,2,2,2], b: 2 }, "F#mi": { f: [2,4,4,2,2,2], b: 2 },
+            "G#m": { f: [4,6,6,4,4,4], b: 4 }, "G#mi": { f: [4,6,6,4,4,4], b: 4 },
+            // Dominantní septima
+            "C7": { f: [-1,3,2,3,1,0] }, "D7": { f: [-1,-1,0,2,1,2] }, "E7": { f: [0,2,0,1,0,0] },
+            "F7": { f: [1,3,1,2,1,1] }, "G7": { f: [3,2,0,0,0,1] }, "A7": { f: [-1,0,2,0,2,0] },
+            "B7": { f: [-1,1,3,1,3,1] }, "H7": { f: [-1,2,1,2,0,2] },
+            "C#7": { f: [-1,4,3,4,2,4], b: 4 }, "D#7": { f: [-1,-1,1,3,2,3] },
+            "F#7": { f: [2,4,2,3,2,2], b: 2 }, "G#7": { f: [4,3,4,3,4,-1], b: 4 },
+            // Velká septima (maj7)
+            "Cmaj7": { f: [-1,3,2,0,0,0] }, "Dmaj7": { f: [-1,-1,0,2,2,2] },
+            "Emaj7": { f: [0,2,1,1,0,0] }, "Fmaj7": { f: [1,3,3,2,1,0] },
+            "Gmaj7": { f: [3,2,0,0,0,2] }, "Amaj7": { f: [-1,0,2,1,2,0] },
+            "Bmaj7": { f: [-1,2,4,3,4,2] }, "Hmaj7": { f: [-1,2,4,3,4,2] },
+            "C#maj7": { f: [-1,4,3,5,4,4], b: 4 }, "F#maj7": { f: [2,4,3,3,2,2], b: 2 },
+            // Mollová septima (m7)
+            "Cm7": { f: [-1,3,5,3,4,3], b: 3 }, "Dm7": { f: [-1,-1,0,2,1,1] },
+            "Em7": { f: [0,2,0,0,0,0] }, "Fm7": { f: [1,3,1,1,1,1] },
+            "Gm7": { f: [3,5,3,3,3,3], b: 3 }, "Am7": { f: [-1,0,2,0,1,0] },
+            "Bm7": { f: [-1,1,3,1,2,1] }, "Hm7": { f: [-1,2,4,2,3,2] },
+            "C#m7": { f: [-1,4,6,4,5,4], b: 4 }, "F#m7": { f: [2,4,2,2,2,2], b: 2 },
+            "G#m7": { f: [4,6,4,4,4,4], b: 4 }, "D#m7": { f: [-1,6,8,6,7,6], b: 6 },
+            // Sus akordy
+            "Csus2": { f: [-1,3,0,0,1,3] }, "Csus4": { f: [-1,3,3,0,1,1] },
+            "Dsus2": { f: [-1,-1,0,2,3,0] }, "Dsus4": { f: [-1,-1,0,2,3,3] },
+            "Esus2": { f: [0,2,2,1,0,0] }, "Esus4": { f: [0,2,2,2,0,0] },
+            "Gsus2": { f: [3,0,0,0,1,3] }, "Gsus4": { f: [3,3,0,0,1,3] },
+            "Asus2": { f: [-1,0,2,2,0,0] }, "Asus4": { f: [-1,0,2,2,3,0] },
+            // Dim a Aug
+            "Cdim": { f: [-1,3,4,5,4,-1] }, "Ddim": { f: [-1,-1,0,1,0,1] },
+            "Edim": { f: [0,1,2,3,2,-1] }, "Fdim": { f: [1,2,3,4,3,-1] },
+            "Gdim": { f: [3,4,5,3,-1,-1] }, "Adim": { f: [-1,0,1,2,1,-1] },
+            "Bdim": { f: [-1,1,2,3,2,-1] }, "Hdim": { f: [-1,2,3,4,3,-1] },
+            "Caug": { f: [-1,3,2,1,1,0] }, "Daug": { f: [-1,-1,0,3,3,2] },
+            "Eaug": { f: [0,3,2,1,1,0] }, "Faug": { f: [1,0,3,2,2,1] },
+            "Gaug": { f: [3,2,1,0,0,-1] }, "Aaug": { f: [-1,0,3,2,2,1] },
+            // Dim7
+            "Cdim7": { f: [-1,3,4,2,4,-1] }, "Ddim7": { f: [-1,-1,0,1,0,1] },
+            "Edim7": { f: [0,1,2,0,2,-1] }, "Fdim7": { f: [1,2,3,1,3,-1] },
+            "Gdim7": { f: [3,1,2,3,2,-1] }, "Adim7": { f: [-1,0,1,2,1,2] },
+            "Bdim7": { f: [-1,1,2,0,2,-1] }, "Hdim7": { f: [-1,2,3,1,3,-1] },
+            // Add9
+            "Cadd9": { f: [-1,3,2,0,3,0] }, "Dadd9": { f: [-1,-1,0,2,3,0] },
+            "Eadd9": { f: [0,2,2,1,0,2] }, "Gadd9": { f: [3,2,0,2,0,3] },
+            "Aadd9": { f: [-1,0,2,4,2,0] },
         },
         ukulele: {
             "C": { f: [0,0,0,3] }, "Cmi": { f: [0,3,3,3] }, "Cm": { f: [0,3,3,3] }, "D": { f: [2,2,2,0] }, "Dmi": { f: [2,2,1,0] }, "Dm": { f: [2,2,1,0] },
@@ -1621,11 +1670,35 @@ Když jsem já šel</pre>
     }
 
     function getChordSVG(chordName) {
-        let cleanName = chordName.replace(/maj7|sus4|sus2|add9|dim|aug|\+|\u0394|\/[A-H][#b]?/g, '');
         if (!chordDB[currentInstrument]) currentInstrument = 'guitar';
         let currentDB = chordDB[currentInstrument];
-        if (!currentDB[cleanName] && cleanName.includes('7')) cleanName = cleanName.replace('7', '');
-        let chordData = currentDB[cleanName];
+        // Zkusíme přesnou shodu jako první
+        let chordData = currentDB[chordName];
+        // Zkusíme varianty postupným odstraňováním přípon
+        if (!chordData) {
+            const variants = [
+                chordName,
+                chordName.replace(/\/[A-H][#b]?$/, ''), // odstraň lomítkový bas
+            ];
+            // Přidáme varianty se zkrácenými příponami
+            const base = chordName.replace(/\/[A-H][#b]?$/, '');
+            if (base.includes('maj7')) variants.push(base.replace('maj7', 'maj7'));
+            if (base.includes('m7')) variants.push(base.replace('m7', 'm7'));
+            if (base.includes('sus2')) variants.push(base.replace('sus2', 'sus2'));
+            if (base.includes('sus4')) variants.push(base.replace('sus4', 'sus4'));
+            if (base.includes('dim7')) variants.push(base.replace('dim7', 'dim7'));
+            if (base.includes('add9')) variants.push(base.replace('add9', 'add9'));
+            if (base.includes('aug')) variants.push(base.replace('aug', 'aug'));
+            if (base.includes('dim')) variants.push(base.replace('dim', 'dim'));
+            // Fallback na základní akord (dur/mol)
+            const molMatch = base.match(/^([A-H][#b]?)(m|mi|min)(?:7|aj7|add9|sus[24]|dim|aug)?/);
+            const durMatch = base.match(/^([A-H][#b]?)(?:maj|add|sus|aug|dim|7|9|11|13)?/);
+            if (molMatch) variants.push(molMatch[1] + 'm');
+            if (durMatch) variants.push(durMatch[1]);
+            for (const v of variants) {
+                if (currentDB[v]) { chordData = currentDB[v]; break; }
+            }
+        }
         if (!chordData) { let match = chordName.match(/^[A-H][#b]?(mi|m)?/); if(match) chordData = currentDB[match[0]]; }
         if (!chordData) return `<div style="padding:10px; font-size:14px; text-align:center;">Akord<br><b style="color:var(--primary)">${chordName}</b><br>nenalezen pro tento nástroj</div>`;
         let numStrings = chordData.f.length; let spacing = 50 / (numStrings - 1);
