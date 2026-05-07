@@ -461,6 +461,7 @@
     <div id="toast">Oznámení</div>
     <div id="chordTooltip"></div>
     <input type="file" id="importAllInput" class="hidden-file" accept=".json">
+    <input type="file" id="importChordProInput" class="hidden-file" accept=".cho,.chordpro,.chopro,.txt,.pro" multiple>
     <input type="file" id="importPlaylistInput" class="hidden-file" accept=".json">
 
     <div class="modal-overlay" id="confirmModal">
@@ -694,8 +695,11 @@ přes ty hory zelený</pre>
                     <button class="btn btn-outline" id="exportAllBtn" style="padding:8px 12px; font-size:12px;" title="Exportovat vše">
                         <svg viewBox="0 0 24 24" width="16" height="16"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
                     </button>
-                    <button class="btn btn-outline" id="triggerImportAllBtn" style="padding:8px 12px; font-size:12px;" title="Importovat zálohu">
+                    <button class="btn btn-outline" id="triggerImportAllBtn" style="padding:8px 12px; font-size:12px;" title="Importovat zálohu JSON">
                         <svg viewBox="0 0 24 24" width="16" height="16"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+                    </button>
+                    <button class="btn btn-outline" id="triggerImportChordProBtn" style="padding:8px 12px; font-size:12px;" title="Importovat ChordPro soubor">
+                        <svg viewBox="0 0 24 24" width="16" height="16"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
                     </button>
                 </div>
             </div>
@@ -880,7 +884,7 @@ přes ty hory zelený</pre>
     // 4. Authorized JavaScript origins → URL tvé aplikace (např. https://uzivatel.github.io)
     // 5. Zkopíruj Client ID sem:
     // =====================================================================
-    const APP_VERSION = 'v28.9';
+    const APP_VERSION = 'v29.0';
 
     const GDRIVE_CLIENT_ID = '917333597478-88g2m8u0hgm8650ubtcshka5dqr1sep7.apps.googleusercontent.com';
     const GDRIVE_FILE_NAME = 'muzikant_db.json';
@@ -1033,6 +1037,88 @@ přes ty hory zelený</pre>
             }
         });
         return { added, updated };
+    }
+
+
+    // =====================================================================
+    // CHORDPRO IMPORT
+    // Podporované aplikace: OnSong, SongBook ChordPro, Chordinator,
+    // GuitarPro, iReal Pro (export), Songsterr, Chordify (export),
+    // MobileSheetsPro, setlist.fm, Chord! (iOS), Onsong, Songbook+
+    // =====================================================================
+    function parseChordPro(text) {
+        const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+        let title = '';
+        let artist = '';
+        let baseKey = 0;
+        const outputLines = [];
+
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+
+            // Direktivy: {title: ...}, {t: ...}, {artist: ...}, atd.
+            const dirMatch = line.match(/^\{\s*(\w+)\s*:\s*(.+?)\s*\}$/);
+            if (dirMatch) {
+                const dir = dirMatch[1].toLowerCase();
+                const val = dirMatch[2];
+                if (dir === 'title' || dir === 't') { title = val; continue; }
+                if (dir === 'artist' || dir === 'a' || dir === 'subtitle' || dir === 'st') { if (!artist) artist = val; continue; }
+                if (dir === 'key') {
+                    const keyMap = { 'C':0,'C#':1,'Db':1,'D':2,'D#':3,'Eb':3,'E':4,'F':5,'F#':6,'Gb':6,'G':7,'G#':8,'Ab':8,'A':9,'B':10,'Bb':10,'H':11 };
+                    baseKey = keyMap[val] !== undefined ? keyMap[val] : 0;
+                    continue;
+                }
+                // Ostatní direktivy ignorujeme (chorus, verse, capo, tempo...)
+                continue;
+            }
+
+            // Řádky s akordy v hranatých závorkách: [Am]text [G]text
+            if (line.includes('[')) {
+                // Oddělíme akordy od textu
+                let chordLine = '';
+                let textLine = '';
+                let pos = 0;
+                const parts = line.split(/\[([^\]]+)\]/);
+                // parts = [text_pred, akord1, text_za1, akord2, text_za2, ...]
+                for (let j = 0; j < parts.length; j++) {
+                    if (j % 2 === 0) {
+                        // Textová část
+                        const txt = parts[j];
+                        textLine += txt;
+                        chordLine += ' '.repeat(txt.length);
+                    } else {
+                        // Akord
+                        const chord = parts[j];
+                        chordLine += chord;
+                        // Doplníme mezery v textu pod akordem
+                        const gap = chord.length - 0;
+                        if (gap > 0) textLine += ' '.repeat(gap);
+                    }
+                }
+                chordLine = chordLine.trimEnd();
+                textLine = textLine.trimEnd();
+                if (chordLine.trim()) outputLines.push(chordLine);
+                if (textLine.trim()) outputLines.push(textLine);
+                else if (chordLine.trim()) {} // Samotný akordový řádek bez textu — už přidán
+            } else {
+                // Čistý textový řádek nebo prázdný řádek
+                outputLines.push(line);
+            }
+        }
+
+        // Pokud nebyl nalezen title, použijeme první neprázdný řádek
+        if (!title) {
+            const firstLine = outputLines.find(l => l.trim());
+            title = firstLine ? firstLine.trim() : 'Bez názvu';
+        }
+
+        return {
+            title,
+            artist,
+            baseKey,
+            lyrics: outputLines.join('\n').trim(),
+            tags: []
+        };
     }
 
     // =====================================================================
@@ -1920,6 +2006,38 @@ Když jsem já šel</pre>
         
         document.getElementById('exportAllBtn').onclick = () => { const a = document.createElement('a');
             a.href = URL.createObjectURL(new Blob([JSON.stringify(db)], {type: 'application/json'})); a.download = `muzikant_zaloha.json`; a.click(); };
+
+        document.getElementById('triggerImportChordProBtn').onclick = () => document.getElementById('importChordProInput').click();
+        document.getElementById('importChordProInput').onchange = (e) => {
+            const files = e.target.files;
+            if (!files || files.length === 0) return;
+            let processed = 0;
+            let added = 0;
+            let updated = 0;
+            Array.from(files).forEach(file => {
+                const r = new FileReader();
+                r.onload = (ev) => {
+                    try {
+                        const song = parseChordPro(ev.target.result);
+                        const result = mergeSongs([song]);
+                        added += result.added;
+                        updated += result.updated;
+                    } catch(err) {
+                        console.error('ChordPro parse error:', err);
+                    }
+                    processed++;
+                    if (processed === files.length) {
+                        saveData();
+                        renderLibrary(document.getElementById('searchInput').value);
+                        const msg = [added ? added + ' nových' : '', updated ? updated + ' aktualizováno' : ''].filter(Boolean).join(', ');
+                        notify('ChordPro import ✓' + (msg ? ' — ' + msg : ' — vše aktuální'));
+                    }
+                };
+                r.readAsText(file);
+            });
+            e.target.value = '';
+        };
+
         document.getElementById('triggerImportAllBtn').onclick = () => document.getElementById('importAllInput').click();
         document.getElementById('importAllInput').onchange = (e) => {
             if(!e.target.files[0]) return;
