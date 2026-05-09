@@ -882,7 +882,7 @@ přes ty hory zelený</pre>
     // 4. Authorized JavaScript origins → URL tvé aplikace (např. https://uzivatel.github.io)
     // 5. Zkopíruj Client ID sem:
     // =====================================================================
-    const APP_VERSION = 'v29.5';
+    const APP_VERSION = 'v29.6';
 
     const GDRIVE_CLIENT_ID = '917333597478-88g2m8u0hgm8650ubtcshka5dqr1sep7.apps.googleusercontent.com';
     const GDRIVE_FILE_NAME = 'muzikant_db.json';
@@ -1137,6 +1137,7 @@ přes ty hory zelený</pre>
             }
             // 3. Načti stránku znovu — tentokrát čerstvě ze serveru
             notify('Aktualizuji aplikaci...');
+            sessionStorage.setItem('reopen_settings', '1');
             setTimeout(() => window.location.reload(true), 800);
         } catch(e) {
             notify('Chyba aktualizace — zkus obnovit stránku ručně');
@@ -2144,6 +2145,13 @@ Když jsem já šel</pre>
 
         checkSharedSong();
         if (!window.location.search.includes('song=')) { showView('library'); }
+
+        // Po vynucené aktualizaci znovu otevřít nastavení
+        if (sessionStorage.getItem('reopen_settings') === '1') {
+            sessionStorage.removeItem('reopen_settings');
+            updateGdriveUI();
+            setTimeout(() => { document.getElementById('settingsModal').style.display = 'flex'; }, 300);
+        }
     });
 
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && window.location.search.includes('song=')) { checkSharedSong(); } });
