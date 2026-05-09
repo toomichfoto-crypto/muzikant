@@ -882,7 +882,7 @@ přes ty hory zelený</pre>
     // 4. Authorized JavaScript origins → URL tvé aplikace (např. https://uzivatel.github.io)
     // 5. Zkopíruj Client ID sem:
     // =====================================================================
-    const APP_VERSION = 'v29.3';
+    const APP_VERSION = 'v29.4';
 
     const GDRIVE_CLIENT_ID = '917333597478-88g2m8u0hgm8650ubtcshka5dqr1sep7.apps.googleusercontent.com';
     const GDRIVE_FILE_NAME = 'muzikant_db.json';
@@ -1833,8 +1833,8 @@ Když jsem já šel</pre>
         lastTime = currentTime;
         if (delta > 100) { requestAnimationFrame(scrollStep); return; }
 
-        // Stupnice 1-10: level 10 = 42px/s, level 1 = 4.2px/s
-        const speedPxPerSec = currentScrollSpeed * 4.2;
+        // Stupnice 1-10: level 10 = 25.2px/s, level 1 = 2.52px/s
+        const speedPxPerSec = currentScrollSpeed * 2.52;
         scrollPos += speedPxPerSec * (delta / 1000);
 
         // Pokud uživatel posunul stránku prstem, synchronizujeme scrollPos
