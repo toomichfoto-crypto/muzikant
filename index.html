@@ -617,6 +617,17 @@ přes ty hory zelený</pre>
         </div>
     </div>
 
+    <div class="modal-overlay" id="duplicateModal">
+        <div class="modal-content">
+            <h3>Píseň již existuje</h3>
+            <p id="duplicateText" style="color:var(--muted); margin-bottom:25px; font-size:15px; line-height:1.6;"></p>
+            <div style="display:flex; justify-content:center; gap:12px;">
+                <button class="btn btn-cancel" id="duplicateCancelBtn">Zrušit</button>
+                <button class="btn btn-blue" id="duplicateConfirmBtn">Přidat i přesto</button>
+            </div>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="libraryFilterModal">
         <div class="modal-content">
             <h3>Filtrovat podle štítků</h3>
@@ -682,7 +693,7 @@ přes ty hory zelený</pre>
                     <svg viewBox="0 0 24 24" width="16" height="16"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg> Uložit
                 </button>
             </div>
-            <textarea id="lyricsInput" style="min-height: 300px; overflow-y: hidden; resize: none;" placeholder="Sem vlož text a akordy..."></textarea>
+            <textarea id="lyricsInput" style="min-height: 300px; overflow-y: hidden; resize: none;" spellcheck="false" placeholder="Sem vlož text a akordy..."></textarea>
         </div>
 
         <div id="view-library" class="view active">
@@ -812,7 +823,7 @@ přes ty hory zelený</pre>
                     <label style="font-weight:500;">Tónina zapsaného textu:</label>
                     <select id="editBaseKey" style="margin-bottom:0; flex-grow:1;"></select>
                 </div>
-                <textarea id="editArea" style="min-height: 300px; overflow-y: hidden; resize: none;" placeholder="Text s akordy..."></textarea>
+                <textarea id="editArea" style="min-height: 300px; overflow-y: hidden; resize: none;" spellcheck="false" placeholder="Text s akordy..."></textarea>
             </div>
         </div>
     </div>
@@ -882,7 +893,7 @@ přes ty hory zelený</pre>
     // 4. Authorized JavaScript origins → URL tvé aplikace (např. https://uzivatel.github.io)
     // 5. Zkopíruj Client ID sem:
     // =====================================================================
-    const APP_VERSION = 'v29.6';
+    const APP_VERSION = 'v29.8';
 
     const GDRIVE_CLIENT_ID = '917333597478-88g2m8u0hgm8650ubtcshka5dqr1sep7.apps.googleusercontent.com';
     const GDRIVE_FILE_NAME = 'muzikant_db.json';
@@ -1469,20 +1480,26 @@ přes ty hory zelený</pre>
         const select = document.getElementById('artistFilterSelect');
         if (!select) return;
         const current = select.value;
-        // Sesbírat unikátní interprety seřazené abecedně
-        const artists = [...new Set(
-            db.songs.map(s => s.artist).filter(a => a && a.trim() !== '')
-        )].sort((a, b) => a.localeCompare(b, 'cs', { sensitivity: 'base' }));
+
+        // Deduplikace bez ohledu na velikost písmen — zachováme první výskyt
+        const seen = new Map(); // klíč: lowercase, hodnota: původní string
+        db.songs.forEach(s => {
+            if (s.artist && s.artist.trim() !== '') {
+                const key = s.artist.trim().toLowerCase();
+                if (!seen.has(key)) seen.set(key, s.artist.trim());
+            }
+        });
+        const artists = [...seen.values()]
+            .sort((a, b) => a.localeCompare(b, 'cs', { sensitivity: 'base' }));
 
         select.innerHTML = '<option value="">Interpret</option>';
         artists.forEach(artist => {
             const opt = document.createElement('option');
             opt.value = artist;
             opt.textContent = artist;
-            if (artist === current) opt.selected = true;
+            if (artist.toLowerCase() === current.toLowerCase()) opt.selected = true;
             select.appendChild(opt);
         });
-        // Obnov aktivní třídu
         select.className = activeArtistFilter ? 'active' : '';
     }
 
@@ -1508,7 +1525,7 @@ přes ty hory zelený</pre>
             }
             // Filtr interpretem z roletky
             if (activeArtistFilter) {
-                if ((item.song.artist || '').toLowerCase() !== activeArtistFilter.toLowerCase()) return;
+                if ((item.song.artist || '').trim().toLowerCase() !== activeArtistFilter.trim().toLowerCase()) return;
             }
             // Filtr štítky
             if (activeLibraryFilters.length > 0) {
@@ -2089,12 +2106,40 @@ Když jsem já šel</pre>
             };
             r.readAsText(e.target.files[0]); e.target.value = '';
         };
-        document.getElementById('saveNewSongBtn').onclick = () => { 
+        function doSaveSong() {
+            const _t = document.getElementById('titleInput').value.trim();
+            const _a = document.getElementById('artistInput').value.trim();
+            const _l = document.getElementById('lyricsInput').value;
+            const _k = parseInt(document.getElementById('addBaseKey').value);
+            db.songs.push({ title: _t, artist: _a, lyrics: _l, baseKey: _k, tags: [] });
+            saveData(); showView('library'); notify('Přidáno');
+            document.getElementById('titleInput').value = '';
+            document.getElementById('artistInput').value = '';
+            document.getElementById('lyricsInput').value = '';
+            autoResizeTextarea(document.getElementById('lyricsInput'));
+        }
+
+        document.getElementById('saveNewSongBtn').onclick = () => {
             const _t = document.getElementById('titleInput').value.trim();
             if (!_t) { notify('Zadej prosím název písně'); return; }
-            db.songs.push({ title: _t, artist: document.getElementById('artistInput').value.trim(), lyrics: document.getElementById('lyricsInput').value, baseKey: parseInt(document.getElementById('addBaseKey').value), tags: [] });
-            saveData(); showView('library'); notify('Přidáno'); 
-            document.getElementById('titleInput').value = ''; document.getElementById('artistInput').value = ''; document.getElementById('lyricsInput').value = ''; autoResizeTextarea(document.getElementById('lyricsInput'));
+            // Kontrola duplicity
+            const duplicate = db.songs.find(s => s.title.toLowerCase() === _t.toLowerCase());
+            if (duplicate) {
+                const artist = duplicate.artist ? ` (${duplicate.artist})` : '';
+                document.getElementById('duplicateText').innerHTML =
+                    `V knihovně již máš píseň s názvem <strong>${escapeHtml(_t)}</strong>${escapeHtml(artist)}.<br>Chceš ji přidat i přesto?`;
+                document.getElementById('duplicateModal').style.display = 'flex';
+            } else {
+                doSaveSong();
+            }
+        };
+
+        document.getElementById('duplicateConfirmBtn').onclick = () => {
+            document.getElementById('duplicateModal').style.display = 'none';
+            doSaveSong();
+        };
+        document.getElementById('duplicateCancelBtn').onclick = () => {
+            document.getElementById('duplicateModal').style.display = 'none';
         };
         
         document.getElementById('createPlaylistBtn').onclick = () => { const name = document.getElementById('newPlaylistName').value.trim();
