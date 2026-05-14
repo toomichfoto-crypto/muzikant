@@ -893,7 +893,7 @@ přes ty hory zelený</pre>
     // 4. Authorized JavaScript origins → URL tvé aplikace (např. https://uzivatel.github.io)
     // 5. Zkopíruj Client ID sem:
     // =====================================================================
-    const APP_VERSION = 'v29.9';
+    const APP_VERSION = 'v30.0';
 
     const GDRIVE_CLIENT_ID = '917333597478-88g2m8u0hgm8650ubtcshka5dqr1sep7.apps.googleusercontent.com';
     const GDRIVE_FILE_NAME = 'muzikant_db.json';
@@ -1025,7 +1025,9 @@ přes ty hory zelený</pre>
 
 
     // Smart merge: přidá nové písně, doplní interpret u existujících pokud chybí
-    function mergeSongs(incomingSongs) {
+    // keepTags=true → zachovat lokální štítky (import od cizího)
+    // keepTags=false → přepsat i štítky (stahování z vlastního Drive)
+    function mergeSongs(incomingSongs, keepTags = true) {
         let added = 0, updated = 0;
         (incomingSongs || []).forEach(incoming => {
             const existIdx = db.songs.findIndex(s => s.title.toLowerCase() === incoming.title.toLowerCase());
@@ -1034,10 +1036,11 @@ přes ty hory zelený</pre>
                 db.songs.push(incoming);
                 added++;
             } else {
-                // Píseň existuje — přepiš vše kromě štítků a preferované tóniny
-                // (štítky a tóninu si každý uživatel nastavuje sám lokálně)
+                // Píseň existuje — přepiš, ale zachovej osobní nastavení
                 const kept = {
-                    tags: db.songs[existIdx].tags,
+                    // Štítky: zachovat lokální pokud keepTags=true, jinak přepsat z Drive
+                    tags: keepTags ? db.songs[existIdx].tags : (incoming.tags || db.songs[existIdx].tags || []),
+                    // Tónina a rychlost jsou vždy lokální osobní preference
                     preferredKey: db.songs[existIdx].preferredKey,
                     scrollSpeed: db.songs[existIdx].scrollSpeed,
                 };
@@ -1242,7 +1245,7 @@ přes ty hory zelený</pre>
             if (r.ok) {
                 const data = await r.json();
                 if (data.songs) {
-                    const { added, updated } = mergeSongs(data.songs);
+                    const { added, updated } = mergeSongs(data.songs, false); // Drive = náš vlastní, štítky přepsat
                     // Playlisty: přidáme pouze playlisty jejichž název ještě není v seznamu
                     (data.playlists || []).forEach(incoming => {
                         const exists = db.playlists.some(p => p.name.toLowerCase() === incoming.name.toLowerCase());
@@ -2077,7 +2080,7 @@ Když jsem já šel</pre>
                 try {
                     const data = JSON.parse(ev.target.result);
                     if (!data.songs) { notify('Chybný soubor zálohy'); return; }
-                    const { added: addedSongs, updated: updatedSongs } = mergeSongs(data.songs);
+                    const { added: addedSongs, updated: updatedSongs } = mergeSongs(data.songs, true); // JSON import = může být cizí, štítky zachovat
                     // Merge: přidáme jen playlisty jejichž název ještě není v seznamu
                     (data.playlists || []).forEach(incoming => {
                         const exists = db.playlists.some(p => p.name.toLowerCase() === incoming.name.toLowerCase());
