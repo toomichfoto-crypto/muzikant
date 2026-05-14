@@ -893,7 +893,7 @@ přes ty hory zelený</pre>
     // 4. Authorized JavaScript origins → URL tvé aplikace (např. https://uzivatel.github.io)
     // 5. Zkopíruj Client ID sem:
     // =====================================================================
-    const APP_VERSION = 'v30.0';
+    const APP_VERSION = 'v30.1';
 
     const GDRIVE_CLIENT_ID = '917333597478-88g2m8u0hgm8650ubtcshka5dqr1sep7.apps.googleusercontent.com';
     const GDRIVE_FILE_NAME = 'muzikant_db.json';
@@ -1040,9 +1040,10 @@ přes ty hory zelený</pre>
                 const kept = {
                     // Štítky: zachovat lokální pokud keepTags=true, jinak přepsat z Drive
                     tags: keepTags ? db.songs[existIdx].tags : (incoming.tags || db.songs[existIdx].tags || []),
-                    // Tónina a rychlost jsou vždy lokální osobní preference
-                    preferredKey: db.songs[existIdx].preferredKey,
-                    scrollSpeed: db.songs[existIdx].scrollSpeed,
+                    // Tónina: zachovat lokální pokud keepTags=true, jinak přepsat z Drive
+                    preferredKey: keepTags ? db.songs[existIdx].preferredKey : (incoming.preferredKey !== undefined ? incoming.preferredKey : db.songs[existIdx].preferredKey),
+                    // Rychlost scrollu: zachovat lokální pokud keepTags=true, jinak přepsat z Drive
+                    scrollSpeed: keepTags ? db.songs[existIdx].scrollSpeed : (incoming.scrollSpeed !== undefined ? incoming.scrollSpeed : db.songs[existIdx].scrollSpeed),
                 };
                 db.songs[existIdx] = { ...incoming, ...kept };
                 updated++;
@@ -2031,9 +2032,9 @@ Když jsem já šel</pre>
         document.getElementById('themeToggle').onclick = () => { const isDark = document.body.getAttribute('data-theme') === 'dark'; isDark ? document.body.removeAttribute('data-theme') : document.body.setAttribute('data-theme', 'dark'); localStorage.setItem('muzikant_theme', isDark ? 'light' : 'dark'); };
         
         document.getElementById('exportAllBtn').onclick = () => {
-            // Export bez štítků — štítky jsou osobní, pro ostatní nejsou relevantní
+            // Export pro ostatní: bez štítků a bez rychlosti scrollu, tónina zůstává
             const exportDb = {
-                songs: db.songs.map(s => { const { tags, ...rest } = s; return rest; }),
+                songs: db.songs.map(s => { const { tags, scrollSpeed, ...rest } = s; return rest; }),
                 playlists: db.playlists
             };
             const a = document.createElement('a');
@@ -2098,8 +2099,8 @@ Když jsem já šel</pre>
         document.getElementById('exportPlaylistBtn').onclick = () => {
             if (activePlaylistIdx === null) return;
             const pl = db.playlists[activePlaylistIdx];
-            // Export bez štítků — štítky jsou osobní
-            const exportData = { playlistName: pl.name, songs: pl.songIds.map(id => { const s = db.songs[id]; if (!s) return null; const { tags, ...rest } = s; return rest; }).filter(Boolean) };
+            // Export pro ostatní: bez štítků a bez rychlosti scrollu, tónina zůstává
+            const exportData = { playlistName: pl.name, songs: pl.songIds.map(id => { const s = db.songs[id]; if (!s) return null; const { tags, scrollSpeed, ...rest } = s; return rest; }).filter(Boolean) };
             const a = document.createElement('a');
             a.href = URL.createObjectURL(new Blob([JSON.stringify(exportData)], {type: 'application/json'})); a.download = `Playlist_${pl.name.replace(/\s+/g, '_')}.json`; a.click();
         };
