@@ -445,6 +445,26 @@
             box-shadow: 0 2px 6px rgba(0,0,0,0.2);
         }
 
+
+        /* Scroll panel — přizpůsobení velikosti obrazovky */
+        @media (min-width: 481px) and (max-width: 1024px) {
+            /* Tablet */
+            .scroll-panel { width: 72px; padding: 16px 0; gap: 12px; border-radius: 50px; right: 18px; }
+            .speed-btn { width: 48px; height: 48px; font-size: 26px; }
+            .speed-display { font-size: 26px; min-width: 32px; padding: 6px 0; }
+            .play-btn { width: 64px; height: 64px; }
+            .play-btn svg { width: 36px; height: 36px; }
+        }
+
+        @media (min-width: 1025px) {
+            /* Desktop — o něco větší než tablet, ale strop */
+            .scroll-panel { width: 80px; padding: 18px 0; gap: 14px; border-radius: 55px; right: 24px; }
+            .speed-btn { width: 54px; height: 54px; font-size: 28px; }
+            .speed-display { font-size: 28px; min-width: 36px; padding: 6px 0; }
+            .play-btn { width: 70px; height: 70px; }
+            .play-btn svg { width: 40px; height: 40px; }
+        }
+
     </style>
 </head>
 <body>
@@ -893,7 +913,7 @@ přes ty hory zelený</pre>
     // 4. Authorized JavaScript origins → URL tvé aplikace (např. https://uzivatel.github.io)
     // 5. Zkopíruj Client ID sem:
     // =====================================================================
-    const APP_VERSION = 'v30.1';
+    const APP_VERSION = 'v30.2';
 
     const GDRIVE_CLIENT_ID = '917333597478-88g2m8u0hgm8650ubtcshka5dqr1sep7.apps.googleusercontent.com';
     const GDRIVE_FILE_NAME = 'muzikant_db.json';
