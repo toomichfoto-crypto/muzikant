@@ -465,6 +465,26 @@
             .play-btn svg { width: 40px; height: 40px; }
         }
 
+
+        /* Animace noty při náhodné písni */
+        @keyframes noteSpinFull {
+            0%   { transform: rotate(0deg) scale(1); }
+            30%  { transform: rotate(180deg) scale(1.3); }
+            70%  { transform: rotate(320deg) scale(1.15); }
+            100% { transform: rotate(360deg) scale(1); }
+        }
+        .note-spinning {
+            animation: noteSpinFull 0.7s ease-in-out;
+        }
+        #appLogoBtn {
+            background: none; border: none; cursor: pointer;
+            color: var(--nav-text); display: flex; align-items: center;
+            gap: 8px; padding: 0; font-family: inherit;
+            font-weight: 600; font-size: 1.2rem;
+        }
+        #appLogoBtn:hover { opacity: 0.85; }
+        #appLogoBtn svg { transition: transform 0.1s; }
+
     </style>
 </head>
 <body>
@@ -678,8 +698,10 @@ přes ty hory zelený</pre>
 
     <div class="top-nav" id="mainHeader">
         <div class="app-title">
-            <svg viewBox="0 0 24 24" width="24" height="24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
-            Muzikant
+            <button id="appLogoBtn" title="Náhodná píseň">
+                <svg id="appLogoIcon" viewBox="0 0 24 24" width="24" height="24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+                <span>Muzikant</span>
+            </button>
         </div>
         <div class="nav-icons">
             <button class="nav-btn" id="nav-settings" title="Nastavení">
@@ -913,7 +935,7 @@ přes ty hory zelený</pre>
     // 4. Authorized JavaScript origins → URL tvé aplikace (např. https://uzivatel.github.io)
     // 5. Zkopíruj Client ID sem:
     // =====================================================================
-    const APP_VERSION = 'v30.2';
+    const APP_VERSION = 'v30.3';
 
     const GDRIVE_CLIENT_ID = '917333597478-88g2m8u0hgm8650ubtcshka5dqr1sep7.apps.googleusercontent.com';
     const GDRIVE_FILE_NAME = 'muzikant_db.json';
@@ -1152,6 +1174,44 @@ přes ty hory zelený</pre>
             lyrics: outputLines.join('\n').trim(),
             tags: []
         };
+    }
+
+
+    function openRandomSong() {
+        if (db.songs.length === 0) { notify('Knihovna je prázdná'); return; }
+
+        // Animace noty
+        const icon = document.getElementById('appLogoIcon');
+        if (icon) {
+            icon.classList.remove('note-spinning');
+            void icon.offsetWidth; // reset animace
+            icon.classList.add('note-spinning');
+            icon.addEventListener('animationend', () => {
+                icon.classList.remove('note-spinning');
+            }, { once: true });
+        }
+
+        // Vybereme náhodnou píseň (ne tu samou co je teď)
+        let randomIdx;
+        if (db.songs.length === 1) {
+            randomIdx = 0;
+        } else {
+            do { randomIdx = Math.floor(Math.random() * db.songs.length); }
+            while (randomIdx === currentSongIndex);
+        }
+
+        // Po animaci otevřeme píseň
+        setTimeout(() => {
+            resetEditMode();
+            currentSongIndex = randomIdx;
+            currentQueue = db.songs.map((_, i) => i);
+            currentQueueIndex = randomIdx;
+            targetKeyIndex = db.songs[randomIdx].preferredKey !== undefined
+                ? db.songs[randomIdx].preferredKey
+                : (db.songs[randomIdx].baseKey || 0);
+            showView('player');
+            renderPlayer();
+        }, 500);
     }
 
     // =====================================================================
@@ -2033,6 +2093,8 @@ Když jsem já šel</pre>
         document.getElementById('clearFiltersBtn').onclick = () => { activeLibraryFilters = []; updateFilterBadge(); renderLibrary(document.getElementById('searchInput').value); renderFilterTagsModal(); };
         document.getElementById('playerTagsBtn').onclick = () => { renderSongTagsModal(); document.getElementById('songTagsModal').style.display = 'flex'; };
         document.getElementById('closeSongTagsBtn').onclick = () => document.getElementById('songTagsModal').style.display = 'none';
+        document.getElementById('appLogoBtn').onclick = openRandomSong;
+
         document.getElementById('nav-settings').onclick = () => {
             updateGdriveUI();
             document.getElementById('settingsModal').style.display = 'flex';
