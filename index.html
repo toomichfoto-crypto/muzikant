@@ -935,7 +935,7 @@ přes ty hory zelený</pre>
     // 4. Authorized JavaScript origins → URL tvé aplikace (např. https://uzivatel.github.io)
     // 5. Zkopíruj Client ID sem:
     // =====================================================================
-    const APP_VERSION = 'v30.4';
+    const APP_VERSION = 'v30.6';
 
     const GDRIVE_CLIENT_ID = '917333597478-88g2m8u0hgm8650ubtcshka5dqr1sep7.apps.googleusercontent.com';
     const GDRIVE_FILE_NAME = 'muzikant_db.json';
@@ -1074,8 +1074,9 @@ přes ty hory zelený</pre>
         (incomingSongs || []).forEach(incoming => {
             const existIdx = db.songs.findIndex(s => s.title.toLowerCase() === incoming.title.toLowerCase());
             if (existIdx === -1) {
-                // Píseň neexistuje — přidej celou
-                db.songs.push(incoming);
+                // Píseň neexistuje — přidej celou (s normalizací)
+                const newId = incoming.id || generateId();
+                db.songs.push({ ...incoming, id: newId, lyrics: normalizeChords(incoming.lyrics) });
                 added++;
             } else {
                 // Píseň existuje — přepiš, ale zachovej osobní nastavení
@@ -1171,7 +1172,7 @@ přes ty hory zelený</pre>
             title,
             artist,
             baseKey,
-            lyrics: outputLines.join('\n').trim(),
+            lyrics: normalizeChords(outputLines.join('\n').trim()),
             tags: []
         };
     }
@@ -1197,14 +1198,14 @@ přes ty hory zelený</pre>
             randomIdx = 0;
         } else {
             do { randomIdx = Math.floor(Math.random() * db.songs.length); }
-            while (randomIdx === currentSongIndex);
+            while (db.songs[randomIdx] && db.songs[randomIdx].id === currentSongIndex);
         }
 
         // Po animaci otevřeme píseň
         setTimeout(() => {
             resetEditMode();
-            currentSongIndex = randomIdx;
-            currentQueue = db.songs.map((_, i) => i);
+            currentSongIndex = db.songs[randomIdx].id;
+            currentQueue = db.songs.map(s => s.id);
             currentQueueIndex = randomIdx;
             targetKeyIndex = db.songs[randomIdx].preferredKey !== undefined
                 ? db.songs[randomIdx].preferredKey
@@ -1212,6 +1213,18 @@ přes ty hory zelený</pre>
             showView('player');
             renderPlayer();
         }, 500);
+    }
+
+
+    // Normalizace akordů v textu písně:
+    // Bb → B (anglická → česká notace)
+    // [ ] → ( ) (sjednocení závorek kolem akordů)
+    function normalizeChords(text) {
+        if (!text) return text;
+        return text
+            .replace(/Bb/g, 'B')
+            .replace(/\[/g, '(')
+            .replace(/\]/g, ')');
     }
 
     // =====================================================================
@@ -1396,8 +1409,8 @@ přes ty hory zelený</pre>
 
     function saveSpeed() {
         if (currentSongIndex !== null) {
-            db.songs[currentSongIndex].scrollSpeed = currentScrollSpeed;
-            saveData();
+            const s = db.songs.find(s => s.id === currentSongIndex);
+            if (s) { s.scrollSpeed = currentScrollSpeed; saveData(); }
         }
     }
 
@@ -1453,9 +1466,37 @@ přes ty hory zelený</pre>
         return Array.from(tagsSet).sort((a, b) => a.localeCompare(b, 'cs', { sensitivity: 'base' }));
     }
 
+    function generateId() {
+        return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+    }
+
     function loadData() {
         const saved = localStorage.getItem(DB_KEY);
-        if (saved) { const parsed = JSON.parse(saved); db.songs = parsed.songs || []; db.playlists = parsed.playlists || []; }
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            db.songs = parsed.songs || [];
+            db.playlists = parsed.playlists || [];
+
+            // Migrace: přidat ID písním které ho nemají
+            let migrated = false;
+            db.songs.forEach(song => {
+                if (!song.id) { song.id = generateId(); migrated = true; }
+            });
+
+            // Migrace: převést songIds z číselných indexů na UUID
+            db.playlists.forEach(pl => {
+                if (!pl.songIds) { pl.songIds = []; return; }
+                const hasNumericIds = pl.songIds.some(id => typeof id === 'number');
+                if (hasNumericIds) {
+                    pl.songIds = pl.songIds
+                        .map(idx => db.songs[idx] ? db.songs[idx].id : null)
+                        .filter(Boolean);
+                    migrated = true;
+                }
+            });
+
+            if (migrated) saveData();
+        }
         if(localStorage.getItem('muzikant_theme') === 'dark') document.body.setAttribute('data-theme', 'dark');
         document.getElementById('instrumentSelect').value = currentInstrument;
         document.getElementById('dayThemeSelect').value = currentDayTheme;
@@ -1523,7 +1564,8 @@ přes ty hory zelený</pre>
     }
 
     function renderSongTagsModal() {
-        const song = db.songs[currentSongIndex];
+        const song = db.songs.find(s => s.id === currentSongIndex);
+        if (!song) return;
         const songTags = song.tags || [];
         const container = document.getElementById('songTagsContainer');
         container.innerHTML = '';
@@ -1545,7 +1587,8 @@ přes ty hory zelený</pre>
         const inputField = document.getElementById('newTagInput');
         const newTag = inputField.value.trim();
         if (newTag) {
-            const song = db.songs[currentSongIndex];
+            const song = db.songs.find(s => s.id === currentSongIndex);
+            if (!song) return;
             if (!song.tags) song.tags = [];
             if (!song.tags.includes(newTag)) { song.tags.push(newTag); saveData(); renderPlayerTags(); }
             inputField.value = ''; renderSongTagsModal();
@@ -1554,7 +1597,8 @@ přes ty hory zelený</pre>
 
     function renderPlayerTags() {
         const container = document.getElementById('playerActiveTags');
-        const songTags = db.songs[currentSongIndex].tags || [];
+        const _song = db.songs.find(s => s.id === currentSongIndex);
+        const songTags = _song ? (_song.tags || []) : [];
         if(songTags.length === 0) { container.innerHTML = ''; return; }
         container.innerHTML = songTags.map(tag => `<span class="song-tag-badge">${tag}</span>`).join('');
     }
@@ -1617,7 +1661,7 @@ přes ty hory zelený</pre>
                 const matchesAll = activeLibraryFilters.every(t => songTags.includes(t));
                 if (!matchesAll) return;
             }
-            tempQueue.push(item.originalIndex);
+            tempQueue.push(item.song.id); // ID místo indexu
         });
         if (countElement) {
             if (filterText || activeLibraryFilters.length > 0 || activeArtistFilter) countElement.innerText = `(${tempQueue.length} nalezeno)`;
@@ -1655,7 +1699,7 @@ Když jsem já šel</pre>
             const song = item.song;
             const sIdx = item.originalIndex;
             
-            if (!tempQueue.includes(sIdx)) return;
+            if (!tempQueue.includes(item.song.id)) return;
             
             const tagsHtml = (song.tags && song.tags.length > 0) 
                 ? `<div style="margin-top:8px;">` + song.tags.map(t => `<span class="song-tag-badge">${t}</span>`).join('') + `</div>` 
@@ -1669,32 +1713,36 @@ Když jsem já šel</pre>
                     ${tagsHtml}
                 </div>
                 <div style="display:flex; gap:6px;">
-                    <button class="btn btn-outline" onclick="event.stopPropagation(); openAddToPlaylistModal(${sIdx})" style="padding:10px; border:none; background:rgba(128,128,128,0.1);" title="Přidat do playlistu">${IC.addPl}</button>
-                    <button class="btn btn-red" onclick="event.stopPropagation(); deleteSong(${sIdx})" style="padding:10px; border:none; background:rgba(234, 67, 53, 0.1); color:#ea4335;" title="Smazat">${IC.trash}</button>
+                    <button class="btn btn-outline" onclick="event.stopPropagation(); openAddToPlaylistModal('${item.song.id}')" style="padding:10px; border:none; background:rgba(128,128,128,0.1);" title="Přidat do playlistu">${IC.addPl}</button>
+                    <button class="btn btn-red" onclick="event.stopPropagation(); deleteSong('${item.song.id}')" style="padding:10px; border:none; background:rgba(234, 67, 53, 0.1); color:#ea4335;" title="Smazat">${IC.trash}</button>
                 </div>
             `;
-            card.onclick = () => { 
+            card.onclick = () => {
                 resetEditMode();
-                currentQueue = [...tempQueue]; currentQueueIndex = currentQueue.indexOf(sIdx); currentSongIndex = sIdx;
-                targetKeyIndex = song.preferredKey !== undefined ? song.preferredKey : (song.baseKey || 0); 
-                showView('player'); renderPlayer(); 
+                currentQueue = [...tempQueue];
+                currentQueueIndex = currentQueue.indexOf(item.song.id);
+                currentSongIndex = item.song.id;
+                targetKeyIndex = song.preferredKey !== undefined ? song.preferredKey : (song.baseKey || 0);
+                showView('player'); renderPlayer();
             };
             list.appendChild(card);
         });
     }
 
-    function deleteSong(i) { 
-        confirmAction = () => { 
-            db.playlists.forEach(pl => { pl.songIds = pl.songIds.filter(id => id !== i); });
-            db.songs.splice(i, 1); 
-            db.playlists.forEach(pl => { pl.songIds = pl.songIds.map(id => id > i ? id - 1 : id); });
+    function deleteSong(songId) {
+        const songIdx = db.songs.findIndex(s => s.id === songId);
+        if (songIdx === -1) return;
+        confirmAction = () => {
+            // Odebrat z playlistů podle ID (ne indexu)
+            db.playlists.forEach(pl => { pl.songIds = pl.songIds.filter(id => id !== songId); });
+            db.songs.splice(songIdx, 1);
             saveData(); renderLibrary(document.getElementById('searchInput').value); notify('Smazáno');
         };
-        document.getElementById('confirmText').innerText = `Smazat píseň ${db.songs[i].title}?`;
+        document.getElementById('confirmText').innerText = `Smazat píseň ${db.songs[songIdx].title}?`;
         document.getElementById('confirmModal').style.display = 'flex';
     }
 
-    function openAddToPlaylistModal(songIdx) {
+    function openAddToPlaylistModal(songId) {
         const container = document.getElementById('playlistOptions');
         container.innerHTML = '';
         if (db.playlists.length === 0) {
@@ -1703,7 +1751,7 @@ Když jsem já šel</pre>
             db.playlists.forEach((pl) => {
                 const btn = document.createElement('button'); btn.className = 'btn btn-outline'; btn.style.width = '100%'; btn.innerText = pl.name;
                 btn.onclick = () => {
-                    if (!pl.songIds.includes(songIdx)) { pl.songIds.push(songIdx); saveData(); notify('Přidáno do playlistu'); } else { notify('Píseň už v playlistu je'); }
+                    if (!pl.songIds.includes(songId)) { pl.songIds.push(songId); saveData(); notify('Přidáno do playlistu'); } else { notify('Píseň už v playlistu je'); }
                     document.getElementById('playlistSelectModal').style.display = 'none';
                 };
                 container.appendChild(btn);
@@ -1739,8 +1787,8 @@ Když jsem já šel</pre>
         const pl = db.playlists[activePlaylistIdx];
         if(!pl.songIds || pl.songIds.length === 0) { container.innerHTML = '<p style="color:var(--muted);">Prázdný playlist.</p>'; return; }
         
-        pl.songIds.forEach((songIdx, itemIdx) => {
-            const song = db.songs[songIdx]; if(!song) return; 
+        pl.songIds.forEach((songId, itemIdx) => {
+            const song = db.songs.find(s => s.id === songId); if(!song) return; 
             const card = document.createElement('div'); card.className = 'card'; card.draggable = true; 
             card.ondragstart = (e) => { draggedItemIndex = itemIdx; e.dataTransfer.effectAllowed = 'move'; card.style.opacity = '0.5'; };
             card.ondragend = () => { card.style.opacity = '1'; };
@@ -1751,7 +1799,7 @@ Když jsem já šel</pre>
                 <button class="btn btn-outline" onclick="event.stopPropagation(); moveSongInPlaylist(${itemIdx}, 1)" style="padding:4px 8px; border:none; background:rgba(128,128,128,0.1); color:var(--text);">${IC.down}</button></div>
                 <div style="flex-grow:1; font-weight:500;"><span style="color:var(--muted); margin-right:6px;">${itemIdx + 1}.</span> ${song.title}</div>
                 <button class="btn btn-red" onclick="event.stopPropagation(); removeFromPlaylist(${itemIdx})" style="padding:10px; border:none; background:rgba(234, 67, 53, 0.1); color:#ea4335;" title="Odebrat z playlistu">${IC.remove}</button>`;
-            card.onclick = () => { resetEditMode(); currentQueue = [...pl.songIds]; currentQueueIndex = itemIdx; currentSongIndex = songIdx; targetKeyIndex = song.preferredKey !== undefined ? song.preferredKey : (song.baseKey || 0); showView('player'); renderPlayer(); };
+            card.onclick = () => { resetEditMode(); currentQueue = [...pl.songIds]; currentQueueIndex = itemIdx; currentSongIndex = songId; targetKeyIndex = song.preferredKey !== undefined ? song.preferredKey : (song.baseKey || 0); showView('player'); renderPlayer(); };
             container.appendChild(card);
         });
     }
@@ -1826,7 +1874,8 @@ Když jsem já šel</pre>
     }
 
     function renderPlayer() {
-        const song = db.songs[currentSongIndex];
+        const song = db.songs.find(s => s.id === currentSongIndex);
+        if (!song) { showView('library'); return; }
         document.getElementById('displayArea').innerHTML = renderPlayerText(song.lyrics || "", song.baseKey || 0, targetKeyIndex);
         document.getElementById('displayTitle').innerText = song.title || "";
         const artistEl = document.getElementById('displayArtist');
@@ -1919,8 +1968,24 @@ Když jsem já šel</pre>
             chordTooltip.style.display = 'block'; clearTimeout(tooltipTimeout); tooltipTimeout = setTimeout(() => { chordTooltip.style.display = 'none'; }, 3000);
         } else { chordTooltip.style.display = 'none'; }
     });
-    document.getElementById('prevSongBtn').onclick = () => { if (currentQueueIndex > 0) { currentQueueIndex--; currentSongIndex = currentQueue[currentQueueIndex]; targetKeyIndex = db.songs[currentSongIndex].preferredKey !== undefined ? db.songs[currentSongIndex].preferredKey : (db.songs[currentSongIndex].baseKey || 0); if (isScrolling) stopScroll(); scrollContainer.scrollTop = 0; renderPlayer(); } };
-    document.getElementById('nextSongBtn').onclick = () => { if (currentQueueIndex < currentQueue.length - 1) { currentQueueIndex++; currentSongIndex = currentQueue[currentQueueIndex]; targetKeyIndex = db.songs[currentSongIndex].preferredKey !== undefined ? db.songs[currentSongIndex].preferredKey : (db.songs[currentSongIndex].baseKey || 0); if (isScrolling) stopScroll(); scrollContainer.scrollTop = 0; renderPlayer(); } };
+    document.getElementById('prevSongBtn').onclick = () => {
+        if (currentQueueIndex > 0) {
+            currentQueueIndex--;
+            currentSongIndex = currentQueue[currentQueueIndex];
+            const ps = db.songs.find(s => s.id === currentSongIndex);
+            targetKeyIndex = ps && ps.preferredKey !== undefined ? ps.preferredKey : (ps && ps.baseKey || 0);
+            if (isScrolling) stopScroll(); scrollContainer.scrollTop = 0; renderPlayer();
+        }
+    };
+    document.getElementById('nextSongBtn').onclick = () => {
+        if (currentQueueIndex < currentQueue.length - 1) {
+            currentQueueIndex++;
+            currentSongIndex = currentQueue[currentQueueIndex];
+            const ns = db.songs.find(s => s.id === currentSongIndex);
+            targetKeyIndex = ns && ns.preferredKey !== undefined ? ns.preferredKey : (ns && ns.baseKey || 0);
+            if (isScrolling) stopScroll(); scrollContainer.scrollTop = 0; renderPlayer();
+        }
+    };
     function startScroll() { 
         isScrolling = true;
         document.getElementById('playPauseBtn').innerHTML = IC.pause;
@@ -2075,9 +2140,10 @@ Když jsem já šel</pre>
         };
         document.getElementById('fontPlusBtn').onclick = () => { currentFontSize += 2; localStorage.setItem('muzikant_font_size', currentFontSize); renderPlayer(); };
         document.getElementById('fontMinusBtn').onclick = () => { currentFontSize = Math.max(10, currentFontSize - 2); localStorage.setItem('muzikant_font_size', currentFontSize); renderPlayer(); };
-        document.getElementById('playerAddToPlaylistBtn').onclick = () => { if (currentSongIndex !== null) openAddToPlaylistModal(currentSongIndex); };
+        document.getElementById('playerAddToPlaylistBtn').onclick = () => { if (currentSongIndex !== null) openAddToPlaylistModal(currentSongIndex); }; // currentSongIndex je ID
         document.getElementById('playerShareBtn').onclick = async () => {
-            const song = db.songs[currentSongIndex];
+            const song = db.songs.find(s => s.id === currentSongIndex);
+            if (!song) return;
             const exportObj = { title: song.title, lyrics: song.lyrics, baseKey: song.baseKey, preferredKey: targetKeyIndex };
             const jsonStr = JSON.stringify(exportObj);
             const base64str = encodeToBase64Url(jsonStr);
@@ -2182,7 +2248,7 @@ Když jsem já šel</pre>
             if (activePlaylistIdx === null) return;
             const pl = db.playlists[activePlaylistIdx];
             // Export pro ostatní: bez štítků a bez rychlosti scrollu, tónina zůstává
-            const exportData = { playlistName: pl.name, songs: pl.songIds.map(id => { const s = db.songs[id]; if (!s) return null; const { tags, scrollSpeed, ...rest } = s; return rest; }).filter(Boolean) };
+            const exportData = { playlistName: pl.name, songs: pl.songIds.map(id => { const s = db.songs.find(s => s.id === id); if (!s) return null; const { tags, scrollSpeed, ...rest } = s; return rest; }).filter(Boolean) };
             const a = document.createElement('a');
             a.href = URL.createObjectURL(new Blob([JSON.stringify(exportData)], {type: 'application/json'})); a.download = `Playlist_${pl.name.replace(/\s+/g, '_')}.json`; a.click();
         };
@@ -2207,7 +2273,7 @@ Když jsem já šel</pre>
             const _a = document.getElementById('artistInput').value.trim();
             const _l = document.getElementById('lyricsInput').value;
             const _k = parseInt(document.getElementById('addBaseKey').value);
-            db.songs.push({ title: _t, artist: _a, lyrics: _l, baseKey: _k, tags: [] });
+            db.songs.push({ id: generateId(), title: _t, artist: _a, lyrics: normalizeChords(_l), baseKey: _k, tags: [] });
             saveData(); showView('library'); notify('Přidáno');
             document.getElementById('titleInput').value = '';
             document.getElementById('artistInput').value = '';
@@ -2240,7 +2306,7 @@ Když jsem já šel</pre>
         
         document.getElementById('createPlaylistBtn').onclick = () => { const name = document.getElementById('newPlaylistName').value.trim();
             if(name) { db.playlists.push({ name: name, songIds: [] }); saveData(); document.getElementById('newPlaylistName').value = ''; renderPlaylistsFolders(); notify('Vytvořeno'); }};
-        document.getElementById('fixKeyBtn').onclick = () => { db.songs[currentSongIndex].preferredKey = targetKeyIndex; saveData(); notify('Uloženo'); };
+        document.getElementById('fixKeyBtn').onclick = () => { const s = db.songs.find(s => s.id === currentSongIndex); if(s) { s.preferredKey = targetKeyIndex; saveData(); notify('Uloženo'); } };
         document.getElementById('confirmYesBtn').onclick = () => { confirmAction(); document.getElementById('confirmModal').style.display='none'; };
         document.getElementById('cancelConfirmBtn').onclick = () => { 
             document.getElementById('confirmModal').style.display='none';
@@ -2262,7 +2328,7 @@ Když jsem já šel</pre>
                 editContent.style.display = 'block'; saveBtn.style.display = 'inline-flex'; 
                 toggleBtn.innerHTML = IC.close; toggleBtn.style.background = 'rgba(234, 67, 53, 0.1)'; toggleBtn.style.color = '#ea4335';
                 scrollPnl.style.display = 'none'; navBtnPnl.style.display = 'none';
-                const song = db.songs[currentSongIndex]; document.getElementById('editTitleInput').value = song.title; document.getElementById('editArtistInput').value = song.artist || ''; 
+                const song = db.songs.find(s => s.id === currentSongIndex); if (!song) return; document.getElementById('editTitleInput').value = song.title; document.getElementById('editArtistInput').value = song.artist || ''; 
                 const editArea = document.getElementById('editArea'); editArea.value = song.lyrics;
                 setTimeout(() => autoResizeTextarea(editArea), 10); 
                 document.getElementById('editBaseKey').innerHTML = keys; document.getElementById('editBaseKey').value = song.baseKey || 0;
@@ -2274,8 +2340,9 @@ Když jsem já šel</pre>
             }
         };
         document.getElementById('saveEditBtn').onclick = () => {
-            const song = db.songs[currentSongIndex];
-            song.title = document.getElementById('editTitleInput').value; song.artist = document.getElementById('editArtistInput').value.trim(); song.lyrics = document.getElementById('editArea').value; song.baseKey = parseInt(document.getElementById('editBaseKey').value);
+            const song = db.songs.find(s => s.id === currentSongIndex);
+            if (!song) return;
+            song.title = document.getElementById('editTitleInput').value; song.artist = document.getElementById('editArtistInput').value.trim(); song.lyrics = normalizeChords(document.getElementById('editArea').value); song.baseKey = parseInt(document.getElementById('editBaseKey').value);
             saveData(); renderPlayer(); document.getElementById('toggleEditBtn').click(); notify('Uloženo');
         };
         
