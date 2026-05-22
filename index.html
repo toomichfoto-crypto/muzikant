@@ -935,7 +935,7 @@ přes ty hory zelený</pre>
     // 4. Authorized JavaScript origins → URL tvé aplikace (např. https://uzivatel.github.io)
     // 5. Zkopíruj Client ID sem:
     // =====================================================================
-    const APP_VERSION = 'v30.6';
+    const APP_VERSION = 'v30.7';
 
     const GDRIVE_CLIENT_ID = '917333597478-88g2m8u0hgm8650ubtcshka5dqr1sep7.apps.googleusercontent.com';
     const GDRIVE_FILE_NAME = 'muzikant_db.json';
@@ -1484,13 +1484,29 @@ přes ty hory zelený</pre>
             });
 
             // Migrace: převést songIds z číselných indexů na UUID
+            // Také opraví případy kdy migrace proběhla ale ID nesedí
+            const songIdSet = new Set(db.songs.map(s => s.id));
             db.playlists.forEach(pl => {
                 if (!pl.songIds) { pl.songIds = []; return; }
+
                 const hasNumericIds = pl.songIds.some(id => typeof id === 'number');
-                if (hasNumericIds) {
-                    pl.songIds = pl.songIds
-                        .map(idx => db.songs[idx] ? db.songs[idx].id : null)
-                        .filter(Boolean);
+                const hasInvalidIds = pl.songIds.some(id => typeof id === 'string' && !songIdSet.has(id));
+
+                if (hasNumericIds || hasInvalidIds) {
+                    pl.songIds = pl.songIds.map(id => {
+                        // Pokud je to číslo (starý index), převedeme na ID
+                        if (typeof id === 'number') {
+                            return db.songs[id] ? db.songs[id].id : null;
+                        }
+                        // Pokud je to string ale neodpovídá žádnému ID,
+                        // zkusíme ho interpretovat jako číslo (index)
+                        if (typeof id === 'string' && !songIdSet.has(id)) {
+                            const numIdx = parseInt(id);
+                            if (!isNaN(numIdx) && db.songs[numIdx]) return db.songs[numIdx].id;
+                            return null;
+                        }
+                        return id;
+                    }).filter(Boolean);
                     migrated = true;
                 }
             });
