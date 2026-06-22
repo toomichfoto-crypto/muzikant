@@ -935,7 +935,7 @@ přes ty hory zelený</pre>
     // 4. Authorized JavaScript origins → URL tvé aplikace (např. https://uzivatel.github.io)
     // 5. Zkopíruj Client ID sem:
     // =====================================================================
-    const APP_VERSION = 'v30.7';
+    const APP_VERSION = 'v30.8';
 
     const GDRIVE_CLIENT_ID = '917333597478-88g2m8u0hgm8650ubtcshka5dqr1sep7.apps.googleusercontent.com';
     const GDRIVE_FILE_NAME = 'muzikant_db.json';
@@ -1225,6 +1225,73 @@ přes ty hory zelený</pre>
             .replace(/Bb/g, 'B')
             .replace(/\[/g, '(')
             .replace(/\]/g, ')');
+    }
+
+
+    // =====================================================================
+    // CHYTRÉ VKLÁDÁNÍ — detekce inline akordů [Am]text a převod
+    // na formát akordy-nad-textem (stejný formát jako superakordy.sk,
+    // supermusic.cz, ChordPro a další zahraniční zpěvníky)
+    // =====================================================================
+    function looksLikeInlineChords(text) {
+        // Hledáme alespoň 2 výskyty vzoru [Akord] — to je dostatečně
+        // spolehlivý signál že jde o inline formát, ne náhodné hranaté závorky
+        const matches = text.match(/\[[A-H][#b]?[^\]]{0,12}\]/g);
+        return matches && matches.length >= 2;
+    }
+
+    function convertInlineChordsToAboveText(text) {
+        const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+        const outputLines = [];
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            // Přeskočit ChordPro direktivy {title: ...}, {artist: ...} atd.
+            if (/^\{\s*\w+\s*:.+\}$/.test(line)) continue;
+
+            if (line.includes('[')) {
+                let chordLine = '';
+                let textLine = '';
+                const parts = line.split(/\[([^\]]+)\]/);
+                for (let j = 0; j < parts.length; j++) {
+                    if (j % 2 === 0) {
+                        const txt = parts[j];
+                        textLine += txt;
+                        chordLine += ' '.repeat(txt.length);
+                    } else {
+                        chordLine += parts[j];
+                    }
+                }
+                chordLine = chordLine.trimEnd();
+                textLine = textLine.trimEnd();
+                if (chordLine.trim()) outputLines.push(chordLine);
+                if (textLine.trim()) outputLines.push(textLine);
+            } else {
+                outputLines.push(line);
+            }
+        }
+        return normalizeChords(outputLines.join('\n').trim());
+    }
+
+    function insertTextAtCursor(textarea, text) {
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const before = textarea.value.substring(0, start);
+        const after = textarea.value.substring(end);
+        textarea.value = before + text + after;
+        const newPos = start + text.length;
+        textarea.selectionStart = textarea.selectionEnd = newPos;
+    }
+
+    function handleSmartPaste(e) {
+        const clipboardText = (e.clipboardData || window.clipboardData).getData('text');
+        if (clipboardText && looksLikeInlineChords(clipboardText)) {
+            e.preventDefault();
+            const converted = convertInlineChordsToAboveText(clipboardText);
+            insertTextAtCursor(e.target, converted);
+            autoResizeTextarea(e.target);
+            notify('Akordy automaticky přesunuty nad text ✓');
+        }
+        // jinak normální vložení proběhne samo
     }
 
     // =====================================================================
@@ -2097,6 +2164,8 @@ Když jsem já šel</pre>
         const editArea = document.getElementById('editArea');
         lyricsInput.addEventListener('input', () => autoResizeTextarea(lyricsInput));
         editArea.addEventListener('input', () => autoResizeTextarea(editArea));
+        lyricsInput.addEventListener('paste', handleSmartPaste);
+        editArea.addEventListener('paste', handleSmartPaste);
 
         const searchInput = document.getElementById('searchInput');
         const clearSearchBtn = document.getElementById('clearSearchBtn');
