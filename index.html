@@ -7,7 +7,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#1a73e8">
+    <meta name="theme-color" content="#0369a1">
     <title>Muzikant</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inconsolata:wght@400;500&display=swap');
@@ -15,21 +15,21 @@
         /* --- BAREVNÁ TÉMATA - MATERIAL DESIGN (v27.0) --- */
         :root { --player-font: 'Inconsolata', 'ui-monospace', monospace; }
 
-        :root, [data-day-theme="classic"] {
-            --bg: #f8f9fa;
-            --text: #202124;
+        :root {
+            --bg: #f0f9ff;
+            --text: #0c4a6e;
             --card-bg: #ffffff;
-            --nav-bg: #1a73e8;
+            --nav-bg: #0369a1;
             --nav-text: #ffffff;
             --nav-active-bg: rgba(255, 255, 255, 0.2);
             --nav-active-text: #ffffff;
-            --primary: #1a73e8; 
-            --accent: #1e8e3e;
+            --primary: #0284c7;
+            --accent: #059669;
             --chord: #cb4b16;
-            --border: #dadce0;
-            --muted: #5f6368;
-            --shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
-            --card-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            --border: #bae6fd;
+            --muted: #475569;
+            --shadow: 0 4px 6px -1px rgba(2,132,199,0.12);
+            --card-shadow: 0 1px 3px rgba(2,132,199,0.08);
             --card-border: 1px solid transparent;
         }
 
@@ -48,24 +48,6 @@
             --muted: #7c6f64;
             --shadow: 0 4px 6px -1px rgba(76,64,49,0.12);
             --card-shadow: 0 1px 3px rgba(76,64,49,0.08);
-            --card-border: 1px solid transparent;
-        }
-
-        [data-day-theme="marine"] {
-            --bg: #f0f9ff;
-            --text: #0c4a6e;
-            --card-bg: #ffffff;
-            --nav-bg: #0369a1;
-            --nav-text: #ffffff;
-            --nav-active-bg: rgba(255, 255, 255, 0.2);
-            --nav-active-text: #ffffff;
-            --primary: #0284c7;
-            --accent: #059669;
-            --chord: #cb4b16;
-            --border: #bae6fd;
-            --muted: #475569;
-            --shadow: 0 4px 6px -1px rgba(2,132,199,0.12);
-            --card-shadow: 0 1px 3px rgba(2,132,199,0.08);
             --card-border: 1px solid transparent;
         }
 
@@ -935,7 +917,7 @@ přes ty hory zelený</pre>
     // 4. Authorized JavaScript origins → URL tvé aplikace (např. https://uzivatel.github.io)
     // 5. Zkopíruj Client ID sem:
     // =====================================================================
-    const APP_VERSION = 'v30.8';
+    const APP_VERSION = 'v30.9';
 
     const GDRIVE_CLIENT_ID = '917333597478-88g2m8u0hgm8650ubtcshka5dqr1sep7.apps.googleusercontent.com';
     const GDRIVE_FILE_NAME = 'muzikant_db.json';
@@ -1133,7 +1115,6 @@ přes ty hory zelený</pre>
                 // Oddělíme akordy od textu
                 let chordLine = '';
                 let textLine = '';
-                let pos = 0;
                 const parts = line.split(/\[([^\]]+)\]/);
                 // parts = [text_pred, akord1, text_za1, akord2, text_za2, ...]
                 for (let j = 0; j < parts.length; j++) {
@@ -1683,7 +1664,7 @@ přes ty hory zelený</pre>
         const _song = db.songs.find(s => s.id === currentSongIndex);
         const songTags = _song ? (_song.tags || []) : [];
         if(songTags.length === 0) { container.innerHTML = ''; return; }
-        container.innerHTML = songTags.map(tag => `<span class="song-tag-badge">${tag}</span>`).join('');
+        container.innerHTML = songTags.map(tag => `<span class="song-tag-badge">${escapeHtml(tag)}</span>`).join('');
     }
 
 
@@ -1780,12 +1761,11 @@ Když jsem já šel</pre>
 
         displaySongs.forEach(item => {
             const song = item.song;
-            const sIdx = item.originalIndex;
-            
+
             if (!tempQueue.includes(item.song.id)) return;
             
             const tagsHtml = (song.tags && song.tags.length > 0) 
-                ? `<div style="margin-top:8px;">` + song.tags.map(t => `<span class="song-tag-badge">${t}</span>`).join('') + `</div>` 
+                ? `<div style="margin-top:8px;">` + song.tags.map(t => `<span class="song-tag-badge">${escapeHtml(t)}</span>`).join('') + `</div>` 
                 : '';
 
             const card = document.createElement('div'); card.className = 'card';
@@ -1848,7 +1828,7 @@ Když jsem já šel</pre>
         container.innerHTML = '';
         db.playlists.forEach((pl, idx) => {
             const card = document.createElement('div'); card.className = 'card';
-            card.innerHTML = `<div style="display:flex; align-items:center; gap:8px; flex-grow:1; font-weight:500;">${IC.folder} ${pl.name} <span style="color:var(--muted); font-weight:normal; font-size:12px;">(${pl.songIds ? pl.songIds.length : 0})</span></div>
+            card.innerHTML = `<div style="display:flex; align-items:center; gap:8px; flex-grow:1; font-weight:500;">${IC.folder} ${escapeHtml(pl.name)} <span style="color:var(--muted); font-weight:normal; font-size:12px;">(${pl.songIds ? pl.songIds.length : 0})</span></div>
                 <div style="display:flex; gap:6px;">
                     <button class="btn btn-outline" onclick="event.stopPropagation(); renamePlaylist(${idx})" style="padding:10px; border:none; background:rgba(128,128,128,0.1);" title="Přejmenovat">${IC.edit}</button>
                     <button class="btn btn-red" onclick="event.stopPropagation(); deletePlaylist(${idx})" style="padding:10px; border:none; background:rgba(234, 67, 53, 0.1); color:#ea4335;" title="Smazat">${IC.trash}</button>
@@ -1880,7 +1860,7 @@ Když jsem já šel</pre>
             card.innerHTML = `<div style="display:flex; flex-direction:column; gap:4px; margin-right:16px; cursor:grab;">
                 <button class="btn btn-outline" onclick="event.stopPropagation(); moveSongInPlaylist(${itemIdx}, -1)" style="padding:4px 8px; border:none; background:rgba(128,128,128,0.1); color:var(--text);">${IC.up}</button>
                 <button class="btn btn-outline" onclick="event.stopPropagation(); moveSongInPlaylist(${itemIdx}, 1)" style="padding:4px 8px; border:none; background:rgba(128,128,128,0.1); color:var(--text);">${IC.down}</button></div>
-                <div style="flex-grow:1; font-weight:500;"><span style="color:var(--muted); margin-right:6px;">${itemIdx + 1}.</span> ${song.title}</div>
+                <div style="flex-grow:1; font-weight:500;"><span style="color:var(--muted); margin-right:6px;">${itemIdx + 1}.</span> ${escapeHtml(song.title)}</div>
                 <button class="btn btn-red" onclick="event.stopPropagation(); removeFromPlaylist(${itemIdx})" style="padding:10px; border:none; background:rgba(234, 67, 53, 0.1); color:#ea4335;" title="Odebrat z playlistu">${IC.remove}</button>`;
             card.onclick = () => { resetEditMode(); currentQueue = [...pl.songIds]; currentQueueIndex = itemIdx; currentSongIndex = songId; targetKeyIndex = song.preferredKey !== undefined ? song.preferredKey : (song.baseKey || 0); showView('player'); renderPlayer(); };
             container.appendChild(card);
@@ -1933,14 +1913,14 @@ Když jsem já šel</pre>
                     blokAkordu += znakA; blokTextu += znakT;
                     if (znakT === ' ' && znakA === ' ') {
                         let prepocitanyAkord = blokAkordu.replace(regex, (match, prefix, chordName) => { return prefix + '<span class="chord">' + transposeChord(chordName, fromKey, toKey) + '</span>'; });
-                        vysledneHTML += `<span class="magnet-block"><span class="magnet-chord">${prepocitanyAkord}</span><span class="magnet-text">${blokTextu}</span></span>`;
+                        vysledneHTML += `<span class="magnet-block"><span class="magnet-chord">${prepocitanyAkord}</span><span class="magnet-text">${escapeHtml(blokTextu)}</span></span>`;
                         blokAkordu = ''; blokTextu = '';
                     }
                 }
                 
                 if (blokTextu.length > 0 || blokAkordu.length > 0) {
                     let prepocitanyAkord = blokAkordu.replace(regex, (match, prefix, chordName) => { return prefix + '<span class="chord">' + transposeChord(chordName, fromKey, toKey) + '</span>'; });
-                    vysledneHTML += `<span class="magnet-block"><span class="magnet-chord">${prepocitanyAkord}</span><span class="magnet-text">${blokTextu}</span></span>`;
+                    vysledneHTML += `<span class="magnet-block"><span class="magnet-chord">${prepocitanyAkord}</span><span class="magnet-text">${escapeHtml(blokTextu)}</span></span>`;
                 }
 
                 vysledneHTML += '</div>';
@@ -1950,7 +1930,7 @@ Když jsem já šel</pre>
                 else if (isChordLine(radek)) {
                     let transposedLine = radek.replace(regex, (match, prefix, chordName) => { return prefix + '<span class="chord">' + transposeChord(chordName, fromKey, toKey) + '</span>'; });
                     vysledneHTML += `<div class="magnet-line"><span class="magnet-block"><span class="magnet-chord">${transposedLine}</span></span></div>`;
-                } else { vysledneHTML += `<div class="magnet-line"><span class="magnet-block"><span class="magnet-chord"> </span><span class="magnet-text">${radek}</span></span></div>`; }
+                } else { vysledneHTML += `<div class="magnet-line"><span class="magnet-block"><span class="magnet-chord"> </span><span class="magnet-text">${escapeHtml(radek)}</span></span></div>`; }
             }
         }
         return vysledneHTML;
@@ -2021,11 +2001,11 @@ Když jsem já šel</pre>
             }
         }
         if (!chordData) { let match = chordName.match(/^[A-H][#b]?(mi|m)?/); if(match) chordData = currentDB[match[0]]; }
-        if (!chordData) return `<div style="padding:10px; font-size:14px; text-align:center;">Akord<br><b style="color:var(--primary)">${chordName}</b><br>nenalezen pro tento nástroj</div>`;
+        if (!chordData) return `<div style="padding:10px; font-size:14px; text-align:center;">Akord<br><b style="color:var(--primary)">${escapeHtml(chordName)}</b><br>nenalezen pro tento nástroj</div>`;
         let numStrings = chordData.f.length; let spacing = 50 / (numStrings - 1);
         let isDark = document.body.getAttribute('data-theme') === 'dark';
         let strokeColor = isDark ? '#f8fafc' : '#202124'; let dotColor = 'var(--primary)';
-        let svg = `<div style="text-align:center; font-weight:600; margin-bottom:8px; color:${strokeColor}">${chordName}</div>`;
+        let svg = `<div style="text-align:center; font-weight:600; margin-bottom:8px; color:${strokeColor}">${escapeHtml(chordName)}</div>`;
         svg += `<svg width="70" height="90" viewBox="0 0 70 90" xmlns="http://www.w3.org/2000/svg" style="font-family:sans-serif;">`;
         if (chordData.b && chordData.b > 1) svg += `<text x="0" y="24" font-size="12" fill="${strokeColor}">${chordData.b}</text>`;
         svg += `<path d="M 15 15 L 65 15 L 65 85 L 15 85 Z" fill="none" stroke="${strokeColor}" stroke-width="1.5"/>`;
@@ -2346,8 +2326,18 @@ Když jsem já šel</pre>
                     const data = JSON.parse(ev.target.result);
                     if (data.playlistName && data.songs) {
                         let newIds = [];
-                        data.songs.forEach(importedSong => { let existIdx = db.songs.findIndex(s => s.title.toLowerCase() === importedSong.title.toLowerCase()); if (existIdx !== -1) { newIds.push(existIdx); } else { db.songs.push(importedSong); newIds.push(db.songs.length - 1); } });
-                        db.playlists.push({ name: data.playlistName, songIds: newIds }); saveData(); renderLibrary(document.getElementById('searchInput').value); renderPlaylistsFolders(); showView('playlists'); notify('Playlist importován');
+                        data.songs.forEach(importedSong => {
+                            const existing = db.songs.find(s => s.title.toLowerCase() === importedSong.title.toLowerCase());
+                            if (existing) {
+                                newIds.push(existing.id);
+                            } else {
+                                const newSong = { ...importedSong, id: generateId(), lyrics: normalizeChords(importedSong.lyrics) };
+                                db.songs.push(newSong);
+                                newIds.push(newSong.id);
+                            }
+                        });
+                        db.playlists.push({ name: data.playlistName, songIds: newIds });
+                        saveData(); renderLibrary(document.getElementById('searchInput').value); renderPlaylistsFolders(); showView('playlists'); notify('Playlist importován');
                     } else { notify('Toto není správný formát playlistu'); }
                 } catch(err) { notify('Chyba při čtení souboru'); }
             };
