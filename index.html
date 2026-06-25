@@ -467,6 +467,39 @@
         #appLogoBtn:hover { opacity: 0.85; }
         #appLogoBtn svg { transition: transform 0.1s; }
 
+
+        /* Menu zálohy v knihovně */
+        #backupMenuWrapper { position: relative; }
+        #backupMenu {
+            display: none;
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+            border: var(--card-border);
+            min-width: 240px;
+            z-index: 500;
+            overflow: hidden;
+        }
+        #backupMenu.visible { display: block; }
+        .backup-menu-item {
+            display: flex; align-items: center; gap: 12px;
+            padding: 12px 16px;
+            cursor: pointer;
+            background: none; border: none; width: 100%;
+            text-align: left; font-family: inherit;
+            color: var(--text); font-size: 14px;
+            transition: background 0.15s;
+        }
+        .backup-menu-item:hover { background: rgba(128,128,128,0.08); }
+        .backup-menu-item svg { flex-shrink: 0; opacity: 0.75; }
+        .backup-menu-item-text { display: flex; flex-direction: column; gap: 2px; }
+        .backup-menu-item-title { font-weight: 500; }
+        .backup-menu-item-sub { font-size: 11.5px; color: var(--muted); }
+        .backup-menu-divider { height: 1px; background: var(--border); margin: 4px 0; }
+
     </style>
 </head>
 <body>
@@ -724,16 +757,35 @@ přes ty hory zelený</pre>
             
             <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                 <h1 style="margin:0; display:flex; align-items:baseline;">Knihovna <span id="songCount" style="font-size: 0.9rem; color: var(--muted); font-weight: normal; margin-left: 8px;"></span></h1>
-                <div style="display:flex; gap:8px;">
-                    <button class="btn btn-outline" id="exportAllBtn" style="padding:8px 12px; font-size:12px;" title="Exportovat vše">
-                        <svg viewBox="0 0 24 24" width="16" height="16"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
+                <div id="backupMenuWrapper">
+                    <button class="btn btn-outline" id="backupMenuBtn" style="padding:8px 12px; font-size:12px;" title="Záloha a import">
+                        <svg viewBox="0 0 24 24" width="16" height="16"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
                     </button>
-                    <button class="btn btn-outline" id="triggerImportAllBtn" style="padding:8px 12px; font-size:12px;" title="Importovat zálohu JSON">
-                        <svg viewBox="0 0 24 24" width="16" height="16"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-                    </button>
-                    <button class="btn btn-outline" id="triggerImportChordProBtn" style="padding:8px 12px; font-size:12px;" title="Importovat ChordPro soubor">
-                        <svg viewBox="0 0 24 24" width="16" height="16"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
-                    </button>
+                    <div id="backupMenu">
+                        <button class="backup-menu-item" id="exportAllBtn">
+                            <svg viewBox="0 0 24 24" width="20" height="20"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
+                            <span class="backup-menu-item-text">
+                                <span class="backup-menu-item-title">Exportovat zálohu</span>
+                                <span class="backup-menu-item-sub">Uložit celou knihovnu do souboru</span>
+                            </span>
+                        </button>
+                        <div class="backup-menu-divider"></div>
+                        <button class="backup-menu-item" id="triggerImportAllBtn">
+                            <svg viewBox="0 0 24 24" width="20" height="20"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+                            <span class="backup-menu-item-text">
+                                <span class="backup-menu-item-title">Importovat zálohu</span>
+                                <span class="backup-menu-item-sub">Obnovit ze souboru .json</span>
+                            </span>
+                        </button>
+                        <div class="backup-menu-divider"></div>
+                        <button class="backup-menu-item" id="triggerImportChordProBtn">
+                            <svg viewBox="0 0 24 24" width="20" height="20"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+                            <span class="backup-menu-item-text">
+                                <span class="backup-menu-item-title">Importovat ChordPro</span>
+                                <span class="backup-menu-item-sub">Soubory .cho z jiných zpěvníků</span>
+                            </span>
+                        </button>
+                    </div>
                 </div>
             </div>
             
@@ -913,7 +965,7 @@ přes ty hory zelený</pre>
     // 4. Authorized JavaScript origins → URL tvé aplikace (např. https://uzivatel.github.io)
     // 5. Zkopíruj Client ID sem:
     // =====================================================================
-    const APP_VERSION = 'v31.0';
+    const APP_VERSION = 'v31.1';
 
     const GDRIVE_CLIENT_ID = '917333597478-88g2m8u0hgm8650ubtcshka5dqr1sep7.apps.googleusercontent.com';
     const GDRIVE_FILE_NAME = 'muzikant_db.json';
@@ -2125,6 +2177,25 @@ Když jsem já šel</pre>
             overlay.addEventListener('click', (e) => {
                 if (e.target === overlay) overlay.style.display = 'none';
             });
+        });
+
+
+        // Menu zálohy v knihovně
+        const backupMenuBtn = document.getElementById('backupMenuBtn');
+        const backupMenu = document.getElementById('backupMenu');
+        backupMenuBtn.onclick = (e) => {
+            e.stopPropagation();
+            backupMenu.classList.toggle('visible');
+        };
+        // Zavřít menu kliknutím kamkoliv mimo
+        document.addEventListener('click', (e) => {
+            if (!document.getElementById('backupMenuWrapper').contains(e.target)) {
+                backupMenu.classList.remove('visible');
+            }
+        });
+        // Zavřít menu po výběru kterékoli položky
+        backupMenu.querySelectorAll('.backup-menu-item').forEach(item => {
+            item.addEventListener('click', () => { backupMenu.classList.remove('visible'); });
         });
 
         loadData();
