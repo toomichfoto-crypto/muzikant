@@ -500,6 +500,25 @@
         .backup-menu-item-sub { font-size: 11.5px; color: var(--muted); }
         .backup-menu-divider { height: 1px; background: var(--border); margin: 4px 0; }
 
+
+        /* Plovoucí šipka nahoru v playlist detailu */
+        #floatingPlaylistTopBtn {
+            position: fixed;
+            top: 0; right: 15px;
+            z-index: 990;
+            display: flex; align-items: center; justify-content: center;
+            width: 46px; height: 46px;
+            background: var(--primary);
+            color: white; border: none; border-radius: 0 0 50% 50%;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            cursor: pointer;
+            transform: translateY(-110%);
+            transition: transform 0.25s ease;
+        }
+        #floatingPlaylistTopBtn.visible {
+            transform: translateY(0);
+        }
+
     </style>
 </head>
 <body>
@@ -510,6 +529,10 @@
             <svg viewBox="0 0 24 24" width="20" height="20"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg>
         </button>
     </div>
+
+    <button id="floatingPlaylistTopBtn" title="Nahoru">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg>
+    </button>
 
     <div id="toast">Oznámení</div>
     <div id="chordTooltip"></div>
@@ -965,7 +988,7 @@ přes ty hory zelený</pre>
     // 4. Authorized JavaScript origins → URL tvé aplikace (např. https://uzivatel.github.io)
     // 5. Zkopíruj Client ID sem:
     // =====================================================================
-    const APP_VERSION = 'v31.2';
+    const APP_VERSION = 'v31.3';
 
     const GDRIVE_CLIENT_ID = '917333597478-88g2m8u0hgm8650ubtcshka5dqr1sep7.apps.googleusercontent.com';
     const GDRIVE_FILE_NAME = 'muzikant_db.json';
@@ -1553,6 +1576,15 @@ přes ty hory zelený</pre>
             fb.classList.remove('visible');
         }
 
+        // Plovoucí šipka nahoru — pouze v detailu playlistu
+        const fpb = document.getElementById('floatingPlaylistTopBtn');
+        const playlistActive = document.getElementById('view-playlist-detail').classList.contains('active');
+        if (playlistActive && st > 150 && st < _prevScrollTop) {
+            fpb.classList.add('visible');
+        } else {
+            fpb.classList.remove('visible');
+        }
+
         _prevScrollTop = st;
         chordTooltip.style.display = 'none';
     };
@@ -1644,6 +1676,7 @@ přes ty hory zelený</pre>
             // Při otevření písně vždy na začátek
             scrollContainer.scrollTop = 0;
             document.getElementById('floatingBar').classList.remove('visible');
+            document.getElementById('floatingPlaylistTopBtn').classList.remove('visible');
         }
 
         if (viewId === 'library') {
@@ -2270,6 +2303,9 @@ Když jsem já šel</pre>
         });
 
         document.getElementById('floatingBarTopBtn').onclick = () => {
+            scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+        document.getElementById('floatingPlaylistTopBtn').onclick = () => {
             scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
         };
 
