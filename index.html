@@ -965,7 +965,7 @@ přes ty hory zelený</pre>
     // 4. Authorized JavaScript origins → URL tvé aplikace (např. https://uzivatel.github.io)
     // 5. Zkopíruj Client ID sem:
     // =====================================================================
-    const APP_VERSION = 'v31.1';
+    const APP_VERSION = 'v31.2';
 
     const GDRIVE_CLIENT_ID = '917333597478-88g2m8u0hgm8650ubtcshka5dqr1sep7.apps.googleusercontent.com';
     const GDRIVE_FILE_NAME = 'muzikant_db.json';
@@ -1083,6 +1083,7 @@ přes ty hory zelený</pre>
     let currentQueue = [], currentQueueIndex = 0;
     let lastView = 'library', isEditMode = false, isScrolling = false, scrollPos = 0, lastTime = 0;
     let libraryScrollPos = 0; // Uložená pozice scrollu v knihovně
+    let playlistScrollPos = 0; // Uložená pozice scrollu v detailu playlistu
     let confirmAction = null, fadeTimeout = null, tooltipTimeout = null;
     let draggedItemIndex = null;
     
@@ -1621,9 +1622,12 @@ přes ty hory zelený</pre>
     }
 
     function showView(viewId) {
-        // Před přepnutím: pokud opouštíme knihovnu, ulož pozici scrollu
+        // Před přepnutím: ulož pozici scrollu opouštěného pohledu
         if (document.getElementById('view-library').classList.contains('active')) {
             libraryScrollPos = scrollContainer.scrollTop;
+        }
+        if (document.getElementById('view-playlist-detail').classList.contains('active')) {
+            playlistScrollPos = scrollContainer.scrollTop;
         }
 
         document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -1650,7 +1654,10 @@ přes ty hory zelený</pre>
         }
 
         if (viewId === 'playlists') { renderPlaylistsFolders(); scrollContainer.scrollTop = 0; }
-        if (viewId === 'playlist-detail') { lastView = 'playlist-detail'; scrollContainer.scrollTop = 0; }
+        if (viewId === 'playlist-detail') {
+            lastView = 'playlist-detail';
+            requestAnimationFrame(() => { scrollContainer.scrollTop = playlistScrollPos; });
+        }
     }
 
     function renderFilterTagsModal() {
@@ -1890,6 +1897,7 @@ Když jsem já šel</pre>
     function deletePlaylist(idx) { confirmAction = () => { db.playlists.splice(idx, 1); saveData(); renderPlaylistsFolders(); notify('Smazáno'); };
         document.getElementById('confirmText').innerText = `Smazat playlist ${db.playlists[idx].name}?`; document.getElementById('confirmModal').style.display = 'flex'; }
     function openPlaylist(idx) { activePlaylistIdx = idx;
+        playlistScrollPos = 0; // Reset při otevření nového playlistu
         document.getElementById('currentPlaylistTitle').innerText = db.playlists[idx].name; showView('playlist-detail'); renderPlaylistItems(); }
     
     function renderPlaylistItems() {
