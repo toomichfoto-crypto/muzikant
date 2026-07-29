@@ -773,6 +773,12 @@ přes ty hory zelený</pre>
                     <svg viewBox="0 0 24 24" width="16" height="16"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg> Uložit
                 </button>
             </div>
+            <div style="display:flex; justify-content:flex-end; margin-bottom:6px;">
+                <button id="addUndoBtn" class="btn btn-outline" style="border:none; padding:6px 12px; font-size:13px; color:var(--muted);" title="Zpět (Ctrl+Z)">
+                    <svg viewBox="0 0 24 24" width="16" height="16" style="margin-right:4px;"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg>
+                    Zpět
+                </button>
+            </div>
             <textarea id="lyricsInput" style="min-height: 300px; overflow-y: hidden; resize: none;" spellcheck="false" placeholder="Sem vlož text a akordy..."></textarea>
         </div>
 
@@ -918,6 +924,12 @@ přes ty hory zelený</pre>
                     <label style="font-weight:500;">Tónina zapsaného textu:</label>
                     <select id="editBaseKey" style="margin-bottom:0; flex-grow:1;"></select>
                 </div>
+                <div style="display:flex; justify-content:flex-end; margin-bottom:6px;">
+                    <button id="editUndoBtn" class="btn btn-outline" style="border:none; padding:6px 12px; font-size:13px; color:var(--muted);" title="Zpět (Ctrl+Z)">
+                        <svg viewBox="0 0 24 24" width="16" height="16" style="margin-right:4px;"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg>
+                        Zpět
+                    </button>
+                </div>
                 <textarea id="editArea" style="min-height: 300px; overflow-y: hidden; resize: none;" spellcheck="false" placeholder="Text s akordy..."></textarea>
             </div>
         </div>
@@ -988,7 +1000,7 @@ přes ty hory zelený</pre>
     // 4. Authorized JavaScript origins → URL tvé aplikace (např. https://uzivatel.github.io)
     // 5. Zkopíruj Client ID sem:
     // =====================================================================
-    const APP_VERSION = 'v31.3';
+    const APP_VERSION = 'v31.4';
 
     const GDRIVE_CLIENT_ID = '917333597478-88g2m8u0hgm8650ubtcshka5dqr1sep7.apps.googleusercontent.com';
     const GDRIVE_FILE_NAME = 'muzikant_db.json';
@@ -2307,6 +2319,19 @@ Když jsem já šel</pre>
         };
         document.getElementById('floatingPlaylistTopBtn').onclick = () => {
             scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+
+        // Tlačítka Zpět v editoru
+        document.getElementById('editUndoBtn').onclick = () => {
+            const ta = document.getElementById('editArea');
+            ta.focus();
+            document.execCommand('undo');
+        };
+        document.getElementById('addUndoBtn').onclick = () => {
+            const ta = document.getElementById('lyricsInput');
+            ta.focus();
+            document.execCommand('undo');
         };
 
         document.getElementById('backFromPlayerBtn').onclick = () => { resetEditMode(); stopScroll(); showView(lastView); };
