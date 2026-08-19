@@ -1008,7 +1008,7 @@ přes ty hory zelený</pre>
     // 4. Authorized JavaScript origins → URL tvé aplikace (např. https://uzivatel.github.io)
     // 5. Zkopíruj Client ID sem:
     // =====================================================================
-    const APP_VERSION = 'v31.5';
+    const APP_VERSION = 'v31.6';
 
     const GDRIVE_CLIENT_ID = '917333597478-88g2m8u0hgm8650ubtcshka5dqr1sep7.apps.googleusercontent.com';
     const GDRIVE_FILE_NAME = 'muzikant_db.json';
@@ -2465,10 +2465,24 @@ Když jsem já šel</pre>
                     if (data.playlistName && data.songs) {
                         let newIds = [];
                         data.songs.forEach(importedSong => {
-                            const existing = db.songs.find(s => s.title.toLowerCase() === importedSong.title.toLowerCase());
-                            if (existing) {
-                                newIds.push(existing.id);
+                            const existIdx = db.songs.findIndex(s => s.title.toLowerCase() === importedSong.title.toLowerCase());
+                            if (existIdx !== -1) {
+                                // Píseň existuje — aktualizuj text, akordy a interpreta
+                                // ale zachovej osobní nastavení (tónina, rychlost, štítky)
+                                const kept = {
+                                    id: db.songs[existIdx].id,
+                                    tags: db.songs[existIdx].tags,
+                                    preferredKey: db.songs[existIdx].preferredKey,
+                                    scrollSpeed: db.songs[existIdx].scrollSpeed,
+                                };
+                                db.songs[existIdx] = {
+                                    ...importedSong,
+                                    ...kept,
+                                    lyrics: normalizeChords(importedSong.lyrics)
+                                };
+                                newIds.push(db.songs[existIdx].id);
                             } else {
+                                // Nová píseň — přidej celou
                                 const newSong = { ...importedSong, id: generateId(), lyrics: normalizeChords(importedSong.lyrics) };
                                 db.songs.push(newSong);
                                 newIds.push(newSong.id);
