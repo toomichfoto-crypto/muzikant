@@ -922,6 +922,13 @@ přes ty hory zelený</pre>
             </div>
             
             <div id="playerEditContent" style="display:none;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
+                    <span id="editContextLabel" style="font-size:13px; color:var(--muted); font-style:italic;"></span>
+                    <button id="promoteToLibraryBtn" class="btn btn-outline" style="display:none; font-size:12px; padding:6px 12px; border-color:var(--accent); color:var(--accent);">
+                        <svg viewBox="0 0 24 24" width="14" height="14"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
+                        Uložit do knihovny
+                    </button>
+                </div>
                 <input type="text" id="editTitleInput" placeholder="Název písně">
                 <input type="text" id="editArtistInput" placeholder="Interpret (nepovinné)">
                 <div style="display:flex; gap:10px; align-items:center; margin-bottom:15px; background:var(--card-bg); padding:12px 16px; border-radius:12px; border:var(--card-border); box-shadow:var(--card-shadow);">
@@ -1008,7 +1015,7 @@ přes ty hory zelený</pre>
     // 4. Authorized JavaScript origins → URL tvé aplikace (např. https://uzivatel.github.io)
     // 5. Zkopíruj Client ID sem:
     // =====================================================================
-    const APP_VERSION = 'v31.6';
+    const APP_VERSION = 'v32.0';
 
     const GDRIVE_CLIENT_ID = '917333597478-88g2m8u0hgm8650ubtcshka5dqr1sep7.apps.googleusercontent.com';
     const GDRIVE_FILE_NAME = 'muzikant_db.json';
@@ -1161,6 +1168,8 @@ přes ty hory zelený</pre>
                     preferredKey: keepTags ? db.songs[existIdx].preferredKey : (incoming.preferredKey !== undefined ? incoming.preferredKey : db.songs[existIdx].preferredKey),
                     // Rychlost scrollu: zachovat lokální pokud keepTags=true, jinak přepsat z Drive
                     scrollSpeed: keepTags ? db.songs[existIdx].scrollSpeed : (incoming.scrollSpeed !== undefined ? incoming.scrollSpeed : db.songs[existIdx].scrollSpeed),
+                    // Playlist verze vždy zachovat lokálně — jsou zařízení-specifické
+                    plv: db.songs[existIdx].plv || {},
                 };
                 db.songs[existIdx] = { ...incoming, ...kept };
                 updated++;
@@ -1367,6 +1376,64 @@ přes ty hory zelený</pre>
         // jinak normální vložení proběhne samo
     }
 
+
+    // =====================================================================
+    // PLAYLIST VERZE (plv) — písně s úpravami specifickými pro playlist
+    // Každá píseň může mít plv[playlistId] = { lyrics, baseKey,
+    // preferredKey, scrollSpeed, fontSize }
+    // =====================================================================
+
+    // Vrátí aktivní verzi písně pro aktuální kontext
+    // (playlist verzi pokud existuje, jinak hlavní)
+    function getSongVersion(song) {
+        if (activePlaylistIdx !== null) {
+            const pl = db.playlists[activePlaylistIdx];
+            if (pl && song.plv && song.plv[pl.id]) {
+                return { ...song, ...song.plv[pl.id] };
+            }
+        }
+        return song;
+    }
+
+    // Uloží playlist verzi parametru pro aktuální píseň a playlist
+    function savePlv(songId, params) {
+        const song = db.songs.find(s => s.id === songId);
+        if (!song) return;
+        if (activePlaylistIdx === null) return;
+        const pl = db.playlists[activePlaylistIdx];
+        if (!pl) return;
+        if (!pl.id) pl.id = generateId(); // Přidej ID playlistu pokud chybí
+        if (!song.plv) song.plv = {};
+        if (!song.plv[pl.id]) song.plv[pl.id] = {};
+        Object.assign(song.plv[pl.id], params);
+        saveData();
+    }
+
+    // Smaže playlist verzi ze všech písní při smazání playlistu
+    function clearPlvForPlaylist(plId) {
+        db.songs.forEach(song => {
+            if (song.plv && song.plv[plId]) {
+                delete song.plv[plId];
+            }
+        });
+    }
+
+    // Zkopíruje playlist verzi do hlavní verze
+    function promoteToLibrary(songId) {
+        const song = db.songs.find(s => s.id === songId);
+        if (!song || activePlaylistIdx === null) return false;
+        const pl = db.playlists[activePlaylistIdx];
+        if (!pl || !song.plv || !song.plv[pl.id]) return false;
+        const plv = song.plv[pl.id];
+        if (plv.lyrics !== undefined) song.lyrics = plv.lyrics;
+        if (plv.baseKey !== undefined) song.baseKey = plv.baseKey;
+        if (plv.preferredKey !== undefined) song.preferredKey = plv.preferredKey;
+        if (plv.scrollSpeed !== undefined) song.scrollSpeed = plv.scrollSpeed;
+        if (plv.fontSize !== undefined) song.fontSize = plv.fontSize;
+        saveData();
+        return true;
+    }
+
     // =====================================================================
     // GOOGLE DRIVE FUNKCE
     // =====================================================================
@@ -1549,8 +1616,12 @@ přes ty hory zelený</pre>
 
     function saveSpeed() {
         if (currentSongIndex !== null) {
-            const s = db.songs.find(s => s.id === currentSongIndex);
-            if (s) { s.scrollSpeed = currentScrollSpeed; saveData(); }
+            if (activePlaylistIdx !== null) {
+                savePlv(currentSongIndex, { scrollSpeed: currentScrollSpeed });
+            } else {
+                const s = db.songs.find(s => s.id === currentSongIndex);
+                if (s) { s.scrollSpeed = currentScrollSpeed; saveData(); }
+            }
         }
     }
 
@@ -1630,6 +1701,11 @@ přes ty hory zelený</pre>
             let migrated = false;
             db.songs.forEach(song => {
                 if (!song.id) { song.id = generateId(); migrated = true; }
+            });
+
+            // Migrace: přidat ID playlistům které ho nemají
+            db.playlists.forEach(pl => {
+                if (!pl.id) { pl.id = generateId(); migrated = true; }
             });
 
             // Migrace: převést songIds z číselných indexů na UUID
@@ -1947,7 +2023,11 @@ Když jsem já šel</pre>
     
     function renamePlaylist(idx) { const newName = prompt("Zadej nový název playlistu:", db.playlists[idx].name);
         if (newName && newName.trim() !== "" && newName !== db.playlists[idx].name) { db.playlists[idx].name = newName.trim(); saveData(); renderPlaylistsFolders(); notify('Přejmenováno'); } }
-    function deletePlaylist(idx) { confirmAction = () => { db.playlists.splice(idx, 1); saveData(); renderPlaylistsFolders(); notify('Smazáno'); };
+    function deletePlaylist(idx) { confirmAction = () => {
+        const pl = db.playlists[idx];
+        if (pl && pl.id) clearPlvForPlaylist(pl.id);
+        db.playlists.splice(idx, 1); saveData(); renderPlaylistsFolders(); notify('Smazáno');
+    };
         document.getElementById('confirmText').innerText = `Smazat playlist ${db.playlists[idx].name}?`; document.getElementById('confirmModal').style.display = 'flex'; }
     function openPlaylist(idx) { activePlaylistIdx = idx;
         playlistScrollPos = 0; // Reset při otevření nového playlistu
@@ -1966,10 +2046,11 @@ Když jsem já šel</pre>
             card.ondragend = () => { card.style.opacity = '1'; };
             card.ondragover = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
             card.ondrop = (e) => { e.preventDefault(); if (draggedItemIndex !== null && draggedItemIndex !== itemIdx) { const draggedId = pl.songIds.splice(draggedItemIndex, 1)[0]; pl.songIds.splice(itemIdx, 0, draggedId); saveData(); renderPlaylistItems(); } };
+            const hasPlvMark = song.plv && pl.id && song.plv[pl.id] ? ' <span style="font-size:10px; color:var(--primary);" title="Má playlist verzi">★</span>' : '';
             card.innerHTML = `<div style="display:flex; flex-direction:column; gap:4px; margin-right:16px; cursor:grab;">
                 <button class="btn btn-outline" onclick="event.stopPropagation(); moveSongInPlaylist(${itemIdx}, -1)" style="padding:4px 8px; border:none; background:rgba(128,128,128,0.1); color:var(--text);">${IC.up}</button>
                 <button class="btn btn-outline" onclick="event.stopPropagation(); moveSongInPlaylist(${itemIdx}, 1)" style="padding:4px 8px; border:none; background:rgba(128,128,128,0.1); color:var(--text);">${IC.down}</button></div>
-                <div style="flex-grow:1; font-weight:500;"><span style="color:var(--muted); margin-right:6px;">${itemIdx + 1}.</span> ${escapeHtml(song.title)}</div>
+                <div style="flex-grow:1; font-weight:500;"><span style="color:var(--muted); margin-right:6px;">${itemIdx + 1}.</span> ${escapeHtml(song.title)}${hasPlvMark}</div>
                 <button class="btn btn-red" onclick="event.stopPropagation(); removeFromPlaylist(${itemIdx})" style="padding:10px; border:none; background:rgba(234, 67, 53, 0.1); color:#ea4335;" title="Odebrat z playlistu">${IC.remove}</button>`;
             card.onclick = () => { resetEditMode(); currentQueue = [...pl.songIds]; currentQueueIndex = itemIdx; currentSongIndex = songId; targetKeyIndex = song.preferredKey !== undefined ? song.preferredKey : (song.baseKey || 0); showView('player'); renderPlayer(); };
             container.appendChild(card);
@@ -2046,19 +2127,38 @@ Když jsem já šel</pre>
     }
 
     function renderPlayer() {
-        const song = db.songs.find(s => s.id === currentSongIndex);
-        if (!song) { showView('library'); return; }
+        const songBase = db.songs.find(s => s.id === currentSongIndex);
+        if (!songBase) { showView('library'); return; }
+        // Použij playlist verzi pokud existuje
+        const song = getSongVersion(songBase);
         document.getElementById('displayArea').innerHTML = renderPlayerText(song.lyrics || "", song.baseKey || 0, targetKeyIndex);
         document.getElementById('displayTitle').innerText = song.title || "";
         const artistEl = document.getElementById('displayArtist');
         if (artistEl) artistEl.innerText = song.artist || "";
-        document.getElementById('displayArea').style.fontSize = currentFontSize + 'px';
-        // Načtení uložené rychlosti (1-10), starý formát (>10) přepočítáme
+        // Velikost písma z playlist verze nebo globální
+        const activeFontSize = song.fontSize || currentFontSize;
+        document.getElementById('displayArea').style.fontSize = activeFontSize + 'px';
+        // Načtení rychlosti z aktivní verze
         const savedSpd = song.scrollSpeed !== undefined ? song.scrollSpeed : 5;
         currentScrollSpeed = savedSpd > 10 ? Math.max(1, Math.min(10, Math.round(savedSpd / 10))) : Math.max(1, Math.min(10, savedSpd));
         updateSpeedDisplay();
 
+        // Tónina z aktivní verze
+        if (song.preferredKey !== undefined) targetKeyIndex = song.preferredKey;
         renderKeyButtons(); renderPlayerTags();
+        // Indikátor playlist verze
+        let plvIndicator = document.getElementById('plvIndicator');
+        if (!plvIndicator) {
+            plvIndicator = document.createElement('div');
+            plvIndicator.id = 'plvIndicator';
+            plvIndicator.style.cssText = 'font-size:11px; color:var(--primary); margin-bottom:8px; font-style:italic;';
+            const titleEl = document.getElementById('displayTitle');
+            titleEl.parentNode.insertBefore(plvIndicator, titleEl.nextSibling);
+        }
+        const songBase2 = db.songs.find(s => s.id === currentSongIndex);
+        const pl2 = activePlaylistIdx !== null ? db.playlists[activePlaylistIdx] : null;
+        const hasPlv2 = songBase2 && pl2 && songBase2.plv && songBase2.plv[pl2.id];
+        plvIndicator.textContent = hasPlv2 ? '★ Playlist verze' : '';
         chordTooltip.style.display = 'none';
         const prevBtn = document.getElementById('prevSongBtn'); const nextBtn = document.getElementById('nextSongBtn');
         if (currentQueue && currentQueue.length > 1) {
@@ -2341,8 +2441,18 @@ Když jsem já šel</pre>
         document.getElementById('footerScrollTopBtn').onclick = () => {
             scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
         };
-        document.getElementById('fontPlusBtn').onclick = () => { currentFontSize += 2; localStorage.setItem('muzikant_font_size', currentFontSize); renderPlayer(); };
-        document.getElementById('fontMinusBtn').onclick = () => { currentFontSize = Math.max(10, currentFontSize - 2); localStorage.setItem('muzikant_font_size', currentFontSize); renderPlayer(); };
+        document.getElementById('fontPlusBtn').onclick = () => {
+            currentFontSize += 2;
+            localStorage.setItem('muzikant_font_size', currentFontSize);
+            if (activePlaylistIdx !== null) savePlv(currentSongIndex, { fontSize: currentFontSize });
+            renderPlayer();
+        };
+        document.getElementById('fontMinusBtn').onclick = () => {
+            currentFontSize = Math.max(10, currentFontSize - 2);
+            localStorage.setItem('muzikant_font_size', currentFontSize);
+            if (activePlaylistIdx !== null) savePlv(currentSongIndex, { fontSize: currentFontSize });
+            renderPlayer();
+        };
         document.getElementById('playerAddToPlaylistBtn').onclick = () => { if (currentSongIndex !== null) openAddToPlaylistModal(currentSongIndex); }; // currentSongIndex je ID
         document.getElementById('playerShareBtn').onclick = async () => {
             const song = db.songs.find(s => s.id === currentSongIndex);
@@ -2451,7 +2561,14 @@ Když jsem já šel</pre>
             if (activePlaylistIdx === null) return;
             const pl = db.playlists[activePlaylistIdx];
             // Export pro ostatní: bez štítků a bez rychlosti scrollu, tónina zůstává
-            const exportData = { playlistName: pl.name, songs: pl.songIds.map(id => { const s = db.songs.find(s => s.id === id); if (!s) return null; const { tags, scrollSpeed, ...rest } = s; return rest; }).filter(Boolean) };
+            // Export: zahrnout playlist verzi pokud existuje
+            const exportData = { playlistName: pl.name, playlistId: pl.id, songs: pl.songIds.map(id => {
+                const s = db.songs.find(s => s.id === id); if (!s) return null;
+                const { tags, plv, ...rest } = s;
+                // Pokud má playlist verzi, přepíšeme exportovaná data
+                const plvData = plv && pl.id && plv[pl.id] ? plv[pl.id] : {};
+                return { ...rest, ...plvData };
+            }).filter(Boolean) };
             const a = document.createElement('a');
             a.href = URL.createObjectURL(new Blob([JSON.stringify(exportData)], {type: 'application/json'})); a.download = `Playlist_${pl.name.replace(/\s+/g, '_')}.json`; a.click();
         };
@@ -2463,32 +2580,30 @@ Když jsem já šel</pre>
                 try {
                     const data = JSON.parse(ev.target.result);
                     if (data.playlistName && data.songs) {
+                        const newPlId = generateId();
                         let newIds = [];
                         data.songs.forEach(importedSong => {
                             const existIdx = db.songs.findIndex(s => s.title.toLowerCase() === importedSong.title.toLowerCase());
                             if (existIdx !== -1) {
-                                // Píseň existuje — aktualizuj text, akordy a interpreta
-                                // ale zachovej osobní nastavení (tónina, rychlost, štítky)
-                                const kept = {
-                                    id: db.songs[existIdx].id,
-                                    tags: db.songs[existIdx].tags,
-                                    preferredKey: db.songs[existIdx].preferredKey,
-                                    scrollSpeed: db.songs[existIdx].scrollSpeed,
+                                // Píseň existuje — uložit jako playlist verzi, hlavní verze nedotčena
+                                const songId = db.songs[existIdx].id;
+                                if (!db.songs[existIdx].plv) db.songs[existIdx].plv = {};
+                                db.songs[existIdx].plv[newPlId] = {
+                                    lyrics: normalizeChords(importedSong.lyrics),
+                                    baseKey: importedSong.baseKey,
+                                    preferredKey: importedSong.preferredKey,
+                                    scrollSpeed: importedSong.scrollSpeed,
+                                    fontSize: importedSong.fontSize,
                                 };
-                                db.songs[existIdx] = {
-                                    ...importedSong,
-                                    ...kept,
-                                    lyrics: normalizeChords(importedSong.lyrics)
-                                };
-                                newIds.push(db.songs[existIdx].id);
+                                newIds.push(songId);
                             } else {
-                                // Nová píseň — přidej celou
-                                const newSong = { ...importedSong, id: generateId(), lyrics: normalizeChords(importedSong.lyrics) };
+                                // Nová píseň — přidej do knihovny jako hlavní verzi
+                                const newSong = { ...importedSong, id: generateId(), lyrics: normalizeChords(importedSong.lyrics), plv: {} };
                                 db.songs.push(newSong);
                                 newIds.push(newSong.id);
                             }
                         });
-                        db.playlists.push({ name: data.playlistName, songIds: newIds });
+                        db.playlists.push({ id: newPlId, name: data.playlistName, songIds: newIds });
                         saveData(); renderLibrary(document.getElementById('searchInput').value); renderPlaylistsFolders(); showView('playlists'); notify('Playlist importován');
                     } else { notify('Toto není správný formát playlistu'); }
                 } catch(err) { notify('Chyba při čtení souboru'); }
@@ -2532,8 +2647,18 @@ Když jsem já šel</pre>
         };
         
         document.getElementById('createPlaylistBtn').onclick = () => { const name = document.getElementById('newPlaylistName').value.trim();
-            if(name) { db.playlists.push({ name: name, songIds: [] }); saveData(); document.getElementById('newPlaylistName').value = ''; renderPlaylistsFolders(); notify('Vytvořeno'); }};
-        document.getElementById('fixKeyBtn').onclick = () => { const s = db.songs.find(s => s.id === currentSongIndex); if(s) { s.preferredKey = targetKeyIndex; saveData(); notify('Uloženo'); } };
+            if(name) { db.playlists.push({ id: generateId(), name: name, songIds: [] }); saveData(); document.getElementById('newPlaylistName').value = ''; renderPlaylistsFolders(); notify('Vytvořeno'); }};
+        document.getElementById('fixKeyBtn').onclick = () => {
+            const s = db.songs.find(s => s.id === currentSongIndex);
+            if (!s) return;
+            if (activePlaylistIdx !== null) {
+                savePlv(currentSongIndex, { preferredKey: targetKeyIndex });
+                notify('Tónina uložena pro playlist');
+            } else {
+                s.preferredKey = targetKeyIndex; saveData();
+                notify('Tónina uložena do knihovny');
+            }
+        };
         document.getElementById('confirmYesBtn').onclick = () => { confirmAction(); document.getElementById('confirmModal').style.display='none'; };
         document.getElementById('cancelConfirmBtn').onclick = () => { 
             document.getElementById('confirmModal').style.display='none';
@@ -2555,10 +2680,22 @@ Když jsem já šel</pre>
                 editContent.style.display = 'block'; saveBtn.style.display = 'inline-flex'; 
                 toggleBtn.innerHTML = IC.close; toggleBtn.style.background = 'rgba(234, 67, 53, 0.1)'; toggleBtn.style.color = '#ea4335';
                 scrollPnl.style.display = 'none'; navBtnPnl.style.display = 'none';
-                const song = db.songs.find(s => s.id === currentSongIndex); if (!song) return; document.getElementById('editTitleInput').value = song.title; document.getElementById('editArtistInput').value = song.artist || ''; 
-                const editArea = document.getElementById('editArea'); editArea.value = song.lyrics;
-                setTimeout(() => autoResizeTextarea(editArea), 10); 
-                document.getElementById('editBaseKey').innerHTML = keys; document.getElementById('editBaseKey').value = song.baseKey || 0;
+                const song = db.songs.find(s => s.id === currentSongIndex); if (!song) return;
+                const songV = getSongVersion(song);
+                document.getElementById('editTitleInput').value = song.title;
+                document.getElementById('editArtistInput').value = song.artist || '';
+                const editArea = document.getElementById('editArea');
+                editArea.value = songV.lyrics || song.lyrics;
+                setTimeout(() => autoResizeTextarea(editArea), 10);
+                document.getElementById('editBaseKey').innerHTML = keys;
+                document.getElementById('editBaseKey').value = songV.baseKey !== undefined ? songV.baseKey : (song.baseKey || 0);
+                // Zobraz indikátor playlist verze pokud existuje
+                const inPlaylist = activePlaylistIdx !== null;
+                const hasPlv = inPlaylist && song.plv && db.playlists[activePlaylistIdx] && song.plv[db.playlists[activePlaylistIdx].id];
+                document.getElementById('editContextLabel').textContent = inPlaylist
+                    ? (hasPlv ? '✎ Edituješ playlist verzi' : '✎ Edituješ playlist verzi (nová)')
+                    : '✎ Edituješ hlavní verzi (knihovna)';
+                document.getElementById('promoteToLibraryBtn').style.display = (inPlaylist && hasPlv) ? 'inline-flex' : 'none';
             } else {
                 viewContent.style.display = 'block';
                 editContent.style.display = 'none'; saveBtn.style.display = 'none'; 
@@ -2569,10 +2706,34 @@ Když jsem já šel</pre>
         document.getElementById('saveEditBtn').onclick = () => {
             const song = db.songs.find(s => s.id === currentSongIndex);
             if (!song) return;
-            song.title = document.getElementById('editTitleInput').value; song.artist = document.getElementById('editArtistInput').value.trim(); song.lyrics = normalizeChords(document.getElementById('editArea').value); song.baseKey = parseInt(document.getElementById('editBaseKey').value);
-            saveData(); renderPlayer(); document.getElementById('toggleEditBtn').click(); notify('Uloženo');
+            const newLyrics = normalizeChords(document.getElementById('editArea').value);
+            const newBaseKey = parseInt(document.getElementById('editBaseKey').value);
+            // Titul a interpret se vždy ukládají do hlavní verze
+            song.title = document.getElementById('editTitleInput').value;
+            song.artist = document.getElementById('editArtistInput').value.trim();
+            if (activePlaylistIdx !== null) {
+                // Jsme v playlistu — uložit jako playlist verzi
+                savePlv(currentSongIndex, { lyrics: newLyrics, baseKey: newBaseKey });
+                notify('Uloženo jako playlist verze');
+            } else {
+                // Jsme v knihovně — uložit do hlavní verze
+                song.lyrics = newLyrics;
+                song.baseKey = newBaseKey;
+                saveData();
+                notify('Uloženo do knihovny');
+            }
+            renderPlayer(); document.getElementById('toggleEditBtn').click();
         };
         
+        document.getElementById('promoteToLibraryBtn').onclick = () => {
+            if (promoteToLibrary(currentSongIndex)) {
+                renderPlayer();
+                notify('Playlist verze uložena do knihovny ✓');
+                document.getElementById('promoteToLibraryBtn').style.display = 'none';
+                document.getElementById('editContextLabel').textContent = '✎ Edituješ hlavní verzi (knihovna)';
+            }
+        };
+
         document.getElementById('gdriveConnectBtn').onclick = gdriveConnect;
         document.getElementById('gdriveUploadBtn').onclick = gdriveUpload;
         document.getElementById('gdriveDownloadBtn').onclick = gdriveDownload;
