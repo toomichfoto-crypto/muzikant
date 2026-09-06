@@ -1015,7 +1015,7 @@ přes ty hory zelený</pre>
     // 4. Authorized JavaScript origins → URL tvé aplikace (např. https://uzivatel.github.io)
     // 5. Zkopíruj Client ID sem:
     // =====================================================================
-    const APP_VERSION = 'v32.0';
+    const APP_VERSION = 'v32.3';
 
     const GDRIVE_CLIENT_ID = '917333597478-88g2m8u0hgm8650ubtcshka5dqr1sep7.apps.googleusercontent.com';
     const GDRIVE_FILE_NAME = 'muzikant_db.json';
@@ -1143,6 +1143,7 @@ přes ty hory zelený</pre>
     const scrollPanel = document.getElementById('scrollPanel');
     const chordTooltip = document.getElementById('chordTooltip');
     let currentScrollSpeed = 5; // Rychlost 1-10, výchozí 5
+    let keysHtml = ''; // HTML pro select tónin — definováno při init
     
     // Tlačítka pro jemné ladění rychlosti (+/-)
 
@@ -1289,9 +1290,7 @@ přes ty hory zelený</pre>
             currentSongIndex = db.songs[randomIdx].id;
             currentQueue = db.songs.map(s => s.id);
             currentQueueIndex = randomIdx;
-            targetKeyIndex = db.songs[randomIdx].preferredKey !== undefined
-                ? db.songs[randomIdx].preferredKey
-                : (db.songs[randomIdx].baseKey || 0);
+            // targetKeyIndex nastaví renderPlayer() přes getSongVersion
             showView('player');
             renderPlayer();
         }, 500);
@@ -1633,7 +1632,15 @@ přes ty hory zelený</pre>
     }
 
     function resetEditMode() {
-        if (isEditMode) { document.getElementById('toggleEditBtn').click(); }
+        if (!isEditMode) return;
+        isEditMode = false;
+        document.getElementById('playerViewContent').style.display = 'block';
+        document.getElementById('playerEditContent').style.display = 'none';
+        document.getElementById('saveEditBtn').style.display = 'none';
+        const tb = document.getElementById('toggleEditBtn');
+        if (tb) { tb.innerHTML = IC.edit; tb.style.background = 'rgba(234, 179, 8, 0.1)'; tb.style.color = '#ca8a04'; }
+        document.getElementById('scrollPanel').style.display = 'flex';
+        document.getElementById('navButtonsPanel').style.display = 'flex';
     }
 
     function wakeUpPanels() {
@@ -1969,7 +1976,7 @@ Když jsem já šel</pre>
                 currentQueue = [...tempQueue];
                 currentQueueIndex = currentQueue.indexOf(item.song.id);
                 currentSongIndex = item.song.id;
-                targetKeyIndex = song.preferredKey !== undefined ? song.preferredKey : (song.baseKey || 0);
+                // targetKeyIndex nastaví renderPlayer() ze getSongVersion
                 showView('player'); renderPlayer();
             };
             list.appendChild(card);
@@ -2052,7 +2059,12 @@ Když jsem já šel</pre>
                 <button class="btn btn-outline" onclick="event.stopPropagation(); moveSongInPlaylist(${itemIdx}, 1)" style="padding:4px 8px; border:none; background:rgba(128,128,128,0.1); color:var(--text);">${IC.down}</button></div>
                 <div style="flex-grow:1; font-weight:500;"><span style="color:var(--muted); margin-right:6px;">${itemIdx + 1}.</span> ${escapeHtml(song.title)}${hasPlvMark}</div>
                 <button class="btn btn-red" onclick="event.stopPropagation(); removeFromPlaylist(${itemIdx})" style="padding:10px; border:none; background:rgba(234, 67, 53, 0.1); color:#ea4335;" title="Odebrat z playlistu">${IC.remove}</button>`;
-            card.onclick = () => { resetEditMode(); currentQueue = [...pl.songIds]; currentQueueIndex = itemIdx; currentSongIndex = songId; targetKeyIndex = song.preferredKey !== undefined ? song.preferredKey : (song.baseKey || 0); showView('player'); renderPlayer(); };
+            card.onclick = () => {
+                resetEditMode();
+                currentQueue = [...pl.songIds]; currentQueueIndex = itemIdx; currentSongIndex = songId;
+                // targetKeyIndex nastaví renderPlayer() z getSongVersion — nenastavujeme ho zde
+                showView('player'); renderPlayer();
+            };
             container.appendChild(card);
         });
     }
@@ -2131,6 +2143,15 @@ Když jsem já šel</pre>
         if (!songBase) { showView('library'); return; }
         // Použij playlist verzi pokud existuje
         const song = getSongVersion(songBase);
+
+        // Tóninu načteme PRVNÍ — renderPlayerText ji potřebuje
+        // Priorita: plv.preferredKey > song.preferredKey > song.baseKey
+        if (song.preferredKey !== undefined) {
+            targetKeyIndex = song.preferredKey;
+        } else {
+            targetKeyIndex = song.baseKey || 0;
+        }
+
         document.getElementById('displayArea').innerHTML = renderPlayerText(song.lyrics || "", song.baseKey || 0, targetKeyIndex);
         document.getElementById('displayTitle').innerText = song.title || "";
         const artistEl = document.getElementById('displayArtist');
@@ -2142,9 +2163,6 @@ Když jsem já šel</pre>
         const savedSpd = song.scrollSpeed !== undefined ? song.scrollSpeed : 5;
         currentScrollSpeed = savedSpd > 10 ? Math.max(1, Math.min(10, Math.round(savedSpd / 10))) : Math.max(1, Math.min(10, savedSpd));
         updateSpeedDisplay();
-
-        // Tónina z aktivní verze
-        if (song.preferredKey !== undefined) targetKeyIndex = song.preferredKey;
         renderKeyButtons(); renderPlayerTags();
         // Indikátor playlist verze
         let plvIndicator = document.getElementById('plvIndicator');
@@ -2244,8 +2262,7 @@ Když jsem já šel</pre>
         if (currentQueueIndex > 0) {
             currentQueueIndex--;
             currentSongIndex = currentQueue[currentQueueIndex];
-            const ps = db.songs.find(s => s.id === currentSongIndex);
-            targetKeyIndex = ps && ps.preferredKey !== undefined ? ps.preferredKey : (ps && ps.baseKey || 0);
+            // targetKeyIndex nastaví renderPlayer() přes getSongVersion
             if (isScrolling) stopScroll(); scrollContainer.scrollTop = 0; renderPlayer();
         }
     };
@@ -2253,8 +2270,7 @@ Když jsem já šel</pre>
         if (currentQueueIndex < currentQueue.length - 1) {
             currentQueueIndex++;
             currentSongIndex = currentQueue[currentQueueIndex];
-            const ns = db.songs.find(s => s.id === currentSongIndex);
-            targetKeyIndex = ns && ns.preferredKey !== undefined ? ns.preferredKey : (ns && ns.baseKey || 0);
+            // targetKeyIndex nastaví renderPlayer() přes getSongVersion
             if (isScrolling) stopScroll(); scrollContainer.scrollTop = 0; renderPlayer();
         }
     };
@@ -2365,8 +2381,8 @@ Když jsem já šel</pre>
         const _vli = document.getElementById('versionLabelInfo');
         if (_vl) _vl.textContent = 'Verze: ' + APP_VERSION;
         if (_vli) _vli.textContent = 'Verze ' + APP_VERSION;
-        const keys = notes.map((n, i) => `<option value="${i}">${n}</option>`).join('');
-        document.getElementById('addBaseKey').innerHTML = keys;
+        keysHtml = notes.map((n, i) => `<option value="${i}">${n}</option>`).join('');
+        document.getElementById('addBaseKey').innerHTML = keysHtml;
         
         const lyricsInput = document.getElementById('lyricsInput');
         const editArea = document.getElementById('editArea');
@@ -2675,19 +2691,20 @@ Když jsem já šel</pre>
             const scrollPnl = document.getElementById('scrollPanel');
             const navBtnPnl = document.getElementById('navButtonsPanel');
 
-            if (isEditMode) { 
+            if (isEditMode) {
+                const song = db.songs.find(s => s.id === currentSongIndex);
+                if (!song) { isEditMode = false; return; } // Vrátit stav pokud píseň neexistuje
                 viewContent.style.display = 'none';
-                editContent.style.display = 'block'; saveBtn.style.display = 'inline-flex'; 
+                editContent.style.display = 'block'; saveBtn.style.display = 'inline-flex';
                 toggleBtn.innerHTML = IC.close; toggleBtn.style.background = 'rgba(234, 67, 53, 0.1)'; toggleBtn.style.color = '#ea4335';
                 scrollPnl.style.display = 'none'; navBtnPnl.style.display = 'none';
-                const song = db.songs.find(s => s.id === currentSongIndex); if (!song) return;
                 const songV = getSongVersion(song);
                 document.getElementById('editTitleInput').value = song.title;
                 document.getElementById('editArtistInput').value = song.artist || '';
                 const editArea = document.getElementById('editArea');
                 editArea.value = songV.lyrics || song.lyrics;
                 setTimeout(() => autoResizeTextarea(editArea), 10);
-                document.getElementById('editBaseKey').innerHTML = keys;
+                document.getElementById('editBaseKey').innerHTML = keysHtml;
                 document.getElementById('editBaseKey').value = songV.baseKey !== undefined ? songV.baseKey : (song.baseKey || 0);
                 // Zobraz indikátor playlist verze pokud existuje
                 const inPlaylist = activePlaylistIdx !== null;
@@ -2722,7 +2739,17 @@ Když jsem já šel</pre>
                 saveData();
                 notify('Uloženo do knihovny');
             }
-            renderPlayer(); document.getElementById('toggleEditBtn').click();
+            renderPlayer();
+            // Zavřít editor přímo bez volání click() aby se nespustil onclick znovu
+            isEditMode = false;
+            document.getElementById('playerViewContent').style.display = 'block';
+            document.getElementById('playerEditContent').style.display = 'none';
+            document.getElementById('saveEditBtn').style.display = 'none';
+            document.getElementById('toggleEditBtn').innerHTML = IC.edit;
+            document.getElementById('toggleEditBtn').style.background = 'rgba(234, 179, 8, 0.1)';
+            document.getElementById('toggleEditBtn').style.color = '#ca8a04';
+            document.getElementById('scrollPanel').style.display = 'flex';
+            document.getElementById('navButtonsPanel').style.display = 'flex';
         };
         
         document.getElementById('promoteToLibraryBtn').onclick = () => {
