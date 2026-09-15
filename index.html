@@ -1015,7 +1015,7 @@ přes ty hory zelený</pre>
     // 4. Authorized JavaScript origins → URL tvé aplikace (např. https://uzivatel.github.io)
     // 5. Zkopíruj Client ID sem:
     // =====================================================================
-    const APP_VERSION = 'v32.3';
+    const APP_VERSION = 'v32.4';
 
     const GDRIVE_CLIENT_ID = '917333597478-88g2m8u0hgm8650ubtcshka5dqr1sep7.apps.googleusercontent.com';
     const GDRIVE_FILE_NAME = 'muzikant_db.json';
@@ -1287,6 +1287,10 @@ přes ty hory zelený</pre>
         // Po animaci otevřeme píseň
         setTimeout(() => {
             resetEditMode();
+            currentSongIndex = db.songs[randomIdx].id;
+            currentQueue = db.songs.map(s => s.id);
+            currentQueueIndex = randomIdx;
+            activePlaylistIdx = null; // Náhodná píseň vždy z knihovny
             currentSongIndex = db.songs[randomIdx].id;
             currentQueue = db.songs.map(s => s.id);
             currentQueueIndex = randomIdx;
@@ -1784,6 +1788,7 @@ přes ty hory zelený</pre>
 
         if (viewId === 'library') {
             lastView = 'library';
+            activePlaylistIdx = null; // Reset — v knihovně není playlist kontext
             renderLibrary(document.getElementById('searchInput').value);
             // Obnov pozici scrollu v knihovně
             requestAnimationFrame(() => { scrollContainer.scrollTop = libraryScrollPos; });
@@ -2422,6 +2427,7 @@ Když jsem já šel</pre>
         document.getElementById('nav-add').onclick = () => { showView('add'); autoResizeTextarea(lyricsInput); };
         document.getElementById('nav-library').onclick = () => {
             libraryScrollPos = 0;
+            activePlaylistIdx = null;
             document.getElementById('floatingBar').classList.remove('visible');
             document.getElementById('floatingBarInput').value = '';
             showView('library');
@@ -2681,7 +2687,7 @@ Když jsem já šel</pre>
             if (window.location.search.includes('song=')) { window.history.replaceState({}, document.title, window.location.pathname); }
         };
         document.getElementById('closePlaylistSelectBtn').onclick = () => document.getElementById('playlistSelectModal').style.display = 'none';
-        document.getElementById('backToPlaylistsBtn').onclick = () => showView('playlists');
+        document.getElementById('backToPlaylistsBtn').onclick = () => { activePlaylistIdx = null; showView('playlists'); };
         document.getElementById('toggleEditBtn').onclick = () => {
             isEditMode = !isEditMode;
             const viewContent = document.getElementById('playerViewContent');
