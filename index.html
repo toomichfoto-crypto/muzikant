@@ -125,6 +125,7 @@
             transition: transform 0.3s ease-in-out, margin-top 0.3s, background 0.3s;
             overflow: hidden;
             gap: 8px;
+            will-change: transform;
         }
         .top-nav.hidden { transform: translateY(-100%); position: absolute; width: 100%; }
 
@@ -235,7 +236,7 @@
         #chordTooltip { position: fixed; display: none; z-index: 5000; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); padding: 12px; transform: translate(-50%, -100%); margin-top: -15px; pointer-events: none; }
 
         /* Panel pro posuvník */
-        .scroll-panel { position: fixed; right: 15px; top: 60%; transform: translateY(-50%); background: var(--card-bg); border-radius: 40px; width: 56px; display: flex; flex-direction: column; align-items: center; padding: 12px 0; gap: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100; border: none; transition: opacity 0.4s ease, background 0.3s; }
+        .scroll-panel { position: fixed; right: 15px; top: 60%; transform: translateY(-50%); will-change: opacity; background: var(--card-bg); border-radius: 40px; width: 56px; display: flex; flex-direction: column; align-items: center; padding: 12px 0; gap: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100; border: none; transition: opacity 0.4s ease, background 0.3s; }
         .scroll-panel.faded { opacity: 0.15; pointer-events: none; }
         .speed-display { font-size: 18px; font-weight: 700; color: var(--primary); min-width: 24px; text-align: center; line-height: 1; padding: 4px 0; }
         
@@ -309,7 +310,7 @@
 
         #toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #323232; color: white; padding: 14px 24px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.2); display: none; z-index: 4000; font-weight: 500; font-size: 14px; letter-spacing: 0.3px;}
         
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 3000; align-items: center; justify-content: center; backdrop-filter: blur(2px); cursor: pointer; }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.65); z-index: 3000; align-items: center; justify-content: center; cursor: pointer; }
         .modal-content { cursor: default; }
         .modal-content { background: var(--card-bg); color: var(--text); padding: 30px 25px; border-radius: 16px; max-width: 360px; width: 90%; text-align: center; transition: background 0.3s; max-height: 90vh; overflow-y: auto; box-shadow: 0 24px 38px 3px rgba(0,0,0,0.14), 0 9px 46px 8px rgba(0,0,0,0.12), 0 11px 15px -7px rgba(0,0,0,0.2);}
 
@@ -517,6 +518,24 @@
         }
         #floatingPlaylistTopBtn.visible {
             transform: translateY(0);
+        }
+
+
+        /* Optimalizace pro starší zařízení a uživatelé s prefers-reduced-motion */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+            .note-spinning { animation: none !important; }
+        }
+
+        /* Optimalizace pro slabý hardware — méně nákladné efekty */
+        @media (max-width: 768px) and (max-resolution: 150dpi) {
+            .card { box-shadow: none; border: var(--card-border); }
+            .card:hover { transform: none; box-shadow: var(--card-shadow); }
+            .modal-content { box-shadow: none; }
         }
 
     </style>
@@ -1020,7 +1039,7 @@ přes ty hory zelený</pre>
     // 4. Authorized JavaScript origins → URL tvé aplikace (např. https://uzivatel.github.io)
     // 5. Zkopíruj Client ID sem:
     // =====================================================================
-    const APP_VERSION = 'v32.8';
+    const APP_VERSION = 'v33.0';
 
     const GDRIVE_CLIENT_ID = '917333597478-88g2m8u0hgm8650ubtcshka5dqr1sep7.apps.googleusercontent.com';
     const GDRIVE_FILE_NAME = 'muzikant_db.json';
@@ -1678,33 +1697,44 @@ přes ty hory zelený</pre>
     scrollContainer.addEventListener('click', wakeUpPanels, {passive: true});
     let _prevScrollTop = 0;
 
+    // Throttle pro scroll handler — max 60fps
+    let _scrollThrottleTimer = null;
+    // Reference inicializovány po DOM načtení (viz DOMContentLoaded)
+    let _floatingBar, _floatingPlaylistBtn, _viewLibrary, _viewPlaylistDetail;
+
     scrollContainer.onscroll = () => {
-        const st = scrollContainer.scrollTop;
+        if (_scrollThrottleTimer) return;
+        _scrollThrottleTimer = requestAnimationFrame(() => {
+            _scrollThrottleTimer = null;
+            const st = scrollContainer.scrollTop;
 
-        // Horní navigace
-        if (st > 50) mainHeader.classList.add('hidden');
-        else mainHeader.classList.remove('hidden');
+            // Horní navigace
+            if (st > 50) mainHeader.classList.add('hidden');
+            else mainHeader.classList.remove('hidden');
 
-        // Plovoucí panel — pouze v knihovně
-        const fb = document.getElementById('floatingBar');
-        const libraryActive = document.getElementById('view-library').classList.contains('active');
-        if (libraryActive && st > 150 && st < _prevScrollTop) {
-            fb.classList.add('visible');
-        } else {
-            fb.classList.remove('visible');
-        }
+            // Plovoucí panel — pouze v knihovně (null-safe)
+            if (_viewLibrary && _floatingBar) {
+                const libraryActive = _viewLibrary.classList.contains('active');
+                if (libraryActive && st > 150 && st < _prevScrollTop) {
+                    _floatingBar.classList.add('visible');
+                } else {
+                    _floatingBar.classList.remove('visible');
+                }
+            }
 
-        // Plovoucí šipka nahoru — pouze v detailu playlistu
-        const fpb = document.getElementById('floatingPlaylistTopBtn');
-        const playlistActive = document.getElementById('view-playlist-detail').classList.contains('active');
-        if (playlistActive && st > 150 && st < _prevScrollTop) {
-            fpb.classList.add('visible');
-        } else {
-            fpb.classList.remove('visible');
-        }
+            // Plovoucí šipka nahoru — pouze v detailu playlistu (null-safe)
+            if (_viewPlaylistDetail && _floatingPlaylistBtn) {
+                const playlistActive = _viewPlaylistDetail.classList.contains('active');
+                if (playlistActive && st > 150 && st < _prevScrollTop) {
+                    _floatingPlaylistBtn.classList.add('visible');
+                } else {
+                    _floatingPlaylistBtn.classList.remove('visible');
+                }
+            }
 
-        _prevScrollTop = st;
-        chordTooltip.style.display = 'none';
+            _prevScrollTop = st;
+            chordTooltip.style.display = 'none';
+        });
     };
 
     // =================================================================
@@ -1983,10 +2013,20 @@ Když jsem já šel</pre>
             return;
         }
 
+        // Virtuální scrolling — max 150 karet (výkon na starém HW)
+        const MAX_VISIBLE = 150;
+        if (tempQueue.length > MAX_VISIBLE && !filterText && !activeArtistFilter && activeLibraryFilters.length === 0) {
+            const moreDiv = document.createElement('div');
+            moreDiv.style.cssText = 'text-align:center; padding:12px; color:var(--muted); font-size:13px; margin-bottom:8px;';
+            moreDiv.textContent = 'Zobrazeno ' + MAX_VISIBLE + ' z ' + tempQueue.length + ' písní. Pro zobrazení více upřesni hledání.';
+            list.appendChild(moreDiv);
+        }
+        const visibleIds = new Set(tempQueue.slice(0, MAX_VISIBLE));
+
         displaySongs.forEach(item => {
             const song = item.song;
 
-            if (!tempQueue.includes(item.song.id)) return;
+            if (!visibleIds.has(item.song.id)) return;
             
             const tagsHtml = (song.tags && song.tags.length > 0) 
                 ? `<div style="margin-top:8px;">` + song.tags.map(t => `<span class="song-tag-badge">${escapeHtml(t)}</span>`).join('') + `</div>` 
@@ -2419,6 +2459,12 @@ Když jsem já šel</pre>
             item.addEventListener('click', () => { backupMenu.classList.remove('visible'); });
         });
 
+        // Inicializace referencí pro scroll handler
+        _floatingBar = document.getElementById('floatingBar');
+        _floatingPlaylistBtn = document.getElementById('floatingPlaylistTopBtn');
+        _viewLibrary = document.getElementById('view-library');
+        _viewPlaylistDetail = document.getElementById('view-playlist-detail');
+
         loadData();
         // Verze — nastavena z jedné konstanty
         const _vl = document.getElementById('versionLabel');
@@ -2432,8 +2478,8 @@ Když jsem já šel</pre>
         const editArea = document.getElementById('editArea');
         lyricsInput.addEventListener('input', () => autoResizeTextarea(lyricsInput));
         editArea.addEventListener('input', () => autoResizeTextarea(editArea));
-        lyricsInput.addEventListener('paste', handleSmartPaste);
-        editArea.addEventListener('paste', handleSmartPaste);
+        lyricsInput.addEventListener('paste', handleSmartPaste, { passive: false });
+        editArea.addEventListener('paste', handleSmartPaste, { passive: false });
 
         const searchInput = document.getElementById('searchInput');
         const clearSearchBtn = document.getElementById('clearSearchBtn');
@@ -2447,11 +2493,14 @@ Když jsem já šel</pre>
             renderLibrary(searchInput.value);
         };
         
+        // Debounce pro vyhledávání — nečekáme na každý znak (výkon na starém HW)
+        let _searchDebounce = null;
         searchInput.addEventListener('input', (e) => {
             const val = e.target.value;
             clearSearchBtn.style.display = (val || activeArtistFilter) ? 'block' : 'none';
             document.getElementById('floatingBarInput').value = val;
-            renderLibrary(val);
+            clearTimeout(_searchDebounce);
+            _searchDebounce = setTimeout(() => renderLibrary(val), 200);
         });
         clearSearchBtn.onclick = () => {
             searchInput.value = '';
