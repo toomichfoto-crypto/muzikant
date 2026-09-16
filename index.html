@@ -987,6 +987,10 @@ přes ty hory zelený</pre>
     };
 
     // --- Pomocná funkce pro bezpečné vkládání textu ---
+    // =================================================================
+    // SEKCE 1: UTILITY FUNKCE
+    // =================================================================
+
     function escapeHtml(str) {
         const d = document.createElement('div');
         d.textContent = str || '';
@@ -1016,7 +1020,7 @@ přes ty hory zelený</pre>
     // 4. Authorized JavaScript origins → URL tvé aplikace (např. https://uzivatel.github.io)
     // 5. Zkopíruj Client ID sem:
     // =====================================================================
-    const APP_VERSION = 'v32.6';
+    const APP_VERSION = 'v32.8';
 
     const GDRIVE_CLIENT_ID = '917333597478-88g2m8u0hgm8650ubtcshka5dqr1sep7.apps.googleusercontent.com';
     const GDRIVE_FILE_NAME = 'muzikant_db.json';
@@ -1148,6 +1152,10 @@ přes ty hory zelený</pre>
     
     // Tlačítka pro jemné ladění rychlosti (+/-)
 
+
+    // =================================================================
+    // SEKCE 4: MERGE A IMPORT LOGIKA
+    // =================================================================
 
     // Smart merge: přidá nové písně, doplní interpret u existujících pokud chybí
     // keepTags=true → zachovat lokální štítky (import od cizího)
@@ -1381,8 +1389,10 @@ přes ty hory zelený</pre>
     }
 
 
-    // =====================================================================
-    // PLAYLIST VERZE (plv) — písně s úpravami specifickými pro playlist
+    // =================================================================
+    // SEKCE 3: PLAYLIST VERZE (plv)
+    // =================================================================
+ — písně s úpravami specifickými pro playlist
     // Každá píseň může mít plv[playlistId] = { lyrics, baseKey,
     // preferredKey, scrollSpeed, fontSize }
     // =====================================================================
@@ -1438,9 +1448,10 @@ přes ty hory zelený</pre>
         return true;
     }
 
-    // =====================================================================
-    // GOOGLE DRIVE FUNKCE
-    // =====================================================================
+    // =================================================================
+    // SEKCE 5: GOOGLE DRIVE SYNCHRONIZACE
+    // =================================================================
+
 
     async function checkForUpdate() {
         const btn = document.getElementById('updateAppBtn');
@@ -1657,6 +1668,10 @@ přes ty hory zelený</pre>
         }
     }
 
+    // =================================================================
+    // SEKCE 6: SCROLL A UI EVENTY
+    // =================================================================
+
     scrollContainer.addEventListener('touchstart', wakeUpPanels, {passive: true});
     scrollContainer.addEventListener('touchmove', wakeUpPanels, {passive: true});
     scrollContainer.addEventListener('wheel', wakeUpPanels, {passive: true});
@@ -1692,11 +1707,19 @@ přes ty hory zelený</pre>
         chordTooltip.style.display = 'none';
     };
 
+    // =================================================================
+    // SEKCE 7: KNIHOVNA
+    // =================================================================
+
     function getAllTags() {
         let tagsSet = new Set(baseTags);
         db.songs.forEach(s => { if (s.tags) { s.tags.forEach(t => tagsSet.add(t)); } });
         return Array.from(tagsSet).sort((a, b) => a.localeCompare(b, 'cs', { sensitivity: 'base' }));
     }
+
+    // =================================================================
+    // SEKCE 2: DATOVA VRSTVA
+    // =================================================================
 
     function generateId() {
         return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
@@ -1760,6 +1783,10 @@ přes ty hory zelený</pre>
     function notify(msg) { const t = document.getElementById('toast');
         t.innerText = msg; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 3000);
     }
+
+    // =================================================================
+    // SEKCE 8: NAVIGACE A ZOBRAZENÍ
+    // =================================================================
 
     function showView(viewId) {
         // Před přepnutím: ulož pozici scrollu opouštěného pohledu
@@ -2020,6 +2047,10 @@ Když jsem já šel</pre>
         document.getElementById('playlistSelectModal').style.display = 'flex';
     }
 
+    // =================================================================
+    // SEKCE 9: PLAYLISTY
+    // =================================================================
+
     function renderPlaylistsFolders() {
         const container = document.getElementById('playlistsFolderContainer');
         container.innerHTML = '';
@@ -2088,6 +2119,10 @@ Když jsem já šel</pre>
         saveData(); renderPlaylistItems(); notify('Odebráno z playlistu');
     }
 
+    // =================================================================
+    // SEKCE 10: TRANSPOZICE A RENDEROVANI
+    // =================================================================
+
     function isChordLine(line) {
         if(line.trim().length === 0) return false;
         let stripped = line.replace(new RegExp(CHORD_REGEX_STR, 'g'), '').replace(/\s/g, '').replace(/[\|\-\/\(\)\[\],:]/g, '');
@@ -2143,6 +2178,10 @@ Když jsem já šel</pre>
         }
         return vysledneHTML;
     }
+
+    // =================================================================
+    // SEKCE 11: PREHRAVAC
+    // =================================================================
 
     function renderPlayer(skipKeyReset) {
         const songBase = db.songs.find(s => s.id === currentSongIndex);
@@ -2348,6 +2387,10 @@ Když jsem já šel</pre>
     }
 
     document.getElementById('closeShareModalBtn').onclick = () => { document.getElementById('shareModal').style.display = 'none'; };
+    // =================================================================
+    // SEKCE 12: INICIALIZACE A EVENT HANDLERY
+    // =================================================================
+
     document.addEventListener('DOMContentLoaded', () => {
 
         // Zavření modalu kliknutím na tmavé pozadí
