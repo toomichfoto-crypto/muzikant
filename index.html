@@ -558,6 +558,7 @@
     <input type="file" id="importAllInput" class="hidden-file" accept=".json">
     <input type="file" id="importChordProInput" class="hidden-file" accept=".cho,.chordpro,.chopro,.txt,.pro" multiple>
     <input type="file" id="importPlaylistInput" class="hidden-file" accept=".json">
+    <input type="file" id="importSongFileInput" class="hidden-file" accept=".json">
 
     <div class="modal-overlay" id="confirmModal">
         <div class="modal-content">
@@ -570,17 +571,28 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="importSongModal">
+        <div class="modal-content">
+            <h3>Importovat píseň</h3>
+            <p id="importSongText" style="color:var(--muted); margin-bottom:25px; font-size:15px; line-height:1.6;"></p>
+            <div style="display:flex; flex-direction:column; gap:10px;">
+                <button class="btn btn-blue" id="importSongReplaceBtn">Nahradit stávající</button>
+                <button class="btn btn-outline" id="importSongNewBtn">Uložit jako novou verzi</button>
+                <button class="btn btn-cancel" id="importSongCancelBtn">Zrušit</button>
+            </div>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="shareModal">
         <div class="modal-content">
             <h3>Sdílet píseň</h3>
-            <p style="color: var(--muted); margin-bottom:10px; font-size: 14px;">Odkaz na tuto píseň:</p>
-            <input type="text" id="shareUrlInput" readonly style="margin-bottom:20px; font-size: 13px; background: var(--bg); cursor: text;">
+            <p id="shareModalDesc" style="color:var(--muted); margin-bottom:20px; font-size:14px;"></p>
             <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:25px;">
-                <button class="btn btn-outline" id="copyShareBtn">
-                    <svg viewBox="0 0 24 24" width="20" height="20"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg> Zkopírovat odkaz
+                <button class="btn btn-blue" id="exportSongBtn">
+                    <svg viewBox="0 0 24 24" width="20" height="20"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg> Exportovat do souboru
                 </button>
                 <button class="btn btn-green" id="whatsappShareBtn" style="background:#25D366; color:white; border:none;">
-                    <svg viewBox="0 0 24 24" width="20" height="20"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38c1.45.79 3.08 1.21 4.79 1.21 5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2m5.46 14.18c-.23.64-1.31 1.23-1.81 1.28-.46.04-1.07.15-3.15-.71-2.52-1.04-4.14-3.62-4.26-3.79-.12-.16-1.02-1.35-1.02-2.58s.64-1.83.86-2.07c.22-.24.47-.3.63-.3h.43c.16 0 .37-.06.57.43.2.47.69 1.69.75 1.81.06.12.1.26.02.43-.08.16-.12.26-.24.4-.12.14-.26.31-.36.43-.1.11-.22.24-.09.46.12.22.54.91 1.15 1.45.79.71 1.46.93 1.68 1.05.22.12.35.1.48-.02.13-.12.57-.66.72-.89.15-.22.31-.19.52-.11.22.08 1.37.64 1.61.76.24.12.39.18.45.28.06.1.06.57-.17 1.21"/></svg> WhatsApp Web
+                    <svg viewBox="0 0 24 24" width="20" height="20"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38c1.45.79 3.08 1.21 4.79 1.21 5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2m5.46 14.18c-.23.64-1.31 1.23-1.81 1.28-.46.04-1.07.15-3.15-.71-2.52-1.04-4.14-3.62-4.26-3.79-.12-.16-1.02-1.35-1.02-2.58s.64-1.83.86-2.07c.22-.24.47-.3.63-.3h.43c.16 0 .37-.06.57.43.2.47.69 1.69.75 1.81.06.12.1.26.02.43-.08.16-.12.26-.24.4-.12.14-.26.31-.36.43-.1.11-.22.24-.09.46.12.22.54.91 1.15 1.45.79.71 1.46.93 1.68 1.05.22.12.35.1.48-.02.13-.12.57-.66.72-.89.15-.22.31-.19.52-.11.22.08 1.37.64 1.61.76.24.12.39.18.45.28.06.1.06.57-.17 1.21"/></svg> WhatsApp
                 </button>
                 <button class="btn btn-outline" id="emailShareBtn">
                     <svg viewBox="0 0 24 24" width="20" height="20"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg> Poslat e-mailem
@@ -840,6 +852,14 @@ přes ty hory zelený</pre>
                                 <span class="backup-menu-item-sub">Soubory .cho z jiných zpěvníků</span>
                             </span>
                         </button>
+                        <div class="backup-menu-divider"></div>
+                        <button class="backup-menu-item" id="triggerImportSongBtn">
+                            <svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+                            <span class="backup-menu-item-text">
+                                <span class="backup-menu-item-title">Importovat píseň</span>
+                                <span class="backup-menu-item-sub">Soubor sdílený z Muzikanta</span>
+                            </span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -1047,7 +1067,7 @@ přes ty hory zelený</pre>
     // 4. Authorized JavaScript origins → URL tvé aplikace (např. https://uzivatel.github.io)
     // 5. Zkopíruj Client ID sem:
     // =====================================================================
-    const APP_VERSION = 'v33.9';
+    const APP_VERSION = 'v34.0';
 
     const GDRIVE_CLIENT_ID = '917333597478-88g2m8u0hgm8650ubtcshka5dqr1sep7.apps.googleusercontent.com';
     const GDRIVE_FILE_NAME = 'muzikant_db.json';
@@ -2383,12 +2403,72 @@ Když jsem já šel</pre>
         }
     }
 
-    function openShareModal(shareUrl, songTitle) {
-        const input = document.getElementById('shareUrlInput');
-        input.value = shareUrl; document.getElementById('shareModal').style.display = 'flex';
-        document.getElementById('copyShareBtn').onclick = () => { input.select(); input.setSelectionRange(0, 99999); if (navigator.clipboard && window.isSecureContext) { navigator.clipboard.writeText(shareUrl).then(() => { notify('Odkaz zkopírován'); }).catch(() => { document.execCommand('copy'); notify('Odkaz zkopírován (Fallback)'); }); } else { document.execCommand('copy'); notify('Odkaz zkopírován (Fallback)'); } };
-        document.getElementById('whatsappShareBtn').onclick = () => { const waText = encodeURIComponent(`Posílám ti píseň "${songTitle}" s akordy z aplikace Muzikant! 🎸\n\n${shareUrl}`); window.open(`https://api.whatsapp.com/send?text=${waText}`, '_blank'); };
-        document.getElementById('emailShareBtn').onclick = () => { const subject = encodeURIComponent(`Muzikant: ${songTitle}`); const body = encodeURIComponent(`Posílám ti píseň "${songTitle}" s akordy z aplikace Muzikant! 🎸\n\nOdkaz si otevři v telefonu nebo na počítači:\n${shareUrl}`); window.location.href = `mailto:?subject=${subject}&body=${body}`; };
+    // Vytvoří exportní objekt písně — buď hlavní verzi nebo playlist verzi
+    function buildSongExportObj(song) {
+        const version = getSongVersion(song);
+        return {
+            _muzikant: 'song_v1', // identifikátor formátu
+            title: song.title,
+            artist: song.artist || '',
+            lyrics: version.lyrics || song.lyrics,
+            baseKey: version.baseKey !== undefined ? version.baseKey : (song.baseKey || 0),
+            preferredKey: targetKeyIndex,
+            scrollSpeed: version.scrollSpeed !== undefined ? version.scrollSpeed : song.scrollSpeed,
+            fontSize: version.fontSize || null,
+            tags: [], // štítky se nesdílí
+        };
+    }
+
+    function openShareModal(song) {
+        const songTitle = song.title;
+        const exportObj = buildSongExportObj(song);
+        const fileName = (songTitle || 'piesen').replace(/[^a-zA-Z0-9áčďéěíňóřšťúůýžÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ ]/g, '').trim().replace(/\s+/g, '_') + '.json';
+        const jsonStr = JSON.stringify(exportObj, null, 2);
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const blobUrl = URL.createObjectURL(blob);
+
+        document.getElementById('shareModalDesc').textContent = `Sdílet: ${songTitle}`;
+        document.getElementById('shareModal').style.display = 'flex';
+
+        // Export do souboru
+        document.getElementById('exportSongBtn').onclick = () => {
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            a.download = fileName;
+            a.click();
+            notify('Soubor stažen');
+        };
+
+        // WhatsApp — informativní zpráva + odkaz na aplikaci
+        document.getElementById('whatsappShareBtn').onclick = () => {
+            const waText = encodeURIComponent(
+                `Posílám ti píseň "${songTitle}" z aplikace Muzikant 🎸
+
+https://toomichfoto-crypto.github.io/muzikant/
+
+Soubor s písní ti posílám zvlášť — importuj ho přes ikonu diskety v aplikaci.`
+            );
+            window.open(`https://api.whatsapp.com/send?text=${waText}`, '_blank');
+            // Zároveň stáhne soubor
+            const a = document.createElement('a');
+            a.href = blobUrl; a.download = fileName; a.click();
+        };
+
+        // Email — soubor se stáhne, email se otevře s instrukcemi
+        document.getElementById('emailShareBtn').onclick = () => {
+            const subject = encodeURIComponent(`Muzikant: ${songTitle}`);
+            const body = encodeURIComponent(
+                `Posílám ti píseň "${songTitle}" z aplikace Muzikant 🎸
+
+Otevři aplikaci na: https://toomichfoto-crypto.github.io/muzikant/
+
+Soubor s písní přilož k tomuto emailu — druhý soubor se ti stáhne automaticky.
+V aplikaci ho importuj přes ikonu diskety → Importovat píseň.`
+            );
+            window.location.href = `mailto:?subject=${subject}&body=${body}`;
+            const a = document.createElement('a');
+            a.href = blobUrl; a.download = fileName; a.click();
+        };
     }
 
     document.getElementById('closeShareModalBtn').onclick = () => { document.getElementById('shareModal').style.display = 'none'; };
@@ -2603,17 +2683,10 @@ Když jsem já šel</pre>
             renderPlayer();
         };
         document.getElementById('playerAddToPlaylistBtn').onclick = () => { if (currentSongIndex !== null) openAddToPlaylistModal(currentSongIndex); }; // currentSongIndex je ID
-        document.getElementById('playerShareBtn').onclick = async () => {
+        document.getElementById('playerShareBtn').onclick = () => {
             const song = db.songs.find(s => s.id === currentSongIndex);
             if (!song) return;
-            const exportObj = { title: song.title, lyrics: song.lyrics, baseKey: song.baseKey, preferredKey: targetKeyIndex };
-            const jsonStr = JSON.stringify(exportObj);
-            const base64str = encodeToBase64Url(jsonStr);
-            const shareUrl = window.location.origin + window.location.pathname + '?song=' + base64str;
-            if (navigator.share) {
-                try { await navigator.share({ title: `Muzikant: ${song.title}`, text: `Posílám ti píseň "${song.title}" s akordy z aplikace Muzikant! 🎸`, url: shareUrl }); } 
-                catch (err) { if (err.name !== 'AbortError') { openShareModal(shareUrl, song.title); } }
-            } else { openShareModal(shareUrl, song.title); }
+            openShareModal(song);
         };
 
         document.getElementById('openLibraryFilterBtn').onclick = () => { renderFilterTagsModal(); document.getElementById('libraryFilterModal').style.display = 'flex'; };
@@ -2680,6 +2753,97 @@ Když jsem já šel</pre>
                 };
                 r.readAsText(file);
             });
+            e.target.value = '';
+        };
+
+
+        // Import sdílené písně ze souboru
+        document.getElementById('triggerImportSongBtn').onclick = () => {
+            document.getElementById('importSongFileInput').click();
+            document.getElementById('backupMenu').classList.remove('visible');
+        };
+
+        document.getElementById('importSongFileInput').onchange = (e) => {
+            if (!e.target.files[0]) return;
+            const r = new FileReader();
+            r.onload = (ev) => {
+                try {
+                    const data = JSON.parse(ev.target.result);
+                    // Ověříme formát
+                    if (!data._muzikant || !data.title || !data.lyrics) {
+                        notify('Neplatný formát souboru');
+                        return;
+                    }
+                    // Zkontrolujeme duplicitu
+                    const existing = db.songs.find(s => s.title.toLowerCase() === data.title.toLowerCase());
+                    if (existing) {
+                        // Nabídneme možnosti
+                        document.getElementById('importSongText').innerHTML =
+                            `Píseň <strong>${escapeHtml(data.title)}</strong> už v knihovně máš.<br>Co chceš udělat?`;
+                        document.getElementById('importSongModal').style.display = 'flex';
+                        // Nahradit
+                        document.getElementById('importSongReplaceBtn').onclick = () => {
+                            existing.lyrics = normalizeChords(data.lyrics);
+                            existing.baseKey = data.baseKey || 0;
+                            existing.preferredKey = data.preferredKey;
+                            existing.scrollSpeed = data.scrollSpeed || existing.scrollSpeed;
+                            if (data.artist) existing.artist = data.artist;
+                            saveData();
+                            renderLibrary(document.getElementById('searchInput').value);
+                            document.getElementById('importSongModal').style.display = 'none';
+                            notify('Píseň nahrazena ✓');
+                        };
+                        // Nová verze s číslovaným názvem
+                        document.getElementById('importSongNewBtn').onclick = () => {
+                            let newTitle = data.title;
+                            let counter = 1;
+                            while (db.songs.find(s => s.title.toLowerCase() === newTitle.toLowerCase())) {
+                                newTitle = `${data.title} (${counter})`;
+                                counter++;
+                            }
+                            const newSong = {
+                                id: generateId(),
+                                title: newTitle,
+                                artist: data.artist || '',
+                                lyrics: normalizeChords(data.lyrics),
+                                baseKey: data.baseKey || 0,
+                                preferredKey: data.preferredKey,
+                                scrollSpeed: data.scrollSpeed,
+                                tags: [],
+                                plv: {}
+                            };
+                            db.songs.push(newSong);
+                            saveData();
+                            renderLibrary(document.getElementById('searchInput').value);
+                            document.getElementById('importSongModal').style.display = 'none';
+                            notify(`Uloženo jako "${newTitle}" ✓`);
+                        };
+                        document.getElementById('importSongCancelBtn').onclick = () => {
+                            document.getElementById('importSongModal').style.display = 'none';
+                        };
+                    } else {
+                        // Nová píseň — přidat rovnou
+                        const newSong = {
+                            id: generateId(),
+                            title: data.title,
+                            artist: data.artist || '',
+                            lyrics: normalizeChords(data.lyrics),
+                            baseKey: data.baseKey || 0,
+                            preferredKey: data.preferredKey,
+                            scrollSpeed: data.scrollSpeed,
+                            tags: [],
+                            plv: {}
+                        };
+                        db.songs.push(newSong);
+                        saveData();
+                        renderLibrary(document.getElementById('searchInput').value);
+                        notify(`"${data.title}" přidána do knihovny ✓`);
+                    }
+                } catch(err) {
+                    notify('Chyba při čtení souboru');
+                }
+            };
+            r.readAsText(e.target.files[0]);
             e.target.value = '';
         };
 
