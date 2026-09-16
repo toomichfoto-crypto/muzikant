@@ -905,6 +905,7 @@ přes ty hory zelený</pre>
                 <div id="keyButtons" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:20px;"></div>
                 <div id="playerActiveTags" style="margin-bottom:10px;"></div>
                 <h1 id="displayTitle" style="margin:0 0 4px 0;"></h1>
+                <div id="plvIndicator" style="font-size:11px; color:var(--primary); margin-bottom:4px; font-style:italic; min-height:0;"></div>
                 <div id="displayArtist" style="font-size:14px; color:var(--muted); margin-bottom:15px; font-family:inherit;"></div>
                 <div id="displayAreaWrapper">
                     <div id="displayArea"></div>
@@ -1015,7 +1016,7 @@ přes ty hory zelený</pre>
     // 4. Authorized JavaScript origins → URL tvé aplikace (např. https://uzivatel.github.io)
     // 5. Zkopíruj Client ID sem:
     // =====================================================================
-    const APP_VERSION = 'v32.4';
+    const APP_VERSION = 'v32.6';
 
     const GDRIVE_CLIENT_ID = '917333597478-88g2m8u0hgm8650ubtcshka5dqr1sep7.apps.googleusercontent.com';
     const GDRIVE_FILE_NAME = 'muzikant_db.json';
@@ -2143,18 +2144,19 @@ Když jsem já šel</pre>
         return vysledneHTML;
     }
 
-    function renderPlayer() {
+    function renderPlayer(skipKeyReset) {
         const songBase = db.songs.find(s => s.id === currentSongIndex);
         if (!songBase) { showView('library'); return; }
         // Použij playlist verzi pokud existuje
         const song = getSongVersion(songBase);
 
-        // Tóninu načteme PRVNÍ — renderPlayerText ji potřebuje
-        // Priorita: plv.preferredKey > song.preferredKey > song.baseKey
-        if (song.preferredKey !== undefined) {
-            targetKeyIndex = song.preferredKey;
-        } else {
-            targetKeyIndex = song.baseKey || 0;
+        // Tóninu načteme jen při prvním otevření písně (ne při změně tóniny uživatelem)
+        if (!skipKeyReset) {
+            if (song.preferredKey !== undefined) {
+                targetKeyIndex = song.preferredKey;
+            } else {
+                targetKeyIndex = song.baseKey || 0;
+            }
         }
 
         document.getElementById('displayArea').innerHTML = renderPlayerText(song.lyrics || "", song.baseKey || 0, targetKeyIndex);
@@ -2170,18 +2172,12 @@ Když jsem já šel</pre>
         updateSpeedDisplay();
         renderKeyButtons(); renderPlayerTags();
         // Indikátor playlist verze
-        let plvIndicator = document.getElementById('plvIndicator');
-        if (!plvIndicator) {
-            plvIndicator = document.createElement('div');
-            plvIndicator.id = 'plvIndicator';
-            plvIndicator.style.cssText = 'font-size:11px; color:var(--primary); margin-bottom:8px; font-style:italic;';
-            const titleEl = document.getElementById('displayTitle');
-            titleEl.parentNode.insertBefore(plvIndicator, titleEl.nextSibling);
+        const plvIndicator = document.getElementById('plvIndicator');
+        if (plvIndicator) {
+            const pl2 = activePlaylistIdx !== null ? db.playlists[activePlaylistIdx] : null;
+            const hasPlv2 = songBase && pl2 && pl2.id && songBase.plv && songBase.plv[pl2.id];
+            plvIndicator.textContent = hasPlv2 ? '★ Playlist verze' : '';
         }
-        const songBase2 = db.songs.find(s => s.id === currentSongIndex);
-        const pl2 = activePlaylistIdx !== null ? db.playlists[activePlaylistIdx] : null;
-        const hasPlv2 = songBase2 && pl2 && songBase2.plv && songBase2.plv[pl2.id];
-        plvIndicator.textContent = hasPlv2 ? '★ Playlist verze' : '';
         chordTooltip.style.display = 'none';
         const prevBtn = document.getElementById('prevSongBtn'); const nextBtn = document.getElementById('nextSongBtn');
         if (currentQueue && currentQueue.length > 1) {
@@ -2197,7 +2193,7 @@ Když jsem já šel</pre>
             btn.className = 'btn btn-outline key-btn'; 
             btn.style.padding = "6px 12px"; btn.style.fontSize = "13px";
             if(index === targetKeyIndex) { btn.classList.add('active'); }
-            btn.innerText = note; btn.onclick = () => { targetKeyIndex = index; renderPlayer(); };
+            btn.innerText = note; btn.onclick = () => { targetKeyIndex = index; renderPlayer(true); };
             container.appendChild(btn);
         });
     }
@@ -2745,7 +2741,7 @@ Když jsem já šel</pre>
                 saveData();
                 notify('Uloženo do knihovny');
             }
-            renderPlayer();
+            renderPlayer(true);
             // Zavřít editor přímo bez volání click() aby se nespustil onclick znovu
             isEditMode = false;
             document.getElementById('playerViewContent').style.display = 'block';
