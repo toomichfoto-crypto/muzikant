@@ -1039,7 +1039,7 @@ přes ty hory zelený</pre>
     // 4. Authorized JavaScript origins → URL tvé aplikace (např. https://uzivatel.github.io)
     // 5. Zkopíruj Client ID sem:
     // =====================================================================
-    const APP_VERSION = 'v33.0';
+    const APP_VERSION = 'v33.2';
 
     const GDRIVE_CLIENT_ID = '917333597478-88g2m8u0hgm8650ubtcshka5dqr1sep7.apps.googleusercontent.com';
     const GDRIVE_FILE_NAME = 'muzikant_db.json';
@@ -1161,11 +1161,8 @@ přes ty hory zelený</pre>
     let confirmAction = null, fadeTimeout = null, tooltipTimeout = null;
     let draggedItemIndex = null;
     
-    const scrollContainer = document.getElementById('scrollContainer');
-    const mainHeader = document.getElementById('mainHeader');
-    const navButtonsPanel = document.getElementById('navButtonsPanel');
-    const scrollPanel = document.getElementById('scrollPanel');
-    const chordTooltip = document.getElementById('chordTooltip');
+    // DOM reference — inicializovány v DOMContentLoaded (DOM zde ještě neexistuje)
+    let scrollContainer, mainHeader, navButtonsPanel, scrollPanel, chordTooltip;
     let currentScrollSpeed = 5; // Rychlost 1-10, výchozí 5
     let keysHtml = ''; // HTML pro select tónin — definováno při init
     
@@ -1411,7 +1408,7 @@ přes ty hory zelený</pre>
     // =================================================================
     // SEKCE 3: PLAYLIST VERZE (plv)
     // =================================================================
- — písně s úpravami specifickými pro playlist
+    // — písně s úpravami specifickými pro playlist
     // Každá píseň může mít plv[playlistId] = { lyrics, baseKey,
     // preferredKey, scrollSpeed, fontSize }
     // =====================================================================
@@ -2459,7 +2456,12 @@ Když jsem já šel</pre>
             item.addEventListener('click', () => { backupMenu.classList.remove('visible'); });
         });
 
-        // Inicializace referencí pro scroll handler
+        // Inicializace DOM referencí (musí být uvnitř DOMContentLoaded)
+        scrollContainer = document.getElementById('scrollContainer');
+        mainHeader = document.getElementById('mainHeader');
+        navButtonsPanel = document.getElementById('navButtonsPanel');
+        scrollPanel = document.getElementById('scrollPanel');
+        chordTooltip = document.getElementById('chordTooltip');
         _floatingBar = document.getElementById('floatingBar');
         _floatingPlaylistBtn = document.getElementById('floatingPlaylistTopBtn');
         _viewLibrary = document.getElementById('view-library');
