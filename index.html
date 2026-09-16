@@ -991,7 +991,7 @@ přes ty hory zelený</pre>
 
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 
-<script>
+<script defer>
     const IC = {
         addPl: `<svg viewBox="0 0 24 24" width="20" height="20"><path d="M14 10H2v2h12v-2zm0-4H2v2h12V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM2 16h8v-2H2v2z"/></svg>`,
         trash: `<svg viewBox="0 0 24 24" width="20" height="20"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>`,
@@ -1039,7 +1039,7 @@ přes ty hory zelený</pre>
     // 4. Authorized JavaScript origins → URL tvé aplikace (např. https://uzivatel.github.io)
     // 5. Zkopíruj Client ID sem:
     // =====================================================================
-    const APP_VERSION = 'v33.2';
+    const APP_VERSION = 'v33.4';
 
     const GDRIVE_CLIENT_ID = '917333597478-88g2m8u0hgm8650ubtcshka5dqr1sep7.apps.googleusercontent.com';
     const GDRIVE_FILE_NAME = 'muzikant_db.json';
@@ -1161,8 +1161,11 @@ přes ty hory zelený</pre>
     let confirmAction = null, fadeTimeout = null, tooltipTimeout = null;
     let draggedItemIndex = null;
     
-    // DOM reference — inicializovány v DOMContentLoaded (DOM zde ještě neexistuje)
-    let scrollContainer, mainHeader, navButtonsPanel, scrollPanel, chordTooltip;
+    const scrollContainer = document.getElementById('scrollContainer');
+    const mainHeader = document.getElementById('mainHeader');
+    const navButtonsPanel = document.getElementById('navButtonsPanel');
+    const scrollPanel = document.getElementById('scrollPanel');
+    const chordTooltip = document.getElementById('chordTooltip');
     let currentScrollSpeed = 5; // Rychlost 1-10, výchozí 5
     let keysHtml = ''; // HTML pro select tónin — definováno při init
     
@@ -1686,53 +1689,12 @@ přes ty hory zelený</pre>
 
     // =================================================================
     // SEKCE 6: SCROLL A UI EVENTY
+    // (inicializace v DOMContentLoaded — scrollContainer zde není dostupný)
     // =================================================================
 
-    scrollContainer.addEventListener('touchstart', wakeUpPanels, {passive: true});
-    scrollContainer.addEventListener('touchmove', wakeUpPanels, {passive: true});
-    scrollContainer.addEventListener('wheel', wakeUpPanels, {passive: true});
-    scrollContainer.addEventListener('click', wakeUpPanels, {passive: true});
     let _prevScrollTop = 0;
-
-    // Throttle pro scroll handler — max 60fps
     let _scrollThrottleTimer = null;
-    // Reference inicializovány po DOM načtení (viz DOMContentLoaded)
     let _floatingBar, _floatingPlaylistBtn, _viewLibrary, _viewPlaylistDetail;
-
-    scrollContainer.onscroll = () => {
-        if (_scrollThrottleTimer) return;
-        _scrollThrottleTimer = requestAnimationFrame(() => {
-            _scrollThrottleTimer = null;
-            const st = scrollContainer.scrollTop;
-
-            // Horní navigace
-            if (st > 50) mainHeader.classList.add('hidden');
-            else mainHeader.classList.remove('hidden');
-
-            // Plovoucí panel — pouze v knihovně (null-safe)
-            if (_viewLibrary && _floatingBar) {
-                const libraryActive = _viewLibrary.classList.contains('active');
-                if (libraryActive && st > 150 && st < _prevScrollTop) {
-                    _floatingBar.classList.add('visible');
-                } else {
-                    _floatingBar.classList.remove('visible');
-                }
-            }
-
-            // Plovoucí šipka nahoru — pouze v detailu playlistu (null-safe)
-            if (_viewPlaylistDetail && _floatingPlaylistBtn) {
-                const playlistActive = _viewPlaylistDetail.classList.contains('active');
-                if (playlistActive && st > 150 && st < _prevScrollTop) {
-                    _floatingPlaylistBtn.classList.add('visible');
-                } else {
-                    _floatingPlaylistBtn.classList.remove('visible');
-                }
-            }
-
-            _prevScrollTop = st;
-            chordTooltip.style.display = 'none';
-        });
-    };
 
     // =================================================================
     // SEKCE 7: KNIHOVNA
@@ -2456,16 +2418,52 @@ Když jsem já šel</pre>
             item.addEventListener('click', () => { backupMenu.classList.remove('visible'); });
         });
 
-        // Inicializace DOM referencí (musí být uvnitř DOMContentLoaded)
-        scrollContainer = document.getElementById('scrollContainer');
-        mainHeader = document.getElementById('mainHeader');
-        navButtonsPanel = document.getElementById('navButtonsPanel');
-        scrollPanel = document.getElementById('scrollPanel');
-        chordTooltip = document.getElementById('chordTooltip');
+        // Inicializace referencí pro plovoucí panely
         _floatingBar = document.getElementById('floatingBar');
         _floatingPlaylistBtn = document.getElementById('floatingPlaylistTopBtn');
         _viewLibrary = document.getElementById('view-library');
         _viewPlaylistDetail = document.getElementById('view-playlist-detail');
+
+        // Scroll a touch event listenery (potřebují scrollContainer)
+        scrollContainer.addEventListener('touchstart', wakeUpPanels, {passive: true});
+        scrollContainer.addEventListener('touchmove', wakeUpPanels, {passive: true});
+        scrollContainer.addEventListener('wheel', wakeUpPanels, {passive: true});
+        scrollContainer.addEventListener('click', wakeUpPanels, {passive: true});
+
+        scrollContainer.onscroll = () => {
+            if (_scrollThrottleTimer) return;
+            _scrollThrottleTimer = requestAnimationFrame(() => {
+                _scrollThrottleTimer = null;
+                const st = scrollContainer.scrollTop;
+
+                // Horní navigace
+                if (st > 50) mainHeader.classList.add('hidden');
+                else mainHeader.classList.remove('hidden');
+
+                // Plovoucí panel — pouze v knihovně
+                if (_viewLibrary && _floatingBar) {
+                    const libraryActive = _viewLibrary.classList.contains('active');
+                    if (libraryActive && st > 150 && st < _prevScrollTop) {
+                        _floatingBar.classList.add('visible');
+                    } else {
+                        _floatingBar.classList.remove('visible');
+                    }
+                }
+
+                // Plovoucí šipka nahoru — pouze v detailu playlistu
+                if (_viewPlaylistDetail && _floatingPlaylistBtn) {
+                    const playlistActive = _viewPlaylistDetail.classList.contains('active');
+                    if (playlistActive && st > 150 && st < _prevScrollTop) {
+                        _floatingPlaylistBtn.classList.add('visible');
+                    } else {
+                        _floatingPlaylistBtn.classList.remove('visible');
+                    }
+                }
+
+                _prevScrollTop = st;
+                chordTooltip.style.display = 'none';
+            });
+        };
 
         loadData();
         // Verze — nastavena z jedné konstanty
