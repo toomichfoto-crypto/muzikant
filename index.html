@@ -640,6 +640,10 @@
                 </select>
             </div>
 
+            <button class="btn btn-outline" id="installPwaBtn" style="width:100%; margin-bottom:10px; display:none;">
+                <svg viewBox="0 0 24 24" width="18" height="18"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+                Nainstalovat aplikaci
+            </button>
             <button class="btn btn-outline" id="updateAppBtn" style="width:100%; margin-bottom:10px;">
                 <svg viewBox="0 0 24 24" width="18" height="18"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
                 Zkontrolovat aktualizaci
@@ -924,7 +928,12 @@ přes ty hory zelený</pre>
                 <div id="keyButtons" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:20px;"></div>
                 <div id="playerActiveTags" style="margin-bottom:10px;"></div>
                 <h1 id="displayTitle" style="margin:0 0 4px 0;"></h1>
-                <div id="plvIndicator" style="font-size:11px; color:var(--primary); margin-bottom:4px; font-style:italic; min-height:0;"></div>
+                <div id="plvIndicatorRow" style="display:flex; align-items:center; gap:10px; margin-bottom:4px; min-height:0;">
+                    <div id="plvIndicator" style="font-size:11px; color:var(--primary); font-style:italic;"></div>
+                    <button id="quickPromoteBtn" style="display:none; font-size:11px; padding:3px 10px; border-radius:12px; border:1px solid var(--accent); background:none; color:var(--accent); cursor:pointer; font-family:inherit; white-space:nowrap;">
+                        <svg viewBox="0 0 24 24" width="12" height="12" style="margin-right:3px;"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>Uložit do knihovny
+                    </button>
+                </div>
                 <div id="displayArtist" style="font-size:14px; color:var(--muted); margin-bottom:15px; font-family:inherit;"></div>
                 <div id="displayAreaWrapper">
                     <div id="displayArea"></div>
@@ -1039,7 +1048,7 @@ přes ty hory zelený</pre>
     // 4. Authorized JavaScript origins → URL tvé aplikace (např. https://uzivatel.github.io)
     // 5. Zkopíruj Client ID sem:
     // =====================================================================
-    const APP_VERSION = 'v33.5';
+    const APP_VERSION = 'v33.6';
 
     const GDRIVE_CLIENT_ID = '917333597478-88g2m8u0hgm8650ubtcshka5dqr1sep7.apps.googleusercontent.com';
     const GDRIVE_FILE_NAME = 'muzikant_db.json';
@@ -2207,10 +2216,12 @@ Když jsem já šel</pre>
         renderKeyButtons(); renderPlayerTags();
         // Indikátor playlist verze
         const plvIndicator = document.getElementById('plvIndicator');
+        const quickPromoteBtn = document.getElementById('quickPromoteBtn');
         if (plvIndicator) {
             const pl2 = activePlaylistIdx !== null ? db.playlists[activePlaylistIdx] : null;
             const hasPlv2 = songBase && pl2 && pl2.id && songBase.plv && songBase.plv[pl2.id];
             plvIndicator.textContent = hasPlv2 ? '★ Playlist verze' : '';
+            if (quickPromoteBtn) quickPromoteBtn.style.display = hasPlv2 ? 'inline-flex' : 'none';
         }
         chordTooltip.style.display = 'none';
         const prevBtn = document.getElementById('prevSongBtn'); const nextBtn = document.getElementById('nextSongBtn');
@@ -2519,6 +2530,39 @@ Když jsem já šel</pre>
         document.getElementById('nav-playlists').onclick = () => showView('playlists');
         document.getElementById('playPauseBtn').onclick = () => isScrolling ? stopScroll() : startScroll();
         
+
+
+        // PWA Install prompt
+        let _pwaInstallPrompt = null;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            _pwaInstallPrompt = e;
+            const btn = document.getElementById('installPwaBtn');
+            if (btn) btn.style.display = 'block';
+        });
+        document.getElementById('installPwaBtn').onclick = async () => {
+            if (!_pwaInstallPrompt) return;
+            _pwaInstallPrompt.prompt();
+            const result = await _pwaInstallPrompt.userChoice;
+            if (result.outcome === 'accepted') {
+                document.getElementById('installPwaBtn').style.display = 'none';
+                _pwaInstallPrompt = null;
+            }
+        };
+        window.addEventListener('appinstalled', () => {
+            document.getElementById('installPwaBtn').style.display = 'none';
+            _pwaInstallPrompt = null;
+            notify('Aplikace nainstalována ✓');
+        });
+
+        // Listener pro zprávu ze service workeru o nové verzi
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.addEventListener('message', (e) => {
+                if (e.data && e.data.type === 'NEW_VERSION') {
+                    notify('Nová verze je připravena — klikni Zkontrolovat aktualizaci');
+                }
+            });
+        }
 
         // Plovoucí vyhledávací panel
         document.getElementById('floatingBarInput').addEventListener('input', (e) => {
@@ -2842,6 +2886,13 @@ Když jsem já šel</pre>
             document.getElementById('navButtonsPanel').style.display = 'flex';
         };
         
+        document.getElementById('quickPromoteBtn').onclick = () => {
+            if (promoteToLibrary(currentSongIndex)) {
+                renderPlayer();
+                notify('Uloženo do knihovny ✓');
+            }
+        };
+
         document.getElementById('promoteToLibraryBtn').onclick = () => {
             if (promoteToLibrary(currentSongIndex)) {
                 renderPlayer();

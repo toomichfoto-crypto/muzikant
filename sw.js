@@ -1,4 +1,4 @@
-const CACHE_NAME = 'muzikant-cache-v335';
+const CACHE_NAME = 'muzikant-cache-v336';
 const ASSETS = [
     './',
     './index.html',
@@ -14,19 +14,23 @@ self.addEventListener('install', (e) => {
     self.skipWaiting();
 });
 
-// Aktivace: smazat staré cache z předchozích verzí
+// Aktivace: smazat staré cache, převzít kontrolu
 self.addEventListener('activate', (e) => {
     e.waitUntil(
         caches.keys().then((keys) =>
             Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
-        )
+        ).then(() => {
+            // Informujeme všechny otevřené karty o nové verzi
+            self.clients.matchAll({ type: 'window' }).then(clients => {
+                clients.forEach(client => client.postMessage({ type: 'NEW_VERSION' }));
+            });
+        })
     );
     self.clients.claim();
 });
 
-// Fetch: cache-first strategie
-// Aplikace se načte okamžitě z cache (funguje offline a na pomalém připojení).
-// Na pozadí se zároveň stáhne aktuální verze a uloží do cache pro příští načtení.
+// Fetch: stale-while-revalidate pro HTML soubory
+// — ihned vrátí cached verzi, na pozadí stáhne novou
 self.addEventListener('fetch', (e) => {
     // Google Drive API a Google účty nikdy necachovat
     if (e.request.url.includes('googleapis.com') || e.request.url.includes('accounts.google.com')) {
@@ -37,6 +41,8 @@ self.addEventListener('fetch', (e) => {
     e.respondWith(
         caches.open(CACHE_NAME).then(async (cache) => {
             const cached = await cache.match(e.request);
+
+            // Na pozadí vždy aktualizujeme cache
             const fetchPromise = fetch(e.request).then((network) => {
                 if (network && network.status === 200) {
                     cache.put(e.request, network.clone());
@@ -44,7 +50,7 @@ self.addEventListener('fetch', (e) => {
                 return network;
             }).catch(() => null);
 
-            // Vrátíme cache ihned, síť jen aktualizuje cache do budoucna
+            // Vrátíme cache ihned (offline-first), síť aktualizuje cache
             return cached || fetchPromise;
         })
     );
