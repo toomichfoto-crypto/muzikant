@@ -1067,7 +1067,7 @@ přes ty hory zelený</pre>
     // 4. Authorized JavaScript origins → URL tvé aplikace (např. https://uzivatel.github.io)
     // 5. Zkopíruj Client ID sem:
     // =====================================================================
-    const APP_VERSION = 'v34.0';
+    const APP_VERSION = 'v34.1';
 
     const GDRIVE_CLIENT_ID = '917333597478-88g2m8u0hgm8650ubtcshka5dqr1sep7.apps.googleusercontent.com';
     const GDRIVE_FILE_NAME = 'muzikant_db.json';
@@ -1491,6 +1491,8 @@ přes ty hory zelený</pre>
         if (plv.preferredKey !== undefined) song.preferredKey = plv.preferredKey;
         if (plv.scrollSpeed !== undefined) song.scrollSpeed = plv.scrollSpeed;
         if (plv.fontSize !== undefined) song.fontSize = plv.fontSize;
+        // Smazat plv — verze jsou teď shodné s knihovnou
+        delete song.plv[pl.id];
         saveData();
         return true;
     }
@@ -3051,14 +3053,14 @@ V aplikaci ho importuj přes ikonu diskety → Importovat píseň.`
         
         document.getElementById('quickPromoteBtn').onclick = () => {
             if (promoteToLibrary(currentSongIndex)) {
-                renderPlayer();
+                renderPlayer(); // indikátor zmizí protože plv je smazáno
                 notify('Uloženo do knihovny ✓');
             }
         };
 
         document.getElementById('promoteToLibraryBtn').onclick = () => {
             if (promoteToLibrary(currentSongIndex)) {
-                renderPlayer();
+                renderPlayer(); // plv smazáno — indikátor v přehrávači zmizí
                 notify('Playlist verze uložena do knihovny ✓');
                 document.getElementById('promoteToLibraryBtn').style.display = 'none';
                 document.getElementById('editContextLabel').textContent = '✎ Edituješ hlavní verzi (knihovna)';
