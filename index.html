@@ -1039,7 +1039,7 @@ přes ty hory zelený</pre>
     // 4. Authorized JavaScript origins → URL tvé aplikace (např. https://uzivatel.github.io)
     // 5. Zkopíruj Client ID sem:
     // =====================================================================
-    const APP_VERSION = 'v33.4';
+    const APP_VERSION = 'v33.5';
 
     const GDRIVE_CLIENT_ID = '917333597478-88g2m8u0hgm8650ubtcshka5dqr1sep7.apps.googleusercontent.com';
     const GDRIVE_FILE_NAME = 'muzikant_db.json';
@@ -1972,15 +1972,10 @@ Když jsem já šel</pre>
             return;
         }
 
-        // Virtuální scrolling — max 150 karet (výkon na starém HW)
-        const MAX_VISIBLE = 150;
-        if (tempQueue.length > MAX_VISIBLE && !filterText && !activeArtistFilter && activeLibraryFilters.length === 0) {
-            const moreDiv = document.createElement('div');
-            moreDiv.style.cssText = 'text-align:center; padding:12px; color:var(--muted); font-size:13px; margin-bottom:8px;';
-            moreDiv.textContent = 'Zobrazeno ' + MAX_VISIBLE + ' z ' + tempQueue.length + ' písní. Pro zobrazení více upřesni hledání.';
-            list.appendChild(moreDiv);
-        }
-        const visibleIds = new Set(tempQueue.slice(0, MAX_VISIBLE));
+        // Použijeme DocumentFragment — všechny karty sestavíme mimo DOM
+        // a vložíme najednou (výrazně rychlejší na starém HW)
+        const fragment = document.createDocumentFragment();
+        const visibleIds = new Set(tempQueue);
 
         displaySongs.forEach(item => {
             const song = item.song;
@@ -2011,8 +2006,9 @@ Když jsem já šel</pre>
                 // targetKeyIndex nastaví renderPlayer() ze getSongVersion
                 showView('player'); renderPlayer();
             };
-            list.appendChild(card);
+            fragment.appendChild(card);
         });
+        list.appendChild(fragment); // Vložíme všechny karty najednou
     }
 
     function deleteSong(songId) {
