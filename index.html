@@ -1215,7 +1215,7 @@ přes ty hory zelený</pre>
     // 4. Authorized JavaScript origins → URL tvé aplikace (např. https://uzivatel.github.io)
     // 5. Zkopíruj Client ID sem:
     // =====================================================================
-    const APP_VERSION = 'v34.1';
+    const APP_VERSION = 'v34.7';
 
     const GDRIVE_CLIENT_ID = '917333597478-88g2m8u0hgm8650ubtcshka5dqr1sep7.apps.googleusercontent.com';
     const GDRIVE_FILE_NAME = 'muzikant_db.json';
@@ -1495,9 +1495,6 @@ přes ty hory zelený</pre>
             currentQueue = db.songs.map(s => s.id);
             currentQueueIndex = randomIdx;
             activePlaylistIdx = null; // Náhodná píseň vždy z knihovny
-            currentSongIndex = db.songs[randomIdx].id;
-            currentQueue = db.songs.map(s => s.id);
-            currentQueueIndex = randomIdx;
             // targetKeyIndex nastaví renderPlayer() přes getSongVersion
             showView('player');
             renderPlayer();
@@ -2543,12 +2540,13 @@ Když jsem já šel</pre>
                 
                 if (importedSong && importedSong.title && importedSong.lyrics) {
                     confirmAction = () => {
-                        importedSong.tags = [];
-                        db.songs.push(importedSong); saveData(); renderLibrary(document.getElementById('searchInput').value); notify('Píseň uložena');
+                        const newSongId = generateId();
+                        const newSong = { ...importedSong, id: newSongId, tags: [], plv: {} };
+                        db.songs.push(newSong); saveData(); renderLibrary(document.getElementById('searchInput').value); notify('Píseň uložena');
                         window.history.replaceState({}, document.title, window.location.pathname);
                         document.getElementById('confirmModal').style.display = 'none';
-                        currentSongIndex = db.songs.length - 1; currentQueue = [currentSongIndex]; currentQueueIndex = 0;
-                        targetKeyIndex = importedSong.preferredKey !== undefined ? importedSong.preferredKey : (importedSong.baseKey || 0);
+                        currentSongIndex = newSongId; currentQueue = [newSongId]; currentQueueIndex = 0;
+                        targetKeyIndex = newSong.preferredKey !== undefined ? newSong.preferredKey : (newSong.baseKey || 0);
                         showView('player'); renderPlayer();
                     };
                     document.getElementById('confirmText').innerText = `Chceš uložit sdílenou píseň "${importedSong.title}" do své knihovny?`;
@@ -2716,11 +2714,9 @@ V aplikaci ho importuj přes ikonu diskety → Importovat píseň.`
     }
 
     function doPrint(innerHtml) {
-        const area = document.getElementById('printArea');
-        area.innerHTML = innerHtml;
+        document.getElementById('printArea').innerHTML = innerHtml;
         window.print();
-        // Po tisku vyčisti (setTimeout aby prohlížeč stihl zobrazit dialog)
-        setTimeout(() => { area.innerHTML = ''; }, 1000);
+        setTimeout(() => { document.getElementById('printArea').innerHTML = ''; }, 1000);
     }
 
     // Tisk jedné písně z přehrávače
@@ -3389,6 +3385,8 @@ V aplikaci ho importuj přes ikonu diskety → Importovat píseň.`
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && window.location.search.includes('song=')) { checkSharedSong(); } });
     setTimeout(gdriveInit, 1200);
     if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(err => console.error('SW Error:', err)); }); }
+
 </script>
+
 </body>
 </html>
