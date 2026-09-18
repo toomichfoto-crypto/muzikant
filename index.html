@@ -229,6 +229,17 @@
         .magnet-block { display: inline-flex; flex-direction: column; justify-content: flex-end; }
         .magnet-chord { min-height: 1.2em; white-space: pre; }
         .magnet-text { white-space: pre; }
+        /* Značka konce stránky — viditelná v přehrávači, při tisku způsobí zlom */
+        .page-break-marker {
+            display: flex; align-items: center; gap: 8px;
+            margin: 12px 0; color: var(--muted); font-size: 11px;
+            font-family: var(--player-font);
+            user-select: none;
+        }
+        .page-break-marker::before,
+        .page-break-marker::after {
+            content: ''; flex: 1; border-top: 1px dashed var(--border);
+        }
 
         .chord { color: var(--chord); font-weight: 700; cursor: pointer; border-radius: 4px; padding: 0 2px; margin: 0 -2px; transition: background 0.2s; }
         .chord:active, .chord:hover { background: rgba(128,128,128,0.15); }
@@ -544,6 +555,12 @@
         #printArea { display: none; }
 
         @media print {
+            /* Skryj záhlaví a zápatí prohlížeče */
+            @page {
+                margin: 12mm 14mm 12mm 14mm;
+                size: A4;
+            }
+
             /* Skryj celou aplikaci */
             body > *:not(#printArea) { display: none !important; }
 
@@ -559,10 +576,11 @@
             }
 
             .print-song {
-                page-break-after: always;
-                padding: 10mm 12mm 10mm 12mm;
+                page-break-before: always;
+                page-break-inside: avoid;
+                padding: 0;
             }
-            .print-song:last-child { page-break-after: avoid; }
+            .print-song:first-child { page-break-before: avoid; }
 
             .print-title {
                 font-family: 'Inter', Arial, sans-serif;
@@ -609,41 +627,47 @@
                 margin-top: 1mm;
             }
 
-            /* Styly pro magnet layout v tisku */
-            .print-lyrics .magnet-line {
-                display: flex;
-                flex-wrap: wrap;
-                align-items: flex-end;
-                margin-bottom: 0;
-                line-height: 1;
+            /* Skupina řádků — nikdy se nepřeloží uprostřed */
+            .print-block {
+                page-break-inside: avoid;
+                break-inside: avoid;
+                margin-bottom: 6pt;
             }
-            .print-lyrics .magnet-block {
-                display: inline-flex;
-                flex-direction: column;
-                align-items: flex-start;
-                white-space: pre;
+
+            /* Akord + textový řádek patří vždy k sobě */
+            .print-pair {
+                page-break-inside: avoid;
+                break-inside: avoid;
             }
-            .print-lyrics .magnet-chord {
+
+            .print-chord-line {
                 font-size: 9pt;
                 color: #c0392b;
                 font-weight: 700;
                 line-height: 1.3;
-                min-height: 1em;
+                white-space: pre-wrap;
             }
-            .print-lyrics .magnet-text {
+            .print-text-line {
                 font-size: 11pt;
                 color: #000;
-                line-height: 1.4;
+                line-height: 1.5;
+                white-space: pre-wrap;
+                margin-bottom: 1pt;
             }
-            .print-lyrics .chord {
+            .chord {
                 color: #c0392b;
                 font-weight: 700;
             }
-            .print-lyrics br {
-                content: "";
-                display: block;
-                margin: 3pt 0;
+
+            /* Manuální zlom stránky z [konec stránky] */
+            .print-manual-break {
+                page-break-after: always;
+                break-after: page;
+                height: 0;
             }
+
+            /* Skryj značku konce stránky při tisku (je tam jen kvůli page-break) */
+            .page-break-marker { display: none !important; }
         }
 
     </style>
@@ -2293,6 +2317,11 @@ Když jsem já šel</pre>
         const regex = new RegExp(CHORD_REGEX_STR, 'g');
         for (let i = 0; i < radky.length; i++) {
             let radek = radky[i];
+            // Speciální značka pro zlom stránky při tisku
+            if (radek.trim() === '[konec stránky]') {
+                vysledneHTML += '<div class="page-break-marker"><span>— konec stránky —</span></div>';
+                continue;
+            }
             if (isChordLine(radek) && i + 1 < radky.length && !isChordLine(radky[i+1]) && radky[i+1].trim() !== '') {
                 let radekAkordu = radek;
                 let radekTextu = radky[i+1]; let delka = Math.max(radekAkordu.length, radekTextu.length);
@@ -2604,18 +2633,75 @@ V aplikaci ho importuj přes ikonu diskety → Importovat píseň.`
     // =================================================================
 
     /**
-     * Převede HTML obsah displayArea (se span.chord) na plain text pro tisk.
-     * Zachová strukturu — akordy budou tučně červené v tisku.
+     * Tiskový renderer — každou skupinu řádků (oddělenou prázdným řádkem)
+     * zabalí do bloku s page-break-inside: avoid, takže sloka/refrén se
+     * nikdy nepřelamuje uprostřed. Zlom stránky nastane vždy mezi skupinami.
      */
+    function renderPrintLyrics(lyrics, fromKey, toKey) {
+        const regex = new RegExp(CHORD_REGEX_STR, 'g');
+        const lines = lyrics.split('\n');
+        const groups = [];
+        let current = [];
+
+        function flushGroup() {
+            if (current.length > 0) { groups.push(current); current = []; }
+        }
+
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            if (line.trim() === '[konec stránky]') {
+                flushGroup();
+                groups.push(['__PAGEBREAK__']);
+                continue;
+            }
+            if (line.trim() === '') {
+                flushGroup();
+            } else {
+                current.push(line);
+            }
+        }
+        flushGroup();
+
+        function transposeLine(line) {
+            return line.replace(regex, (match, prefix, chordName) =>
+                prefix + '<span class="chord">' + transposeChord(chordName, fromKey, toKey) + '</span>');
+        }
+
+        function renderLine(line) {
+            if (isChordLine(line)) {
+                return `<div class="print-chord-line">${transposeLine(line)}</div>`;
+            }
+            return `<div class="print-text-line">${escapeHtml(line)}</div>`;
+        }
+
+        return groups.map(group => {
+            if (group[0] === '__PAGEBREAK__') {
+                return '<div class="print-manual-break"></div>';
+            }
+            // Spáruj akordové řádky s textovými (magnet styl pro tisk)
+            let html = '';
+            for (let i = 0; i < group.length; i++) {
+                const line = group[i];
+                const next = group[i + 1];
+                if (isChordLine(line) && next && !isChordLine(next)) {
+                    // Akord + text patří k sobě — jeden řádkový blok
+                    html += `<div class="print-pair"><div class="print-chord-line">${transposeLine(line)}</div><div class="print-text-line">${escapeHtml(next)}</div></div>`;
+                    i++; // přeskoč textový řádek
+                } else {
+                    html += renderLine(line);
+                }
+            }
+            return `<div class="print-block">${html}</div>`;
+        }).join('');
+    }
+
     function buildPrintSongHTML(songBase, songNumber) {
         const song = getSongVersion(songBase);
         const title = song.title || songBase.title || '';
         const artist = song.artist || songBase.artist || '';
-        // Renderujeme text se správnou transpozicí (targetKeyIndex platí jen pro aktuální song;
-        // pro playlist/library použijeme uloženou preferredKey nebo baseKey)
         const fromKey = song.baseKey || 0;
         const toKey = song.preferredKey !== undefined ? song.preferredKey : fromKey;
-        const renderedHTML = renderPlayerText(song.lyrics || '', fromKey, toKey);
+        const renderedHTML = renderPrintLyrics(song.lyrics || '', fromKey, toKey);
 
         const numberBadge = songNumber !== undefined
             ? `<span class="print-song-number">${songNumber}.</span>` : '';
