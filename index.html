@@ -538,9 +538,120 @@
             .modal-content { box-shadow: none; }
         }
 
+        /* =================================================================
+           TISK / PDF EXPORT
+           ================================================================= */
+        #printArea { display: none; }
+
+        @media print {
+            /* Skryj celou aplikaci */
+            body > *:not(#printArea) { display: none !important; }
+
+            /* Zobraz tiskovou oblast */
+            #printArea {
+                display: block !important;
+                font-family: 'Inconsolata', 'Courier New', monospace;
+                font-size: 11pt;
+                color: #000;
+                background: #fff;
+                margin: 0;
+                padding: 0;
+            }
+
+            .print-song {
+                page-break-after: always;
+                padding: 10mm 12mm 10mm 12mm;
+            }
+            .print-song:last-child { page-break-after: avoid; }
+
+            .print-title {
+                font-family: 'Inter', Arial, sans-serif;
+                font-size: 18pt;
+                font-weight: 700;
+                margin: 0 0 2mm 0;
+                color: #000;
+            }
+            .print-artist {
+                font-family: 'Inter', Arial, sans-serif;
+                font-size: 11pt;
+                color: #444;
+                margin: 0 0 4mm 0;
+            }
+            .print-playlist-header {
+                font-family: 'Inter', Arial, sans-serif;
+                font-size: 22pt;
+                font-weight: 700;
+                text-align: center;
+                margin: 0 0 8mm 0;
+                padding-bottom: 4mm;
+                border-bottom: 2pt solid #000;
+            }
+            .print-divider {
+                border: none;
+                border-top: 0.5pt solid #bbb;
+                margin: 5mm 0;
+            }
+            .print-lyrics {
+                white-space: pre-wrap;
+                font-size: 11pt;
+                line-height: 1.5;
+                color: #000;
+            }
+            .print-chord {
+                color: #c0392b;
+                font-weight: 700;
+            }
+            .print-song-number {
+                font-family: 'Inter', Arial, sans-serif;
+                font-size: 9pt;
+                color: #888;
+                float: right;
+                margin-top: 1mm;
+            }
+
+            /* Styly pro magnet layout v tisku */
+            .print-lyrics .magnet-line {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: flex-end;
+                margin-bottom: 0;
+                line-height: 1;
+            }
+            .print-lyrics .magnet-block {
+                display: inline-flex;
+                flex-direction: column;
+                align-items: flex-start;
+                white-space: pre;
+            }
+            .print-lyrics .magnet-chord {
+                font-size: 9pt;
+                color: #c0392b;
+                font-weight: 700;
+                line-height: 1.3;
+                min-height: 1em;
+            }
+            .print-lyrics .magnet-text {
+                font-size: 11pt;
+                color: #000;
+                line-height: 1.4;
+            }
+            .print-lyrics .chord {
+                color: #c0392b;
+                font-weight: 700;
+            }
+            .print-lyrics br {
+                content: "";
+                display: block;
+                margin: 3pt 0;
+            }
+        }
+
     </style>
 </head>
 <body>
+
+    <!-- Tisková oblast — zobrazí se pouze při tisku / PDF exportu -->
+    <div id="printArea"></div>
 
     <div id="floatingBar">
         <input type="text" id="floatingBarInput" placeholder="Hledat píseň...">
@@ -824,6 +935,10 @@ přes ty hory zelený</pre>
             
             <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                 <h1 style="margin:0; display:flex; align-items:baseline;">Knihovna <span id="songCount" style="font-size: 0.9rem; color: var(--muted); font-weight: normal; margin-left: 8px;"></span></h1>
+                <div style="display:flex; gap:8px; align-items:center;">
+                <button class="btn btn-outline" id="printLibraryBtn" title="Tisknout / Export do PDF" style="padding:8px 12px; font-size:12px;">
+                    <svg viewBox="0 0 24 24" width="16" height="16"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"/></svg> PDF
+                </button>
                 <div id="backupMenuWrapper">
                     <button class="btn btn-outline" id="backupMenuBtn" style="padding:8px 12px; font-size:12px;" title="Záloha a import">
                         <svg viewBox="0 0 24 24" width="16" height="16"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
@@ -862,8 +977,9 @@ přes ty hory zelený</pre>
                         </button>
                     </div>
                 </div>
+                </div><!-- /flex wrapper PDF+backup -->
             </div>
-            
+
             <div style="display:flex; gap:10px; margin-bottom: 20px; align-items:center;">
                 <div style="position: relative; flex-grow: 1;">
                     <input type="text" id="searchInput" placeholder="Hledat píseň..." style="width: 100%; margin-bottom: 0; border-radius: 24px; padding-left: 20px; padding-right: 40px;">
@@ -905,9 +1021,14 @@ přes ty hory zelený</pre>
             </button>
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:25px;">
                 <h1 id="currentPlaylistTitle" style="margin:0;"></h1>
-                <button class="btn btn-outline" id="exportPlaylistBtn">
-                    <svg viewBox="0 0 24 24" width="18" height="18"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg> Exportovat
-                </button>
+                <div style="display:flex; gap:8px;">
+                    <button class="btn btn-outline" id="printPlaylistBtn" title="Tisknout / Export do PDF" style="padding:8px 12px;">
+                        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"/></svg> PDF
+                    </button>
+                    <button class="btn btn-outline" id="exportPlaylistBtn">
+                        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg> Exportovat
+                    </button>
+                </div>
             </div>
             <div id="playlistItemsContainer"></div>
         </div>
@@ -926,6 +1047,9 @@ přes ty hory zelený</pre>
                 </button>
                 <button class="btn btn-outline" id="playerShareBtn" title="Sdílet píseň" style="border:none; color:var(--text);">
                     <svg viewBox="0 0 24 24" width="20" height="20"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/></svg>
+                </button>
+                <button class="btn btn-outline" id="playerPrintBtn" title="Tisknout / Export do PDF" style="border:none; color:var(--text);">
+                    <svg viewBox="0 0 24 24" width="20" height="20"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"/></svg>
                 </button>
                 <button class="btn btn-blue" id="saveEditBtn" style="display:none;">
                     <svg viewBox="0 0 24 24" width="18" height="18"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg> Uložit text
@@ -2474,6 +2598,94 @@ V aplikaci ho importuj přes ikonu diskety → Importovat píseň.`
     }
 
     document.getElementById('closeShareModalBtn').onclick = () => { document.getElementById('shareModal').style.display = 'none'; };
+
+    // =================================================================
+    // SEKCE 12b: PDF EXPORT
+    // =================================================================
+
+    /**
+     * Převede HTML obsah displayArea (se span.chord) na plain text pro tisk.
+     * Zachová strukturu — akordy budou tučně červené v tisku.
+     */
+    function buildPrintSongHTML(songBase, songNumber) {
+        const song = getSongVersion(songBase);
+        const title = song.title || songBase.title || '';
+        const artist = song.artist || songBase.artist || '';
+        // Renderujeme text se správnou transpozicí (targetKeyIndex platí jen pro aktuální song;
+        // pro playlist/library použijeme uloženou preferredKey nebo baseKey)
+        const fromKey = song.baseKey || 0;
+        const toKey = song.preferredKey !== undefined ? song.preferredKey : fromKey;
+        const renderedHTML = renderPlayerText(song.lyrics || '', fromKey, toKey);
+
+        const numberBadge = songNumber !== undefined
+            ? `<span class="print-song-number">${songNumber}.</span>` : '';
+
+        return `<div class="print-song">
+            ${numberBadge}
+            <div class="print-title">${escapeHtml(title)}</div>
+            ${artist ? `<div class="print-artist">${escapeHtml(artist)}</div>` : ''}
+            <hr class="print-divider">
+            <div class="print-lyrics">${renderedHTML}</div>
+        </div>`;
+    }
+
+    function doPrint(innerHtml) {
+        const area = document.getElementById('printArea');
+        area.innerHTML = innerHtml;
+        window.print();
+        // Po tisku vyčisti (setTimeout aby prohlížeč stihl zobrazit dialog)
+        setTimeout(() => { area.innerHTML = ''; }, 1000);
+    }
+
+    // Tisk jedné písně z přehrávače
+    function printCurrentSong() {
+        const songBase = db.songs.find(s => s.id === currentSongIndex);
+        if (!songBase) return;
+        doPrint(buildPrintSongHTML(songBase));
+    }
+
+    // Tisk celého playlistu
+    function printCurrentPlaylist() {
+        const pl = db.playlists[activePlaylistIdx];
+        if (!pl || !pl.songIds || pl.songIds.length === 0) {
+            notify('Playlist je prázdný'); return;
+        }
+        const header = `<div class="print-playlist-header">${escapeHtml(pl.name)}</div>`;
+        const songsHtml = pl.songIds.map((songId, idx) => {
+            const song = db.songs.find(s => s.id === songId);
+            if (!song) return '';
+            // Pro playlist verze: dočasně nastavíme activePlaylistIdx — getSongVersion ho používá
+            return buildPrintSongHTML(song, idx + 1);
+        }).join('');
+        doPrint(header + songsHtml);
+    }
+
+    // Tisk celé knihovny (dle aktuálního filtru/řazení — stejná logika jako renderLibrary)
+    function printLibrary() {
+        if (db.songs.length === 0) { notify('Knihovna je prázdná'); return; }
+        const filterText = document.getElementById('searchInput').value;
+        let displaySongs = db.songs
+            .slice()
+            .sort((a, b) => a.title.localeCompare(b.title, 'cs'));
+        const filteredSongs = displaySongs.filter(song => {
+            if (filterText) {
+                const q = filterText.toLowerCase();
+                if (!song.title.toLowerCase().includes(q) && !(song.artist && song.artist.toLowerCase().includes(q))) return false;
+            }
+            if (activeArtistFilter) {
+                if ((song.artist || '').trim().toLowerCase() !== activeArtistFilter.trim().toLowerCase()) return false;
+            }
+            if (activeLibraryFilters.length > 0) {
+                const songTags = song.tags || [];
+                if (!activeLibraryFilters.every(t => songTags.includes(t))) return false;
+            }
+            return true;
+        });
+        if (filteredSongs.length === 0) { notify('Žádné písně k tisku'); return; }
+        const songsHtml = filteredSongs.map((song, idx) => buildPrintSongHTML(song, idx + 1)).join('');
+        doPrint(songsHtml);
+    }
+
     // =================================================================
     // SEKCE 12: INICIALIZACE A EVENT HANDLERY
     // =================================================================
@@ -3057,6 +3269,11 @@ V aplikaci ho importuj přes ikonu diskety → Importovat píseň.`
                 notify('Uloženo do knihovny ✓');
             }
         };
+
+        // PDF export tlačítka
+        document.getElementById('playerPrintBtn').onclick = () => printCurrentSong();
+        document.getElementById('printPlaylistBtn').onclick = () => printCurrentPlaylist();
+        document.getElementById('printLibraryBtn').onclick = () => printLibrary();
 
         document.getElementById('promoteToLibraryBtn').onclick = () => {
             if (promoteToLibrary(currentSongIndex)) {
