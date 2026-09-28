@@ -494,22 +494,39 @@
         .backup-menu-divider { height: 1px; background: var(--border); margin: 4px 0; }
 
 
-        /* Plovoucí šipka nahoru v playlist detailu */
-        #floatingPlaylistTopBtn {
+        /* Plovoucí vyhledávací lišta v detailu playlistu */
+        #floatingPlaylistBar {
             position: fixed;
-            top: 0; right: 15px;
+            top: 0; left: 0; right: 0;
             z-index: 990;
-            display: flex; align-items: center; justify-content: center;
-            width: 46px; height: 46px;
-            background: var(--primary);
-            color: white; border: none; border-radius: 0 0 50% 50%;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 15px;
+            background: var(--card-bg);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             transform: translateY(-110%);
-            transition: transform 0.25s ease;
+            transition: transform 0.25s ease, background 0.3s;
         }
-        #floatingPlaylistTopBtn.visible {
+        #floatingPlaylistBar.visible {
             transform: translateY(0);
+        }
+        #floatingPlaylistBar input {
+            flex-grow: 1;
+            margin-bottom: 0;
+            border-radius: 24px;
+            padding: 10px 18px;
+            font-size: 15px;
+        }
+        #floatingPlaylistTopBtn {
+            width: 42px; height: 42px;
+            border-radius: 50%;
+            border: 1px solid var(--border);
+            background: var(--primary);
+            color: white;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
         }
 
 
@@ -665,9 +682,12 @@
         </button>
     </div>
 
-    <button id="floatingPlaylistTopBtn" title="Nahoru">
-        <svg viewBox="0 0 24 24" width="22" height="22"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg>
-    </button>
+    <div id="floatingPlaylistBar">
+        <input type="search" id="playlistSearchInput" placeholder="Hledat v playlistu..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+        <button id="floatingPlaylistTopBtn" title="Nahoru">
+            <svg viewBox="0 0 24 24" width="20" height="20"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg>
+        </button>
+    </div>
 
     <div id="toast">Oznámení</div>
     <div id="chordTooltip"></div>
@@ -1196,7 +1216,7 @@ přes ty hory zelený</pre>
     // 4. Authorized JavaScript origins → URL tvé aplikace (např. https://uzivatel.github.io)
     // 5. Zkopíruj Client ID sem:
     // =====================================================================
-    const APP_VERSION = 'v34.9';
+    const APP_VERSION = 'v34.10';
 
     const GDRIVE_CLIENT_ID = '917333597478-88g2m8u0hgm8650ubtcshka5dqr1sep7.apps.googleusercontent.com';
     const GDRIVE_FILE_NAME = 'muzikant_db.json';
@@ -1317,6 +1337,7 @@ přes ty hory zelený</pre>
     let playlistScrollPos = 0; // Uložená pozice scrollu v detailu playlistu
     let confirmAction = null, fadeTimeout = null, tooltipTimeout = null, _toastTimeout = null, _panelsAwake = false;
     let draggedItemIndex = null;
+    let playlistSearchFilter = '';
     
     const scrollContainer = document.getElementById('scrollContainer');
     const mainHeader = document.getElementById('mainHeader');
@@ -1850,7 +1871,7 @@ přes ty hory zelený</pre>
 
     let _prevScrollTop = 0;
     let _scrollThrottleTimer = null;
-    let _floatingBar, _floatingPlaylistBtn, _viewLibrary, _viewPlaylistDetail;
+    let _floatingBar, _floatingPlaylistBar, _viewLibrary, _viewPlaylistDetail;
 
     // =================================================================
     // SEKCE 7: KNIHOVNA
@@ -1966,7 +1987,7 @@ přes ty hory zelený</pre>
             // Při otevření písně vždy na začátek
             scrollContainer.scrollTop = 0;
             document.getElementById('floatingBar').classList.remove('visible');
-            document.getElementById('floatingPlaylistTopBtn').classList.remove('visible');
+            document.getElementById('floatingPlaylistBar').classList.remove('visible');
         }
 
         if (viewId === 'library') {
@@ -2236,6 +2257,9 @@ Když jsem já šel</pre>
         document.getElementById('confirmText').innerText = `Smazat playlist ${db.playlists[idx].name}?`; document.getElementById('confirmModal').style.display = 'flex'; }
     function openPlaylist(idx) { activePlaylistIdx = idx;
         playlistScrollPos = 0; // Reset při otevření nového playlistu
+        playlistSearchFilter = '';
+        const _psi = document.getElementById('playlistSearchInput');
+        if (_psi) _psi.value = '';
         document.getElementById('currentPlaylistTitle').innerText = db.playlists[idx].name; showView('playlist-detail'); renderPlaylistItems(); }
     
     function renderPlaylistItems() {
@@ -2243,20 +2267,44 @@ Když jsem já šel</pre>
         container.innerHTML = '';
         const pl = db.playlists[activePlaylistIdx];
         if(!pl.songIds || pl.songIds.length === 0) { container.innerHTML = '<p style="color:var(--muted);">Prázdný playlist.</p>'; return; }
-        
-        pl.songIds.forEach((songId, itemIdx) => {
-            const song = db.songs.find(s => s.id === songId); if(!song) return; 
-            const card = document.createElement('div'); card.className = 'card'; card.draggable = true; 
-            card.ondragstart = (e) => { draggedItemIndex = itemIdx; e.dataTransfer.effectAllowed = 'move'; card.style.opacity = '0.5'; };
-            card.ondragend = () => { card.style.opacity = '1'; };
-            card.ondragover = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
-            card.ondrop = (e) => { e.preventDefault(); if (draggedItemIndex !== null && draggedItemIndex !== itemIdx) { const draggedId = pl.songIds.splice(draggedItemIndex, 1)[0]; pl.songIds.splice(itemIdx, 0, draggedId); saveData(); renderPlaylistItems(); } };
+
+        const filterLower = playlistSearchFilter.toLowerCase().trim();
+        const isFiltering = filterLower.length > 0;
+
+        const filteredSongs = pl.songIds
+            .map((songId, itemIdx) => ({ songId, itemIdx, song: db.songs.find(s => s.id === songId) }))
+            .filter(({ song }) => song && (!isFiltering || song.title.toLowerCase().includes(filterLower)));
+
+        if (filteredSongs.length === 0) {
+            container.innerHTML = `<p style="color:var(--muted);">${isFiltering ? 'Žádná píseň neodpovídá hledání.' : 'Prázdný playlist.'}</p>`;
+            return;
+        }
+
+        if (isFiltering) {
+            const info = document.createElement('p');
+            info.style.cssText = 'color:var(--muted); font-size:13px; margin-bottom:10px;';
+            info.textContent = `Nalezeno: ${filteredSongs.length} z ${pl.songIds.length}`;
+            container.appendChild(info);
+        }
+
+        filteredSongs.forEach(({ songId, itemIdx, song }) => {
+            const card = document.createElement('div'); card.className = 'card';
+            if (!isFiltering) {
+                card.draggable = true;
+                card.ondragstart = (e) => { draggedItemIndex = itemIdx; e.dataTransfer.effectAllowed = 'move'; card.style.opacity = '0.5'; };
+                card.ondragend = () => { card.style.opacity = '1'; };
+                card.ondragover = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
+                card.ondrop = (e) => { e.preventDefault(); if (draggedItemIndex !== null && draggedItemIndex !== itemIdx) { const draggedId = pl.songIds.splice(draggedItemIndex, 1)[0]; pl.songIds.splice(itemIdx, 0, draggedId); saveData(); renderPlaylistItems(); } };
+            }
             const hasPlvMark = song.plv && pl.id && song.plv[pl.id] ? ' <span style="font-size:10px; color:var(--primary);" title="Má playlist verzi">★</span>' : '';
-            card.innerHTML = `<div style="display:flex; flex-direction:column; gap:4px; margin-right:16px; cursor:grab;">
-                <button class="btn btn-outline" onclick="event.stopPropagation(); moveSongInPlaylist(${itemIdx}, -1)" style="padding:4px 8px; border:none; background:rgba(128,128,128,0.1); color:var(--text);">${IC.up}</button>
-                <button class="btn btn-outline" onclick="event.stopPropagation(); moveSongInPlaylist(${itemIdx}, 1)" style="padding:4px 8px; border:none; background:rgba(128,128,128,0.1); color:var(--text);">${IC.down}</button></div>
+            const moveButtons = isFiltering
+                ? `<div style="width:40px; margin-right:16px;"></div>`
+                : `<div style="display:flex; flex-direction:column; gap:4px; margin-right:16px; cursor:grab;">
+                    <button class="btn btn-outline" onclick="event.stopPropagation(); moveSongInPlaylist('${songId}', -1)" style="padding:4px 8px; border:none; background:rgba(128,128,128,0.1); color:var(--text);">${IC.up}</button>
+                    <button class="btn btn-outline" onclick="event.stopPropagation(); moveSongInPlaylist('${songId}', 1)" style="padding:4px 8px; border:none; background:rgba(128,128,128,0.1); color:var(--text);">${IC.down}</button></div>`;
+            card.innerHTML = `${moveButtons}
                 <div style="flex-grow:1; font-weight:500;"><span style="color:var(--muted); margin-right:6px;">${itemIdx + 1}.</span> ${escapeHtml(song.title)}${hasPlvMark}</div>
-                <button class="btn btn-red" onclick="event.stopPropagation(); removeFromPlaylist(${itemIdx})" style="padding:10px; border:none; background:rgba(234, 67, 53, 0.1); color:#ea4335;" title="Odebrat z playlistu">${IC.remove}</button>`;
+                <button class="btn btn-red" onclick="event.stopPropagation(); removeFromPlaylist('${songId}')" style="padding:10px; border:none; background:rgba(234, 67, 53, 0.1); color:#ea4335;" title="Odebrat z playlistu">${IC.remove}</button>`;
             card.onclick = () => {
                 resetEditMode();
                 currentQueue = [...pl.songIds]; currentQueueIndex = itemIdx; currentSongIndex = songId;
@@ -2268,15 +2316,19 @@ Když jsem já šel</pre>
     }
 
 
-    function moveSongInPlaylist(itemIdx, direction) {
+    function moveSongInPlaylist(songId, direction) {
         const pl = db.playlists[activePlaylistIdx];
+        const itemIdx = pl.songIds.indexOf(songId);
+        if (itemIdx === -1) return;
         const newIdx = itemIdx + direction;
         if (newIdx < 0 || newIdx >= pl.songIds.length) return;
         [pl.songIds[itemIdx], pl.songIds[newIdx]] = [pl.songIds[newIdx], pl.songIds[itemIdx]];
         saveData(); renderPlaylistItems();
     }
-    function removeFromPlaylist(itemIdx) {
-        db.playlists[activePlaylistIdx].songIds.splice(itemIdx, 1);
+    function removeFromPlaylist(songId) {
+        const pl = db.playlists[activePlaylistIdx];
+        const idx = pl.songIds.indexOf(songId);
+        if (idx !== -1) pl.songIds.splice(idx, 1);
         saveData(); renderPlaylistItems(); notify('Odebráno z playlistu');
     }
 
@@ -2802,7 +2854,7 @@ V aplikaci ho importuj přes ikonu diskety → Importovat píseň.`
 
         // Inicializace referencí pro plovoucí panely
         _floatingBar = document.getElementById('floatingBar');
-        _floatingPlaylistBtn = document.getElementById('floatingPlaylistTopBtn');
+        _floatingPlaylistBar = document.getElementById('floatingPlaylistBar');
         _viewLibrary = document.getElementById('view-library');
         _viewPlaylistDetail = document.getElementById('view-playlist-detail');
 
@@ -2832,13 +2884,13 @@ V aplikaci ho importuj přes ikonu diskety → Importovat píseň.`
                     }
                 }
 
-                // Plovoucí šipka nahoru — pouze v detailu playlistu
-                if (_viewPlaylistDetail && _floatingPlaylistBtn) {
+                // Plovoucí lišta vyhledávání — pouze v detailu playlistu
+                if (_viewPlaylistDetail && _floatingPlaylistBar) {
                     const playlistActive = _viewPlaylistDetail.classList.contains('active');
                     if (playlistActive && st > 150 && st < _prevScrollTop) {
-                        _floatingPlaylistBtn.classList.add('visible');
+                        _floatingPlaylistBar.classList.add('visible');
                     } else {
-                        _floatingPlaylistBtn.classList.remove('visible');
+                        _floatingPlaylistBar.classList.remove('visible');
                     }
                 }
 
@@ -2953,6 +3005,12 @@ V aplikaci ho importuj přes ikonu diskety → Importovat píseň.`
         document.getElementById('floatingPlaylistTopBtn').onclick = () => {
             scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
         };
+
+        // Vyhledávací lišta v detailu playlistu
+        document.getElementById('playlistSearchInput').addEventListener('input', (e) => {
+            playlistSearchFilter = e.target.value;
+            renderPlaylistItems();
+        });
 
 
         // Tlačítka Zpět v editoru
