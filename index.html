@@ -341,28 +341,7 @@
         h1 { font-size: 1.5rem; margin-bottom: 20px; }
 
         
-        /* Speciální přizpůsobení pro velmi úzká okna (split screen na PC) */
-        @media (max-width: 400px) {
-
-            .app-title span {
-                display: none; /* Skryj text "Muzikant", ponech jen ikonu */
-            }
-
-            /* Přehrávač — tlačítko zpět jako ikona bez textu */
-            #backFromPlayerBtn span {
-                display: none;
-            }
-
-            #artistFilterSelect {
-                max-width: 80px;
-                font-size: 12px;
-            }
-
-            .nav-btn {
-                width: 30px;
-                height: 30px;
-            }
-        }
+        /* Speciální přizpůsobení pro velmi úzká okna (split screen na PC) — viz blok 400px níže */
 
 
         /* ═══════════════════════════════════════════════════════════════
@@ -393,9 +372,11 @@
         }
 
         @media (max-width: 400px) {
+            .app-title span { display: none; }
+            #backFromPlayerBtn span { display: none; }
+            #artistFilterSelect { max-width: 70px; font-size: 12px; }
             .nav-btn { width: 32px; height: 32px; }
             .nav-btn svg { width: 18px; height: 18px; }
-            #artistFilterSelect { max-width: 70px; }
             .scroll-panel { right: 2px; width: 44px; }
             #displayAreaWrapper { padding: 10px 52px 20px 10px; }
         }
@@ -1215,7 +1196,7 @@ přes ty hory zelený</pre>
     // 4. Authorized JavaScript origins → URL tvé aplikace (např. https://uzivatel.github.io)
     // 5. Zkopíruj Client ID sem:
     // =====================================================================
-    const APP_VERSION = 'v34.7';
+    const APP_VERSION = 'v34.9';
 
     const GDRIVE_CLIENT_ID = '917333597478-88g2m8u0hgm8650ubtcshka5dqr1sep7.apps.googleusercontent.com';
     const GDRIVE_FILE_NAME = 'muzikant_db.json';
@@ -1334,7 +1315,7 @@ přes ty hory zelený</pre>
     let lastView = 'library', isEditMode = false, isScrolling = false, scrollPos = 0, lastTime = 0;
     let libraryScrollPos = 0; // Uložená pozice scrollu v knihovně
     let playlistScrollPos = 0; // Uložená pozice scrollu v detailu playlistu
-    let confirmAction = null, fadeTimeout = null, tooltipTimeout = null;
+    let confirmAction = null, fadeTimeout = null, tooltipTimeout = null, _toastTimeout = null, _panelsAwake = false;
     let draggedItemIndex = null;
     
     const scrollContainer = document.getElementById('scrollContainer');
@@ -1418,31 +1399,10 @@ přes ty hory zelený</pre>
 
             // Řádky s akordy v hranatých závorkách: [Am]text [G]text
             if (line.includes('[')) {
-                // Oddělíme akordy od textu
-                let chordLine = '';
-                let textLine = '';
-                const parts = line.split(/\[([^\]]+)\]/);
-                // parts = [text_pred, akord1, text_za1, akord2, text_za2, ...]
-                for (let j = 0; j < parts.length; j++) {
-                    if (j % 2 === 0) {
-                        // Textová část
-                        const txt = parts[j];
-                        textLine += txt;
-                        chordLine += ' '.repeat(txt.length);
-                    } else {
-                        // Akord
-                        const chord = parts[j];
-                        chordLine += chord;
-                        // Doplníme mezery v textu pod akordem
-                        const gap = chord.length - 0;
-                        if (gap > 0) textLine += ' '.repeat(gap);
-                    }
-                }
-                chordLine = chordLine.trimEnd();
-                textLine = textLine.trimEnd();
+                // addChordSpacing=true: text se odsadí o délku akordu (ChordPro zarovnání)
+                const { chordLine, textLine } = parseInlineChordLine(line, true);
                 if (chordLine.trim()) outputLines.push(chordLine);
                 if (textLine.trim()) outputLines.push(textLine);
-                else if (chordLine.trim()) {} // Samotný akordový řádek bez textu — už přidán
             } else {
                 // Čistý textový řádek nebo prázdný řádek
                 outputLines.push(line);
@@ -1519,6 +1479,29 @@ přes ty hory zelený</pre>
     // na formát akordy-nad-textem (stejný formát jako superakordy.sk,
     // supermusic.cz, ChordPro a další zahraniční zpěvníky)
     // =====================================================================
+    // Sdílená funkce pro obě parsovací cesty: ChordPro a chytré vkládání.
+    // addChordSpacing=true (ChordPro): text pod akordem se odsadí o délku akordu
+    //   → akordy se zobrazí vizuálně zarovnaně v textovém editoru.
+    // addChordSpacing=false (inline paste): žádné odsazení — renderer použije
+    //   vlastní magnet layout, zarovnání v textu není potřeba.
+    function parseInlineChordLine(line, addChordSpacing) {
+        let chordLine = '';
+        let textLine = '';
+        const parts = line.split(/\[([^\]]+)\]/);
+        for (let j = 0; j < parts.length; j++) {
+            if (j % 2 === 0) {
+                const txt = parts[j];
+                textLine += txt;
+                chordLine += ' '.repeat(txt.length);
+            } else {
+                const chord = parts[j];
+                chordLine += chord;
+                if (addChordSpacing && chord.length > 0) textLine += ' '.repeat(chord.length);
+            }
+        }
+        return { chordLine: chordLine.trimEnd(), textLine: textLine.trimEnd() };
+    }
+
     function looksLikeInlineChords(text) {
         // Hledáme alespoň 2 výskyty vzoru [Akord] — to je dostatečně
         // spolehlivý signál že jde o inline formát, ne náhodné hranaté závorky
@@ -1535,20 +1518,8 @@ přes ty hory zelený</pre>
             if (/^\{\s*\w+\s*:.+\}$/.test(line)) continue;
 
             if (line.includes('[')) {
-                let chordLine = '';
-                let textLine = '';
-                const parts = line.split(/\[([^\]]+)\]/);
-                for (let j = 0; j < parts.length; j++) {
-                    if (j % 2 === 0) {
-                        const txt = parts[j];
-                        textLine += txt;
-                        chordLine += ' '.repeat(txt.length);
-                    } else {
-                        chordLine += parts[j];
-                    }
-                }
-                chordLine = chordLine.trimEnd();
-                textLine = textLine.trimEnd();
+                // addChordSpacing=false: bez odsazení — magnet renderer zarovná sám
+                const { chordLine, textLine } = parseInlineChordLine(line, false);
                 if (chordLine.trim()) outputLines.push(chordLine);
                 if (textLine.trim()) outputLines.push(textLine);
             } else {
@@ -1855,10 +1826,20 @@ přes ty hory zelený</pre>
 
     function wakeUpPanels() {
         if (!isEditMode) {
-            scrollPanel.classList.remove('faded');
-            navButtonsPanel.classList.remove('faded');
+            // Přeskočíme classList operace pokud jsou panely již viditelné
+            if (!_panelsAwake) {
+                scrollPanel.classList.remove('faded');
+                navButtonsPanel.classList.remove('faded');
+                _panelsAwake = true;
+            }
             clearTimeout(fadeTimeout);
-            if (isScrolling) { fadeTimeout = setTimeout(() => { scrollPanel.classList.add('faded'); navButtonsPanel.classList.add('faded'); }, 2500); }
+            if (isScrolling) {
+                fadeTimeout = setTimeout(() => {
+                    scrollPanel.classList.add('faded');
+                    navButtonsPanel.classList.add('faded');
+                    _panelsAwake = false;
+                }, 2500);
+            }
         }
     }
 
@@ -1886,13 +1867,20 @@ přes ty hory zelený</pre>
     // =================================================================
 
     function generateId() {
-        return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+        return Date.now().toString(36) + Math.random().toString(36).substring(2, 11);
     }
 
     function loadData() {
         const saved = localStorage.getItem(DB_KEY);
         if (saved) {
-            const parsed = JSON.parse(saved);
+            let parsed;
+            try {
+                parsed = JSON.parse(saved);
+            } catch (e) {
+                console.error('Muzikant: data v localStorage jsou poškozena, používám prázdnou databázi.', e);
+                notify('⚠️ Data byla poškozena a byla resetována');
+                return;
+            }
             db.songs = parsed.songs || [];
             db.playlists = parsed.playlists || [];
 
@@ -1944,8 +1932,11 @@ přes ty hory zelený</pre>
 
     function saveData() { localStorage.setItem(DB_KEY, JSON.stringify(db)); }
     
-    function notify(msg) { const t = document.getElementById('toast');
-        t.innerText = msg; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 3000);
+    function notify(msg) {
+        const t = document.getElementById('toast');
+        t.innerText = msg; t.style.display = 'block';
+        clearTimeout(_toastTimeout);
+        _toastTimeout = setTimeout(() => t.style.display = 'none', 3000);
     }
 
     // =================================================================
@@ -2089,7 +2080,7 @@ přes ty hory zelený</pre>
         updateArtistFilterSelect();
         const countElement = document.getElementById('songCount');
         
-        let displaySongs = db.songs.map((song, index) => { return { song: song, originalIndex: index }; });
+        let displaySongs = db.songs.map(song => ({ song }));
         // Řazení vždy abecedně podle názvu písně
         displaySongs.sort((a, b) => a.song.title.localeCompare(b.song.title, 'cs'));
 
@@ -2427,14 +2418,14 @@ Když jsem já šel</pre>
             ];
             // Přidáme varianty se zkrácenými příponami
             const base = chordName.replace(/\/[A-H][#b]?$/, '');
-            if (base.includes('maj7')) variants.push(base.replace('maj7', 'maj7'));
-            if (base.includes('m7')) variants.push(base.replace('m7', 'm7'));
-            if (base.includes('sus2')) variants.push(base.replace('sus2', 'sus2'));
-            if (base.includes('sus4')) variants.push(base.replace('sus4', 'sus4'));
-            if (base.includes('dim7')) variants.push(base.replace('dim7', 'dim7'));
-            if (base.includes('add9')) variants.push(base.replace('add9', 'add9'));
-            if (base.includes('aug')) variants.push(base.replace('aug', 'aug'));
-            if (base.includes('dim')) variants.push(base.replace('dim', 'dim'));
+            if (base.includes('maj7')) variants.push(base.replace('maj7', ''));
+            if (base.includes('m7'))   variants.push(base.replace('m7', 'm'));
+            if (base.includes('sus2')) variants.push(base.replace('sus2', ''));
+            if (base.includes('sus4')) variants.push(base.replace('sus4', ''));
+            if (base.includes('dim7')) variants.push(base.replace('dim7', 'dim'));
+            if (base.includes('add9')) variants.push(base.replace('add9', ''));
+            if (base.includes('aug'))  variants.push(base.replace('aug', ''));
+            if (base.includes('dim'))  variants.push(base.replace('dim', ''));
             // Fallback na základní akord (dur/mol)
             const molMatch = base.match(/^([A-H][#b]?)(m|mi|min)(?:7|aj7|add9|sus[24]|dim|aug)?/);
             const durMatch = base.match(/^([A-H][#b]?)(?:maj|add|sus|aug|dim|7|9|11|13)?/);
@@ -2521,10 +2512,13 @@ Když jsem já šel</pre>
 
         requestAnimationFrame(scrollStep);
     }
-    function stopScroll() { 
-        isScrolling = false; document.getElementById('playPauseBtn').innerHTML = IC.play; 
-        scrollPanel.classList.remove('faded'); navButtonsPanel.classList.remove('faded'); 
-        clearTimeout(fadeTimeout); 
+    function stopScroll() {
+        isScrolling = false;
+        document.getElementById('playPauseBtn').innerHTML = IC.play;
+        scrollPanel.classList.remove('faded');
+        navButtonsPanel.classList.remove('faded');
+        _panelsAwake = true;
+        clearTimeout(fadeTimeout);
     }
 
     function checkSharedSong() {
@@ -2777,7 +2771,13 @@ V aplikaci ho importuj přes ikonu diskety → Importovat píseň.`
         // Zavření modalu kliknutím na tmavé pozadí
         document.querySelectorAll('.modal-overlay').forEach(overlay => {
             overlay.addEventListener('click', (e) => {
-                if (e.target === overlay) overlay.style.display = 'none';
+                if (e.target === overlay) {
+                    overlay.style.display = 'none';
+                    // Pokud zavíráme confirmModal a URL ještě obsahuje sdílenou píseň, smaž parametr
+                    if (overlay.id === 'confirmModal' && window.location.search.includes('song=')) {
+                        window.history.replaceState({}, document.title, window.location.pathname);
+                    }
+                }
             });
         });
 
@@ -3224,7 +3224,7 @@ V aplikaci ho importuj přes ikonu diskety → Importovat píseň.`
             const _a = document.getElementById('artistInput').value.trim();
             const _l = document.getElementById('lyricsInput').value;
             const _k = parseInt(document.getElementById('addBaseKey').value);
-            db.songs.push({ id: generateId(), title: _t, artist: _a, lyrics: normalizeChords(_l), baseKey: _k, tags: [] });
+            db.songs.push({ id: generateId(), title: _t, artist: _a, lyrics: normalizeChords(_l), baseKey: _k, tags: [], plv: {} });
             saveData(); showView('library'); notify('Přidáno');
             document.getElementById('titleInput').value = '';
             document.getElementById('artistInput').value = '';
