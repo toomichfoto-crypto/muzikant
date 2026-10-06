@@ -1096,10 +1096,13 @@ přes ty hory zelený</pre>
                 <div id="keyButtons" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:20px;"></div>
                 <div id="playerActiveTags" style="margin-bottom:10px;"></div>
                 <h1 id="displayTitle" style="margin:0 0 4px 0;"></h1>
-                <div id="plvIndicatorRow" style="display:flex; align-items:center; gap:10px; margin-bottom:4px; min-height:0;">
+                <div id="plvIndicatorRow" style="display:flex; align-items:center; gap:10px; margin-bottom:4px; min-height:0; flex-wrap:wrap;">
                     <div id="plvIndicator" style="font-size:11px; color:var(--primary); font-style:italic;"></div>
                     <button id="quickPromoteBtn" style="display:none; font-size:11px; padding:3px 10px; border-radius:12px; border:1px solid var(--accent); background:none; color:var(--accent); cursor:pointer; font-family:inherit; white-space:nowrap;">
                         <svg viewBox="0 0 24 24" width="12" height="12" style="margin-right:3px;"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>Uložit do knihovny
+                    </button>
+                    <button id="revertPlvBtn" style="display:none; font-size:11px; padding:3px 10px; border-radius:12px; border:1px solid #e67e22; background:none; color:#e67e22; cursor:pointer; font-family:inherit; white-space:nowrap;">
+                        <svg viewBox="0 0 24 24" width="12" height="12" style="margin-right:3px;"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg>Vrátit na původní
                     </button>
                 </div>
                 <div id="displayArtist" style="font-size:14px; color:var(--muted); margin-bottom:15px; font-family:inherit;"></div>
@@ -1121,10 +1124,16 @@ přes ty hory zelený</pre>
             <div id="playerEditContent" style="display:none;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
                     <span id="editContextLabel" style="font-size:13px; color:var(--muted); font-style:italic;"></span>
-                    <button id="promoteToLibraryBtn" class="btn btn-outline" style="display:none; font-size:12px; padding:6px 12px; border-color:var(--accent); color:var(--accent);">
-                        <svg viewBox="0 0 24 24" width="14" height="14"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
-                        Uložit do knihovny
-                    </button>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <button id="revertPlvEditBtn" class="btn btn-outline" style="display:none; font-size:12px; padding:6px 12px; border-color:#e67e22; color:#e67e22;">
+                            <svg viewBox="0 0 24 24" width="14" height="14" style="margin-right:4px;"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg>
+                            Vrátit na původní
+                        </button>
+                        <button id="promoteToLibraryBtn" class="btn btn-outline" style="display:none; font-size:12px; padding:6px 12px; border-color:var(--accent); color:var(--accent);">
+                            <svg viewBox="0 0 24 24" width="14" height="14"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
+                            Uložit do knihovny
+                        </button>
+                    </div>
                 </div>
                 <input type="text" id="editTitleInput" placeholder="Název písně">
                 <input type="text" id="editArtistInput" placeholder="Interpret (nepovinné)">
@@ -1605,6 +1614,39 @@ přes ty hory zelený</pre>
         if (!song.plv[pl.id]) song.plv[pl.id] = {};
         Object.assign(song.plv[pl.id], params);
         saveData();
+    }
+
+    // Smaže playlist verzi a vrátí píseň na hlavní verzi z knihovny
+    function revertPlv(songId) {
+        const song = db.songs.find(s => s.id === songId);
+        if (!song || activePlaylistIdx === null) return false;
+        const pl = db.playlists[activePlaylistIdx];
+        if (!pl || !song.plv || !song.plv[pl.id]) return false;
+        delete song.plv[pl.id];
+        saveData();
+        return true;
+    }
+
+    // Vrátí true pokud se playlist verze reálně liší od hlavní verze
+    function plvDiffersFromMain(song, plId) {
+        if (!song.plv || !song.plv[plId]) return false;
+        const plv = song.plv[plId];
+        if (plv.lyrics !== undefined && plv.lyrics !== song.lyrics) return true;
+        if (plv.baseKey !== undefined && plv.baseKey !== song.baseKey) return true;
+        if (plv.preferredKey !== undefined && plv.preferredKey !== song.preferredKey) return true;
+        if (plv.scrollSpeed !== undefined && plv.scrollSpeed !== song.scrollSpeed) return true;
+        if (plv.fontSize !== undefined && plv.fontSize !== song.fontSize) return true;
+        return false;
+    }
+
+    // Pokud se PLV shoduje s hlavní verzí, automaticky ho smaž (zbytečná kopie)
+    function cleanupRedundantPlv(song, plId) {
+        if (song.plv && song.plv[plId] && !plvDiffersFromMain(song, plId)) {
+            delete song.plv[plId];
+            saveData();
+            return true; // PLV bylo smazáno
+        }
+        return false;
     }
 
     // Smaže playlist verzi ze všech písní při smazání playlistu
@@ -2434,8 +2476,11 @@ Když jsem já šel</pre>
         if (plvIndicator) {
             const pl2 = activePlaylistIdx !== null ? db.playlists[activePlaylistIdx] : null;
             const hasPlv2 = songBase && pl2 && pl2.id && songBase.plv && songBase.plv[pl2.id];
+            const plvHasDiff = hasPlv2 && plvDiffersFromMain(songBase, pl2.id);
             plvIndicator.textContent = hasPlv2 ? '★ Playlist verze' : '';
-            if (quickPromoteBtn) quickPromoteBtn.style.display = hasPlv2 ? 'inline-flex' : 'none';
+            if (quickPromoteBtn) quickPromoteBtn.style.display = plvHasDiff ? 'inline-flex' : 'none';
+            const revertPlvBtn = document.getElementById('revertPlvBtn');
+            if (revertPlvBtn) revertPlvBtn.style.display = plvHasDiff ? 'inline-flex' : 'none';
         }
         chordTooltip.style.display = 'none';
         const prevBtn = document.getElementById('prevSongBtn'); const nextBtn = document.getElementById('nextSongBtn');
@@ -3320,7 +3365,12 @@ V aplikaci ho importuj přes ikonu diskety → Importovat píseň.`
             if (!s) return;
             if (activePlaylistIdx !== null) {
                 savePlv(currentSongIndex, { preferredKey: targetKeyIndex });
-                notify('Tónina uložena pro playlist');
+                const _pl = db.playlists[activePlaylistIdx];
+                if (_pl && cleanupRedundantPlv(s, _pl.id)) {
+                    notify('Tónina uložena (shodná s knihovnou)');
+                } else {
+                    notify('Tónina uložena pro playlist');
+                }
             } else {
                 s.preferredKey = targetKeyIndex; saveData();
                 notify('Tónina uložena do knihovny');
@@ -3360,10 +3410,12 @@ V aplikaci ho importuj přes ikonu diskety → Importovat píseň.`
                 // Zobraz indikátor playlist verze pokud existuje
                 const inPlaylist = activePlaylistIdx !== null;
                 const hasPlv = inPlaylist && song.plv && db.playlists[activePlaylistIdx] && song.plv[db.playlists[activePlaylistIdx].id];
+                const plvReallyDiffers = hasPlv && plvDiffersFromMain(song, db.playlists[activePlaylistIdx].id);
                 document.getElementById('editContextLabel').textContent = inPlaylist
                     ? (hasPlv ? '✎ Edituješ playlist verzi' : '✎ Edituješ playlist verzi (nová)')
                     : '✎ Edituješ hlavní verzi (knihovna)';
-                document.getElementById('promoteToLibraryBtn').style.display = (inPlaylist && hasPlv) ? 'inline-flex' : 'none';
+                document.getElementById('promoteToLibraryBtn').style.display = (inPlaylist && plvReallyDiffers) ? 'inline-flex' : 'none';
+                document.getElementById('revertPlvEditBtn').style.display = (inPlaylist && plvReallyDiffers) ? 'inline-flex' : 'none';
             } else {
                 viewContent.style.display = 'block';
                 editContent.style.display = 'none'; saveBtn.style.display = 'none'; 
@@ -3382,7 +3434,13 @@ V aplikaci ho importuj přes ikonu diskety → Importovat píseň.`
             if (activePlaylistIdx !== null) {
                 // Jsme v playlistu — uložit jako playlist verzi
                 savePlv(currentSongIndex, { lyrics: newLyrics, baseKey: newBaseKey });
-                notify('Uloženo jako playlist verze');
+                // Pokud je PLV shodné s hlavní verzí, automaticky ho smaž
+                const _pl = db.playlists[activePlaylistIdx];
+                if (_pl && cleanupRedundantPlv(song, _pl.id)) {
+                    notify('Uloženo (shodné s knihovnou)');
+                } else {
+                    notify('Uloženo jako playlist verze');
+                }
             } else {
                 // Jsme v knihovně — uložit do hlavní verze
                 song.lyrics = newLyrics;
@@ -3410,6 +3468,31 @@ V aplikaci ho importuj přes ikonu diskety → Importovat píseň.`
             }
         };
 
+        // Vrátit na původní verzi z přehrávače
+        document.getElementById('revertPlvBtn').onclick = () => {
+            if (revertPlv(currentSongIndex)) {
+                renderPlayer();
+                notify('Vráceno na původní verzi z knihovny');
+            }
+        };
+
+        // Vrátit na původní verzi z editoru
+        document.getElementById('revertPlvEditBtn').onclick = () => {
+            if (revertPlv(currentSongIndex)) {
+                const song = db.songs.find(s => s.id === currentSongIndex);
+                if (song) {
+                    document.getElementById('editArea').value = song.lyrics || '';
+                    document.getElementById('editBaseKey').value = song.baseKey || 0;
+                    setTimeout(() => autoResizeTextarea(document.getElementById('editArea')), 10);
+                }
+                document.getElementById('promoteToLibraryBtn').style.display = 'none';
+                document.getElementById('revertPlvEditBtn').style.display = 'none';
+                document.getElementById('editContextLabel').textContent = '✎ Edituješ playlist verzi (nová)';
+                renderPlayer(); // obnov indikátor v pozadí
+                notify('Vráceno na původní verzi z knihovny');
+            }
+        };
+
         // PDF export tlačítka
         document.getElementById('playerPrintBtn').onclick = () => printCurrentSong();
         document.getElementById('printPlaylistBtn').onclick = () => printCurrentPlaylist();
@@ -3420,7 +3503,8 @@ V aplikaci ho importuj přes ikonu diskety → Importovat píseň.`
                 renderPlayer(); // plv smazáno — indikátor v přehrávači zmizí
                 notify('Playlist verze uložena do knihovny ✓');
                 document.getElementById('promoteToLibraryBtn').style.display = 'none';
-                document.getElementById('editContextLabel').textContent = '✎ Edituješ hlavní verzi (knihovna)';
+                document.getElementById('revertPlvEditBtn').style.display = 'none';
+                document.getElementById('editContextLabel').textContent = '✎ Edituješ playlist verzi (nová)';
             }
         };
 
