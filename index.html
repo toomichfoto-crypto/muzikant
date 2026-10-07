@@ -601,6 +601,8 @@
                 padding: 0;
             }
             .print-song:first-child { page-break-before: avoid; }
+            /* Playlist: první píseň hned pod názvem playlistu (ne až na další straně) */
+            .print-playlist-header + .print-song { page-break-before: avoid; break-before: avoid; }
 
             .print-title {
                 font-family: 'Inter', Arial, sans-serif;
@@ -661,7 +663,7 @@
             }
 
             .print-chord-line {
-                font-size: 9pt;
+                font-size: 11pt; /* stejně jako text — jinak akordy v neproporcionálním písmu ujíždějí od slov */
                 color: #c0392b;
                 font-weight: 700;
                 line-height: 1.3;
@@ -856,8 +858,9 @@
                     <b style="color:var(--text);">Přidání písně</b> — klikni na + vpravo nahoře. Napiš název, interpreta a vlož text s akordy.<br>
                     <b style="color:var(--text);">Formát akordů</b> — napiš akordy na jeden řádek, text písně pod něj. Akordy se zobrazí nad správnými slovy.<br>
                     <b style="color:var(--text);">Transpozice</b> — v přehrávači klikni na tlačítko s tóninou. Akordy se přepočítají automaticky.<br>
-                    <b style="color:var(--text);">Sdílení</b> — ikona sdílení v přehrávači vygeneruje odkaz který lze poslat komukoli.<br>
-                    <b style="color:var(--text);">Záloha</b> — v knihovně použij tlačítka exportu a importu pro zálohu na zařízení nebo sync přes Google Drive.
+                    <b style="color:var(--text);">Sdílení</b> — ikona sdílení v přehrávači uloží píseň do souboru, který můžeš poslat e-mailem nebo přes WhatsApp. Příjemce ho importuje přes ikonu diskety → Importovat píseň.<br>
+                    <b style="color:var(--text);">Tisk</b> — na samostatný řádek napiš <code>[konec stránky]</code> a v PDF tam začne nová stránka.<br>
+                    <b style="color:var(--text);">Záloha</b> — ikona diskety v knihovně slouží k exportu a importu zálohy. Synchronizaci přes Google Drive najdeš v Nastavení.
                 </div>
             </div>
 
@@ -1247,7 +1250,7 @@ přes ty hory zelený</pre>
     // 4. Authorized JavaScript origins → URL tvé aplikace (např. https://uzivatel.github.io)
     // 5. Zkopíruj Client ID sem:
     // =====================================================================
-    const APP_VERSION = 'v34.10';
+    const APP_VERSION = 'v34.13';
 
     const GDRIVE_CLIENT_ID = '917333597478-88g2m8u0hgm8650ubtcshka5dqr1sep7.apps.googleusercontent.com';
     const GDRIVE_FILE_NAME = 'muzikant_db.json';
@@ -1262,7 +1265,7 @@ přes ty hory zelený</pre>
     let db = { songs: [], playlists: [] };
     const DB_KEY = 'muzikant_db_v17';
     const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B', 'H'];
-    const CHORD_REGEX_STR = "(^|\\s|\\[|\\(|\\|)([A-H][#b]?(?:maj7|maj9|maj11|maj13|mM7|m7b5|m7|mi7|min7|dim7|hdim|sus2|sus4|add9|add11|6\\/9|7b5|7#5|7sus4|m|mi|maj|min|dim|sus|add|aug|2|4|5|6|7|9|11|13|Δ|\\+)*(?:\\/[A-H][#b]?)?)(?=\\s|\\]|\\)|\\||$|,)";
+    const CHORD_REGEX_STR = "(^|\\s|\\[|\\(|\\||:)([A-H][#b]?(?:maj7|maj9|maj11|maj13|mM7|m7b5|m7|mi7|min7|dim7|hdim|sus2|sus4|add9|add11|6\\/9|7b5|7#5|7sus4|m|mi|maj|min|dim|sus|add|aug|2|4|5|6|7|9|11|13|Δ|\\+)*(?:\\/[A-H][#b]?)?)(?=\\s|\\]|\\)|\\||$|,)";
     let currentInstrument = localStorage.getItem('muzikant_instrument') || 'guitar';
     let currentDayTheme = localStorage.getItem('muzikant_day_theme') || 'marine';
     if (currentDayTheme === 'classic') { currentDayTheme = 'marine'; localStorage.setItem('muzikant_day_theme', 'marine'); }
@@ -1385,35 +1388,69 @@ přes ty hory zelený</pre>
     // SEKCE 4: MERGE A IMPORT LOGIKA
     // =================================================================
 
-    // Smart merge: přidá nové písně, doplní interpret u existujících pokud chybí
-    // keepTags=true → zachovat lokální štítky (import od cizího)
-    // keepTags=false → přepsat i štítky (stahování z vlastního Drive)
+    // ID použitelné v onclick atributech (ochrana proti poškozeným / podvrženým souborům)
+    function isSafeId(id) {
+        return typeof id === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(id);
+    }
+
+    // Smart merge: přidá nové písně, aktualizuje existující (podle názvu)
+    // keepTags=true → zachovat lokální štítky, tóninu a rychlost (import od cizího)
+    // keepTags=false → přepsat i štítky, tóninu a rychlost (stahování z vlastního Drive)
+    // U existující písně se VŽDY zachová lokální ID (kvůli playlistům), playlist verze
+    // a všechna lokální pole, která import neobsahuje (např. velikost písma).
+    // Prázdný interpret z importu nepřepíše vyplněný lokální interpret.
+    // Vrací idMap: { id z importu → id v knihovně } pro přemapování playlistů z importu.
     function mergeSongs(incomingSongs, keepTags = true) {
         let added = 0, updated = 0;
+        const idMap = {};
         (incomingSongs || []).forEach(incoming => {
+            if (!incoming || typeof incoming.title !== 'string' || !incoming.title.trim()) return;
             const existIdx = db.songs.findIndex(s => s.title.toLowerCase() === incoming.title.toLowerCase());
             if (existIdx === -1) {
                 // Píseň neexistuje — přidej celou (s normalizací)
-                const newId = incoming.id || generateId();
-                db.songs.push({ ...incoming, id: newId, lyrics: normalizeChords(incoming.lyrics) });
+                const idTaken = db.songs.some(s => s.id === incoming.id);
+                const newId = (isSafeId(incoming.id) && !idTaken) ? incoming.id : generateId();
+                db.songs.push({ ...incoming, id: newId, lyrics: normalizeChords(incoming.lyrics || ''), tags: incoming.tags || [], plv: incoming.plv || {} });
+                if (incoming.id !== undefined) idMap[incoming.id] = newId;
                 added++;
             } else {
-                // Píseň existuje — přepiš, ale zachovej osobní nastavení
-                const kept = {
-                    // Štítky: zachovat lokální pokud keepTags=true, jinak přepsat z Drive
-                    tags: keepTags ? db.songs[existIdx].tags : (incoming.tags || db.songs[existIdx].tags || []),
-                    // Tónina: zachovat lokální pokud keepTags=true, jinak přepsat z Drive
-                    preferredKey: keepTags ? db.songs[existIdx].preferredKey : (incoming.preferredKey !== undefined ? incoming.preferredKey : db.songs[existIdx].preferredKey),
-                    // Rychlost scrollu: zachovat lokální pokud keepTags=true, jinak přepsat z Drive
-                    scrollSpeed: keepTags ? db.songs[existIdx].scrollSpeed : (incoming.scrollSpeed !== undefined ? incoming.scrollSpeed : db.songs[existIdx].scrollSpeed),
-                    // Playlist verze vždy zachovat lokálně — jsou zařízení-specifické
-                    plv: db.songs[existIdx].plv || {},
-                };
-                db.songs[existIdx] = { ...incoming, ...kept };
+                // Píseň existuje — aktualizuj, ale zachovej lokální ID a osobní nastavení
+                const local = db.songs[existIdx];
+                const merged = { ...local, ...incoming };
+                merged.id = local.id;
+                merged.plv = local.plv || {}; // Playlist verze vždy zachovat lokálně — jsou zařízení-specifické
+                merged.lyrics = normalizeChords(incoming.lyrics !== undefined ? incoming.lyrics : local.lyrics);
+                if (!incoming.artist) merged.artist = local.artist;
+                // Štítky, tónina, rychlost: zachovat lokální pokud keepTags=true, jinak převzít z Drive
+                merged.tags = keepTags ? local.tags : (incoming.tags || local.tags || []);
+                merged.preferredKey = keepTags ? local.preferredKey : (incoming.preferredKey !== undefined ? incoming.preferredKey : local.preferredKey);
+                merged.scrollSpeed = keepTags ? local.scrollSpeed : (incoming.scrollSpeed !== undefined ? incoming.scrollSpeed : local.scrollSpeed);
+                if (merged.preferredKey === undefined) delete merged.preferredKey;
+                if (merged.scrollSpeed === undefined) delete merged.scrollSpeed;
+                db.songs[existIdx] = merged;
+                if (incoming.id !== undefined) idMap[incoming.id] = local.id;
                 updated++;
             }
         });
-        return { added, updated };
+        return { added, updated, idMap };
+    }
+
+    // Přemapuje songIds playlistu z importu na ID v knihovně (podle idMap z mergeSongs)
+    // a vynechá písně, které v knihovně nejsou
+    function remapPlaylistSongIds(songIds, idMap) {
+        const ids = (songIds || []).map(id => (idMap && idMap[id] !== undefined) ? idMap[id] : id);
+        return ids.filter(id => db.songs.some(s => s.id === id));
+    }
+
+    // Přidá playlist z importu (zálohy / Drive) jako nový — s bezpečným a nekolidujícím ID
+    function addImportedPlaylist(incoming, idMap) {
+        const idTaken = db.playlists.some(p => p.id === incoming.id);
+        db.playlists.push({
+            ...incoming,
+            id: (isSafeId(incoming.id) && !idTaken) ? incoming.id : generateId(),
+            name: incoming.name,
+            songIds: remapPlaylistSongIds(incoming.songIds, idMap),
+        });
     }
 
 
@@ -1433,6 +1470,19 @@ přes ty hory zelený</pre>
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
 
+            // Komentáře ChordPro (řádek začíná #) — vynechat
+            if (/^\s*#/.test(line)) continue;
+
+            // Direktivy bez hodnoty: {soc}, {eoc}, {chorus}, {new_page}, ...
+            const bareDir = line.match(/^\s*\{\s*([\w-]+)\s*\}\s*$/);
+            if (bareDir) {
+                const dir = bareDir[1].toLowerCase();
+                // Nová stránka → značka pro tisk
+                if (['new_page', 'np', 'new_physical_page', 'npp'].includes(dir)) outputLines.push('[konec stránky]');
+                // Ostatní (začátek/konec refrénu, sloky...) ignorujeme
+                continue;
+            }
+
             // Direktivy: {title: ...}, {t: ...}, {artist: ...}, atd.
             const dirMatch = line.match(/^\{\s*(\w+)\s*:\s*(.+?)\s*\}$/);
             if (dirMatch) {
@@ -1450,9 +1500,9 @@ přes ty hory zelený</pre>
             }
 
             // Řádky s akordy v hranatých závorkách: [Am]text [G]text
+            if (isPageBreakLine(line)) { outputLines.push(PAGE_BREAK_LINE); continue; }
             if (line.includes('[')) {
-                // addChordSpacing=true: text se odsadí o délku akordu (ChordPro zarovnání)
-                const { chordLine, textLine } = parseInlineChordLine(line, true);
+                const { chordLine, textLine } = parseInlineChordLine(line);
                 if (chordLine.trim()) outputLines.push(chordLine);
                 if (textLine.trim()) outputLines.push(textLine);
             } else {
@@ -1502,11 +1552,16 @@ přes ty hory zelený</pre>
 
         // Po animaci otevřeme píseň
         setTimeout(() => {
+            const song = db.songs[randomIdx];
+            if (!song) return;
             resetEditMode();
-            currentSongIndex = db.songs[randomIdx].id;
-            currentQueue = db.songs.map(s => s.id);
-            currentQueueIndex = randomIdx;
+            if (isScrolling) stopScroll();
+            currentSongIndex = song.id;
+            // Fronta Další/Předchozí ve stejném (abecedním) pořadí jako knihovna
+            currentQueue = db.songs.slice().sort((a, b) => a.title.localeCompare(b.title, 'cs')).map(s => s.id);
+            currentQueueIndex = currentQueue.indexOf(song.id);
             activePlaylistIdx = null; // Náhodná píseň vždy z knihovny
+            lastView = 'library';     // … a tlačítko Zpět proto vede do knihovny
             // targetKeyIndex nastaví renderPlayer() přes getSongVersion
             showView('player');
             renderPlayer();
@@ -1517,12 +1572,23 @@ přes ty hory zelený</pre>
     // Normalizace akordů v textu písně:
     // Bb → B (anglická → česká notace)
     // [ ] → ( ) (sjednocení závorek kolem akordů)
+    // Značka pro zlom stránky při tisku. Přijímá i "(konec stránky)" — tak ji dřívější
+    // verze aplikace omylem ukládaly (hranaté závorky se převáděly na kulaté).
+    const PAGE_BREAK_LINE = '[konec stránky]';
+    function isPageBreakLine(line) {
+        return /^\s*[\[(]\s*konec\s+str[aá]nky\s*[\])]\s*$/i.test(line || '');
+    }
+
     function normalizeChords(text) {
         if (!text) return text;
-        return text
-            .replace(/Bb/g, 'B')
-            .replace(/\[/g, '(')
-            .replace(/\]/g, ')');
+        // Po řádcích, aby značka [konec stránky] zůstala beze změny
+        return text.split('\n').map(line => isPageBreakLine(line)
+            ? PAGE_BREAK_LINE
+            : line
+                .replace(/Bb/g, 'B')
+                .replace(/\[/g, '(')
+                .replace(/\]/g, ')')
+        ).join('\n');
     }
 
 
@@ -1532,24 +1598,22 @@ přes ty hory zelený</pre>
     // supermusic.cz, ChordPro a další zahraniční zpěvníky)
     // =====================================================================
     // Sdílená funkce pro obě parsovací cesty: ChordPro a chytré vkládání.
-    // addChordSpacing=true (ChordPro): text pod akordem se odsadí o délku akordu
-    //   → akordy se zobrazí vizuálně zarovnaně v textovém editoru.
-    // addChordSpacing=false (inline paste): žádné odsazení — renderer použije
-    //   vlastní magnet layout, zarovnání v textu není potřeba.
-    function parseInlineChordLine(line, addChordSpacing) {
+    // Převede řádek "[Am]Když jsem [C]já šel" na dva řádky (akordy nad textem).
+    // Každý akord stojí přesně nad znakem, před kterým byl v hranatých závorkách.
+    // Text písně se NIKDY nemění (žádné vkládané mezery, slova se nerozdělí).
+    // Pokud by se dva akordy překrývaly (víc akordů nad krátkou slabikou),
+    // posune se pozdější akord doprava tak, aby mezi nimi zůstala aspoň jedna mezera.
+    function parseInlineChordLine(line) {
         let chordLine = '';
         let textLine = '';
         const parts = line.split(/\[([^\]]+)\]/);
         for (let j = 0; j < parts.length; j++) {
-            if (j % 2 === 0) {
-                const txt = parts[j];
-                textLine += txt;
-                chordLine += ' '.repeat(txt.length);
-            } else {
-                const chord = parts[j];
-                chordLine += chord;
-                if (addChordSpacing && chord.length > 0) textLine += ' '.repeat(chord.length);
-            }
+            if (j % 2 === 0) { textLine += parts[j]; continue; }
+            const chord = parts[j].trim();
+            if (!chord) continue;
+            let pos = textLine.length;
+            if (chordLine.length > 0 && pos < chordLine.length + 1) pos = chordLine.length + 1;
+            chordLine += ' '.repeat(pos - chordLine.length) + chord;
         }
         return { chordLine: chordLine.trimEnd(), textLine: textLine.trimEnd() };
     }
@@ -1569,9 +1633,9 @@ přes ty hory zelený</pre>
             // Přeskočit ChordPro direktivy {title: ...}, {artist: ...} atd.
             if (/^\{\s*\w+\s*:.+\}$/.test(line)) continue;
 
+            if (isPageBreakLine(line)) { outputLines.push(PAGE_BREAK_LINE); continue; }
             if (line.includes('[')) {
-                // addChordSpacing=false: bez odsazení — magnet renderer zarovná sám
-                const { chordLine, textLine } = parseInlineChordLine(line, false);
+                const { chordLine, textLine } = parseInlineChordLine(line);
                 if (chordLine.trim()) outputLines.push(chordLine);
                 if (textLine.trim()) outputLines.push(textLine);
             } else {
@@ -1618,7 +1682,10 @@ přes ty hory zelený</pre>
         if (activePlaylistIdx !== null) {
             const pl = db.playlists[activePlaylistIdx];
             if (pl && song.plv && song.plv[pl.id]) {
-                return { ...song, ...song.plv[pl.id] };
+                const merged = { ...song };
+                const plv = song.plv[pl.id];
+                Object.keys(plv).forEach(k => { if (plv[k] !== undefined) merged[k] = plv[k]; });
+                return merged;
             }
         }
         return song;
@@ -1650,13 +1717,17 @@ přes ty hory zelený</pre>
     }
 
     // Vrátí true pokud se playlist verze reálně liší od hlavní verze
+    // Porovnává skutečně používané hodnoty — např. uložená tónina C u písně v C
+    // bez uložené tóniny v knihovně NENÍ rozdíl (dřív vznikala zbytečná playlist verze)
     function plvDiffersFromMain(song, plId) {
         if (!song.plv || !song.plv[plId]) return false;
         const plv = song.plv[plId];
         if (plv.lyrics !== undefined && plv.lyrics !== song.lyrics) return true;
-        if (plv.baseKey !== undefined && plv.baseKey !== song.baseKey) return true;
-        if (plv.preferredKey !== undefined && plv.preferredKey !== song.preferredKey) return true;
-        if (plv.scrollSpeed !== undefined && plv.scrollSpeed !== song.scrollSpeed) return true;
+        const mainBase = song.baseKey || 0;
+        if (plv.baseKey !== undefined && (plv.baseKey || 0) !== mainBase) return true;
+        const mainTarget = song.preferredKey !== undefined ? song.preferredKey : mainBase;
+        if (plv.preferredKey !== undefined && plv.preferredKey !== mainTarget) return true;
+        if (plv.scrollSpeed !== undefined && normalizeScrollSpeed(plv.scrollSpeed) !== normalizeScrollSpeed(song.scrollSpeed)) return true;
         if (plv.fontSize !== undefined && plv.fontSize !== song.fontSize) return true;
         return false;
     }
@@ -1725,56 +1796,127 @@ přes ty hory zelený</pre>
         }
     }
 
+    let gTokenExpiry = 0;      // čas (ms), kdy vyprší přístupový token Google
+    let _gTokenWaiter = null;  // čekající požadavek na token z gdriveEnsureToken()
+    let _gsiLoading = false;
+
+    function gsiReady() {
+        return typeof google !== 'undefined' && google.accounts && google.accounts.oauth2;
+    }
+
+    // Token Google platí obvykle 1 hodinu — obnovíme ho minutu předem
+    function gdriveSetToken(resp) {
+        gToken = resp.access_token;
+        const secs = parseInt(resp.expires_in, 10) || 3600;
+        gTokenExpiry = Date.now() + Math.max(60, secs - 60) * 1000;
+    }
+
+    function gdriveTokenValid() {
+        return !!gToken && Date.now() < gTokenExpiry;
+    }
+
+    // Server token odmítl (401) — zapomeneme ho, další akce si vyžádá nový
+    function gdriveTokenRejected() {
+        gToken = null; gTokenExpiry = 0;
+        notify('Přihlášení ke Google vypršelo — zkus to prosím znovu');
+    }
+
     function gdriveInit() {
-        if (typeof google === 'undefined' || GDRIVE_CLIENT_ID.startsWith('VAS')) {
+        if (window._gClient) { updateGdriveUI(); return; }
+        if (!gsiReady() || GDRIVE_CLIENT_ID.startsWith('VAS')) {
             updateGdriveUI(); return;
         }
         window._gClient = google.accounts.oauth2.initTokenClient({
             client_id: GDRIVE_CLIENT_ID,
             scope: 'https://www.googleapis.com/auth/drive.appdata',
             callback: (resp) => {
-                if (resp.error) { notify('Chyba přihlášení Google'); return; }
-                gToken = resp.access_token;
+                const waiter = _gTokenWaiter; _gTokenWaiter = null;
+                if (resp.error) {
+                    if (waiter) waiter(false); else notify('Chyba přihlášení Google');
+                    return;
+                }
+                gdriveSetToken(resp);
+                if (waiter) { waiter(true); return; }
                 gConnected = true;
                 localStorage.setItem(GDRIVE_CONNECTED_KEY, '1');
                 updateGdriveUI();
                 notify('Google Drive propojen');
+            },
+            // Zavřené okno přihlášení apod. — uvolníme čekající požadavek
+            error_callback: () => {
+                const waiter = _gTokenWaiter; _gTokenWaiter = null;
+                if (waiter) waiter(false);
             }
         });
         updateGdriveUI();
     }
 
+    // Google skript se načítá asynchronně — počkáme na něj (i na pomalém připojení)
+    function gdriveWaitForGsi(attempt = 0) {
+        if (window._gClient) return;
+        if (gsiReady()) { gdriveInit(); return; }
+        if (attempt < 30) setTimeout(() => gdriveWaitForGsi(attempt + 1), 500);
+    }
+
+    // Pokud se Google skript nenačetl vůbec (např. start bez internetu), načteme ho znovu
+    function gdriveLoadGsi() {
+        if (window._gClient) return;
+        if (gsiReady()) { gdriveInit(); return; }
+        if (_gsiLoading) return;
+        _gsiLoading = true;
+        const s = document.createElement('script');
+        s.src = 'https://accounts.google.com/gsi/client';
+        s.async = true;
+        s.onload = () => { _gsiLoading = false; gdriveInit(); };
+        s.onerror = () => { _gsiLoading = false; };
+        document.head.appendChild(s);
+    }
+
+    // true = klient Google je připraven; jinak spustí načítání a oznámí to
+    function gdriveClientReady() {
+        if (window._gClient) return true;
+        if (GDRIVE_CLIENT_ID.startsWith('VAS')) { notify('Google Drive není nakonfigurováno'); return false; }
+        gdriveLoadGsi();
+        notify(navigator.onLine === false ? 'Google Drive vyžaduje připojení k internetu' : 'Načítám Google — zkus to prosím za chvíli');
+        return false;
+    }
+
     function gdriveConnect() {
-        if (!window._gClient) { notify('Google Drive není nakonfigurováno'); return; }
+        if (!gdriveClientReady()) return;
         window._gClient.requestAccessToken({ prompt: 'select_account' });
     }
 
+    // true = token je k dispozici, false = přihlášení selhalo, null = klient není připraven (zpráva už zobrazena)
     async function gdriveEnsureToken() {
-        if (gToken) return true;
-        if (!window._gClient) return false;
+        if (gdriveTokenValid()) return true;
+        if (!gdriveClientReady()) return null;
         return new Promise(resolve => {
-            const orig = window._gClient.callback;
-            window._gClient.callback = (resp) => {
-                window._gClient.callback = orig;
-                if (resp.error) { resolve(false); return; }
-                gToken = resp.access_token;
-                resolve(true);
-            };
+            _gTokenWaiter = resolve;
             window._gClient.requestAccessToken({ prompt: '' });
         });
     }
 
+    // fetch s přihlášením; 401 (vypršelé přihlášení) vyhodí chybu s příznakem unauthorized
+    async function gdriveFetch(url, options = {}) {
+        const headers = Object.assign({}, options.headers || {}, { Authorization: 'Bearer ' + gToken });
+        const r = await fetch(url, Object.assign({}, options, { headers }));
+        if (r.status === 401) { const err = new Error('unauthorized'); err.unauthorized = true; throw err; }
+        return r;
+    }
+
     async function gdriveFindFile() {
-        const r = await fetch(
-            'https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name%3D%22' + GDRIVE_FILE_NAME + '%22&fields=files(id)',
-            { headers: { Authorization: 'Bearer ' + gToken } }
+        const r = await gdriveFetch(
+            'https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name%3D%22' + GDRIVE_FILE_NAME + '%22&fields=files(id)'
         );
+        if (!r.ok) return;
         const d = await r.json();
         if (d.files && d.files.length > 0) gFileId = d.files[0].id;
     }
 
     async function gdriveUpload() {
-        if (!await gdriveEnsureToken()) { notify('Přihlášení k Google selhalo'); return; }
+        const ok = await gdriveEnsureToken();
+        if (ok === null) return;
+        if (!ok) { notify('Přihlášení k Google selhalo'); return; }
         try {
             notify('Nahrávám do Google Drive...');
             if (!gFileId) await gdriveFindFile();
@@ -1786,9 +1928,9 @@ přes ty hory zelený</pre>
             const url = gFileId
                 ? 'https://www.googleapis.com/upload/drive/v3/files/' + gFileId + '?uploadType=multipart'
                 : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&spaces=appDataFolder';
-            const r = await fetch(url, {
+            const r = await gdriveFetch(url, {
                 method: gFileId ? 'PATCH' : 'POST',
-                headers: { 'Authorization': 'Bearer ' + gToken, 'Content-Type': 'multipart/related; boundary=' + boundary },
+                headers: { 'Content-Type': 'multipart/related; boundary=' + boundary },
                 body
             });
             if (r.ok) {
@@ -1796,41 +1938,79 @@ přes ty hory zelený</pre>
                 const ts = new Date().toLocaleString('cs');
                 localStorage.setItem(GDRIVE_SYNC_KEY, ts);
                 updateGdriveUI(); notify('Nahráno do Google Drive ✓');
-            } else { notify('Chyba nahrávání (' + r.status + ')'); }
-        } catch(e) { notify('Chyba připojení k Drive'); }
+            } else {
+                if (r.status === 404) gFileId = null; // soubor na Drive zmizel — příště se vyhledá znovu
+                notify('Chyba nahrávání (' + r.status + ')');
+            }
+        } catch(e) {
+            if (e && e.unauthorized) gdriveTokenRejected(); else notify('Chyba připojení k Drive');
+        }
     }
 
     async function gdriveDownload() {
-        if (!await gdriveEnsureToken()) { notify('Přihlášení k Google selhalo'); return; }
+        const ok = await gdriveEnsureToken();
+        if (ok === null) return;
+        if (!ok) { notify('Přihlášení k Google selhalo'); return; }
         try {
             notify('Stahuji z Google Drive...');
             if (!gFileId) await gdriveFindFile();
             if (!gFileId) { notify('Na Drive zatím nejsou data. Nejdříve Nahraj.'); return; }
-            const r = await fetch('https://www.googleapis.com/drive/v3/files/' + gFileId + '?alt=media',
-                { headers: { Authorization: 'Bearer ' + gToken } });
+            const r = await gdriveFetch('https://www.googleapis.com/drive/v3/files/' + gFileId + '?alt=media');
             if (r.ok) {
                 const data = await r.json();
                 if (data.songs) {
-                    const { added, updated } = mergeSongs(data.songs, false); // Drive = náš vlastní, štítky přepsat
-                    // Playlisty: přidáme pouze playlisty jejichž název ještě není v seznamu
+                    const { added, updated, idMap } = mergeSongs(data.songs, false); // Drive = náš vlastní, štítky přepsat
+                    // Playlisty: Drive je náš vlastní zdroj → existující playlist (stejné ID, jinak stejný název)
+                    // převezme název a obsah včetně pořadí; ostatní se přidají jako nové.
+                    // ID playlistu a playlist verze písní zůstávají lokální.
+                    let plAdded = 0, plUpdated = 0;
                     (data.playlists || []).forEach(incoming => {
-                        const exists = db.playlists.some(p => p.name.toLowerCase() === incoming.name.toLowerCase());
-                        if (!exists) { db.playlists.push(incoming); }
+                        if (!incoming || typeof incoming.name !== 'string') return;
+                        let local = db.playlists.find(p => p.id && p.id === incoming.id);
+                        if (!local) local = db.playlists.find(p => p.name.toLowerCase() === incoming.name.toLowerCase());
+                        if (local) {
+                            const newIds = remapPlaylistSongIds(incoming.songIds, idMap);
+                            // Písně, které z playlistu zmizely, přijdou o svou playlist verzi
+                            if (local.id) {
+                                (local.songIds || []).forEach(id => {
+                                    if (newIds.includes(id)) return;
+                                    const s = db.songs.find(x => x.id === id);
+                                    if (s && s.plv) delete s.plv[local.id];
+                                });
+                            }
+                            local.name = incoming.name;
+                            local.songIds = newIds;
+                            plUpdated++;
+                        } else {
+                            addImportedPlaylist(incoming, idMap);
+                            plAdded++;
+                        }
                     });
                     saveData();
                     renderLibrary(document.getElementById('searchInput').value);
+                    renderPlaylistsFolders();
+                    refreshCurrentView();
                     const ts = new Date().toLocaleString('cs');
                     localStorage.setItem(GDRIVE_SYNC_KEY, ts);
                     updateGdriveUI();
-                    const msg = [added ? added + ' nových' : '', updated ? updated + ' doplněno' : ''].filter(Boolean).join(', ');
+                    const msg = [
+                        added ? added + ' nových' : '',
+                        updated ? updated + ' doplněno' : '',
+                        (plAdded || plUpdated) ? 'playlisty: ' + (plAdded + plUpdated) : ''
+                    ].filter(Boolean).join(', ');
                     notify('Staženo ✓' + (msg ? ' — ' + msg : ''));
                 } else { notify('Data na Drive jsou poškozena'); }
-            } else { notify('Chyba stahování (' + r.status + ')'); }
-        } catch(e) { notify('Chyba připojení k Drive'); }
+            } else {
+                if (r.status === 404) gFileId = null;
+                notify('Chyba stahování (' + r.status + ')');
+            }
+        } catch(e) {
+            if (e && e.unauthorized) gdriveTokenRejected(); else notify('Chyba připojení k Drive');
+        }
     }
 
     function gdriveDisconnect() {
-        gToken = null; gFileId = null; gConnected = false;
+        gToken = null; gTokenExpiry = 0; gFileId = null; gConnected = false;
         localStorage.removeItem(GDRIVE_CONNECTED_KEY);
         localStorage.removeItem(GDRIVE_SYNC_KEY);
         updateGdriveUI(); notify('Google Drive odpojen');
@@ -1879,10 +2059,19 @@ přes ty hory zelený</pre>
         if (el) el.textContent = currentScrollSpeed;
     }
 
+    function normalizeScrollSpeed(value) {
+        const v = value !== undefined ? value : 5;
+        return v > 10 ? Math.max(1, Math.min(10, Math.round(v / 10))) : Math.max(1, Math.min(10, v));
+    }
+
     function saveSpeed() {
         if (currentSongIndex !== null) {
             if (activePlaylistIdx !== null) {
                 savePlv(currentSongIndex, { scrollSpeed: currentScrollSpeed });
+                // Shodné s knihovnou → zbytečnou playlist verzi smazat; ★ ukázat/schovat hned
+                const s = db.songs.find(x => x.id === currentSongIndex);
+                const pl = db.playlists[activePlaylistIdx];
+                if (s && pl) { cleanupRedundantPlv(s, pl.id); updatePlvIndicator(s); }
             } else {
                 const s = db.songs.find(s => s.id === currentSongIndex);
                 if (s) { s.scrollSpeed = currentScrollSpeed; saveData(); }
@@ -2029,6 +2218,9 @@ přes ty hory zelený</pre>
     // =================================================================
 
     function showView(viewId) {
+        // Automatický scroll patří jen k přehrávači — při odchodu jinam (např. horní lištou) zastavit
+        if (viewId !== 'player' && isScrolling) stopScroll();
+
         // Před přepnutím: ulož pozici scrollu opouštěného pohledu
         if (document.getElementById('view-library').classList.contains('active')) {
             libraryScrollPos = scrollContainer.scrollTop;
@@ -2064,9 +2256,29 @@ přes ty hory zelený</pre>
 
         if (viewId === 'playlists') { renderPlaylistsFolders(); scrollContainer.scrollTop = 0; }
         if (viewId === 'playlist-detail') {
+            // Bez platného playlistu nemá detail smysl → zpět na seznam playlistů
+            if (activePlaylistIdx === null || !db.playlists[activePlaylistIdx]) { showView('playlists'); return; }
             lastView = 'playlist-detail';
+            // Vždy překreslit — po úpravách v přehrávači (název, ★ playlist verze) musí seznam sedět
+            document.getElementById('currentPlaylistTitle').innerText = db.playlists[activePlaylistIdx].name;
+            renderPlaylistItems();
             requestAnimationFrame(() => { scrollContainer.scrollTop = playlistScrollPos; });
         }
+    }
+
+    // Překreslí právě zobrazený pohled (po importu / stažení z Drive)
+    function refreshCurrentView() {
+        const active = document.querySelector('.view.active');
+        if (!active) return;
+        if (active.id === 'view-library') renderLibrary(document.getElementById('searchInput').value);
+        else if (active.id === 'view-playlists') renderPlaylistsFolders();
+        else if (active.id === 'view-playlist-detail') {
+            if (activePlaylistIdx !== null && db.playlists[activePlaylistIdx]) {
+                document.getElementById('currentPlaylistTitle').innerText = db.playlists[activePlaylistIdx].name;
+                renderPlaylistItems();
+            } else showView('playlists');
+        }
+        else if (active.id === 'view-player' && !isEditMode && currentSongIndex !== null) renderPlayer(true);
     }
 
     function renderFilterTagsModal() {
@@ -2156,6 +2368,15 @@ přes ty hory zelený</pre>
             if (artist.toLowerCase() === current.toLowerCase()) opt.selected = true;
             select.appendChild(opt);
         });
+        // Interpret z aktivního filtru už v knihovně není (přejmenován / smazán) → filtr zrušit,
+        // jinak by roletka ukazovala "Interpret", ale seznam by byl prázdný
+        if (activeArtistFilter && !seen.has(activeArtistFilter.trim().toLowerCase())) {
+            activeArtistFilter = '';
+            select.value = '';
+            const csb = document.getElementById('clearSearchBtn');
+            const si = document.getElementById('searchInput');
+            if (csb && si) csb.style.display = si.value ? 'block' : 'none';
+        }
         select.className = activeArtistFilter ? 'active' : '';
     }
 
@@ -2163,6 +2384,10 @@ přes ty hory zelený</pre>
         const list = document.getElementById('libraryList');
         list.innerHTML = '';
         updateArtistFilterSelect();
+        // Vlastní štítek z filtru už nemá žádná píseň → z filtru ho odebrat (v nabídce by nešel odznačit)
+        const _allTags = getAllTags();
+        const _validFilters = activeLibraryFilters.filter(tag => _allTags.includes(tag));
+        if (_validFilters.length !== activeLibraryFilters.length) { activeLibraryFilters = _validFilters; updateFilterBadge(); }
         const countElement = document.getElementById('songCount');
         
         let displaySongs = db.songs.map(song => ({ song }));
@@ -2204,7 +2429,7 @@ přes ty hory zelený</pre>
                     <h2 style="font-size:1.2rem; font-weight:600; color:var(--text); margin-bottom:10px;">Knihovna je prázdná</h2>
                     <p style="font-size:14px; line-height:1.7; margin-bottom:24px;">
                         Přidej svou první píseň kliknutím na <strong>+</strong> vpravo nahoře.<br>
-                        Nebo importuj zálohu tlačítkem <svg viewBox="0 0 24 24" width="14" height="14" style="display:inline; vertical-align:middle; fill:var(--muted);"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg> v záhlaví.
+                        Nebo importuj zálohu tlačítkem <svg viewBox="0 0 24 24" width="14" height="14" style="display:inline; vertical-align:middle; fill:var(--muted);"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg> vedle nadpisu Knihovna.
                     </p>
                     <p style="font-size:13px; line-height:1.6; background:var(--card-bg); border-radius:12px; padding:16px; border:var(--card-border); box-shadow:var(--card-shadow);">
                         <strong>Jak zapsat píseň s akordy?</strong><br>
@@ -2324,12 +2549,13 @@ Když jsem já šel</pre>
         playlistSearchFilter = '';
         const _psi = document.getElementById('playlistSearchInput');
         if (_psi) _psi.value = '';
-        document.getElementById('currentPlaylistTitle').innerText = db.playlists[idx].name; showView('playlist-detail'); renderPlaylistItems(); }
+        showView('playlist-detail'); } // showView nastaví název a vykreslí seznam
     
     function renderPlaylistItems() {
         const container = document.getElementById('playlistItemsContainer');
         container.innerHTML = '';
         const pl = db.playlists[activePlaylistIdx];
+        if (!pl) return;
         if(!pl.songIds || pl.songIds.length === 0) { container.innerHTML = '<p style="color:var(--muted);">Prázdný playlist.</p>'; return; }
 
         const filterLower = playlistSearchFilter.toLowerCase().trim();
@@ -2382,6 +2608,7 @@ Když jsem já šel</pre>
 
     function moveSongInPlaylist(songId, direction) {
         const pl = db.playlists[activePlaylistIdx];
+        if (!pl) return;
         const itemIdx = pl.songIds.indexOf(songId);
         if (itemIdx === -1) return;
         const newIdx = itemIdx + direction;
@@ -2391,8 +2618,14 @@ Když jsem já šel</pre>
     }
     function removeFromPlaylist(songId) {
         const pl = db.playlists[activePlaylistIdx];
+        if (!pl) return;
         const idx = pl.songIds.indexOf(songId);
         if (idx !== -1) pl.songIds.splice(idx, 1);
+        // Píseň už v playlistu není → smazat i její playlist verzi pro tento playlist
+        if (pl.id && !pl.songIds.includes(songId)) {
+            const song = db.songs.find(s => s.id === songId);
+            if (song && song.plv) delete song.plv[pl.id];
+        }
         saveData(); renderPlaylistItems(); notify('Odebráno z playlistu');
     }
 
@@ -2400,16 +2633,36 @@ Když jsem já šel</pre>
     // SEKCE 10: TRANSPOZICE A RENDEROVANI
     // =================================================================
 
+    // Popisek na začátku akordového řádku: "Intro:", "R:", "Ref.:", "Sloka 1:", "Mezihra:" ...
+    const CHORD_LINE_LABEL_RE = /^\s*\p{L}[\p{L}\d.]*(?:\s+\d+\.?)?\s*:/u;
+    // Značky opakování v akordovém řádku: 2x, x2, 3×, (2x) ...
+    const REPEAT_MARK_RE = /(^|\s)\(?(?:\d+\s?[x×]|[x×]\s?\d+)\)?(?=\s|$)/gi;
+
+    // Akordový řádek = obsahuje jen akordy, oddělovače a případně popisek / značku opakování
     function isChordLine(line) {
         if(line.trim().length === 0) return false;
-        let stripped = line.replace(new RegExp(CHORD_REGEX_STR, 'g'), '').replace(/\s/g, '').replace(/[\|\-\/\(\)\[\],:]/g, '');
+        const core = line.replace(CHORD_LINE_LABEL_RE, ' ').replace(REPEAT_MARK_RE, '$1');
+        if (core.trim().length === 0) return false; // samotný popisek ("Refrén:") je text
+        let stripped = core.replace(new RegExp(CHORD_REGEX_STR, 'g'), '').replace(/\s/g, '').replace(/[\|\-\/\(\)\[\],:]/g, '');
         return stripped.length === 0;
     }
 
+    // Béčkové názvy tónů → index v poli notes (české B = anglické Bb, H = anglické B)
+    const FLAT_NOTE_INDEX = { 'Cb': 11, 'Db': 1, 'Eb': 3, 'Fb': 4, 'Gb': 6, 'Ab': 8, 'Bb': 10 };
+
     function transposeChord(chord, fromKey, toKey) {
         let diff = toKey - fromKey;
-        return chord.replace(/([A-H][#b]?)/g, m => {
-            let note = m.replace('Bb', 'B'); let idx = notes.indexOf(note); if (idx === -1) return m;
+        return chord.replace(/([A-H])([#b]?)/g, (m, letter, acc) => {
+            let idx;
+            if (acc === 'b') {
+                idx = FLAT_NOTE_INDEX[m];
+                if (idx === undefined) return m;
+                // Bez transpozice ponechat původní zápis (Eb zůstane Eb); Bb se jako dřív zobrazí jako B
+                if (diff % 12 === 0 && m !== 'Bb') return m;
+            } else {
+                idx = notes.indexOf(m);
+                if (idx === -1) return m;
+            }
             let newIdx = (idx + diff) % 12; while (newIdx < 0) newIdx += 12;
             return notes[newIdx];
         });
@@ -2422,11 +2675,11 @@ Když jsem já šel</pre>
         for (let i = 0; i < radky.length; i++) {
             let radek = radky[i];
             // Speciální značka pro zlom stránky při tisku
-            if (radek.trim() === '[konec stránky]') {
+            if (isPageBreakLine(radek)) {
                 vysledneHTML += '<div class="page-break-marker"><span>— konec stránky —</span></div>';
                 continue;
             }
-            if (isChordLine(radek) && i + 1 < radky.length && !isChordLine(radky[i+1]) && radky[i+1].trim() !== '') {
+            if (isChordLine(radek) && i + 1 < radky.length && !isChordLine(radky[i+1]) && radky[i+1].trim() !== '' && !isPageBreakLine(radky[i+1])) {
                 let radekAkordu = radek;
                 let radekTextu = radky[i+1]; let delka = Math.max(radekAkordu.length, radekTextu.length);
                 vysledneHTML += '<div class="magnet-line">';
@@ -2465,6 +2718,22 @@ Když jsem já šel</pre>
     // SEKCE 11: PREHRAVAC
     // =================================================================
 
+    // Indikátor playlist verze (★) + tlačítka „Uložit do knihovny“ / „Vrátit na původní“
+    // Volá se z renderPlayer() a také po uložení do PLV bez překreslení písně (např. tlačítko Tóninu)
+    function updatePlvIndicator(songBase) {
+        const plvIndicator = document.getElementById('plvIndicator');
+        const quickPromoteBtn = document.getElementById('quickPromoteBtn');
+        if (plvIndicator) {
+            const pl2 = activePlaylistIdx !== null ? db.playlists[activePlaylistIdx] : null;
+            const hasPlv2 = songBase && pl2 && pl2.id && songBase.plv && songBase.plv[pl2.id];
+            const plvHasDiff = hasPlv2 && plvDiffersFromMain(songBase, pl2.id);
+            plvIndicator.textContent = hasPlv2 ? '★ Playlist verze' : '';
+            if (quickPromoteBtn) quickPromoteBtn.style.display = plvHasDiff ? 'inline-flex' : 'none';
+            const revertPlvBtn = document.getElementById('revertPlvBtn');
+            if (revertPlvBtn) revertPlvBtn.style.display = plvHasDiff ? 'inline-flex' : 'none';
+        }
+    }
+
     function renderPlayer(skipKeyReset) {
         const songBase = db.songs.find(s => s.id === currentSongIndex);
         if (!songBase) { showView('library'); return; }
@@ -2488,22 +2757,10 @@ Když jsem já šel</pre>
         const activeFontSize = song.fontSize || currentFontSize;
         document.getElementById('displayArea').style.fontSize = activeFontSize + 'px';
         // Načtení rychlosti z aktivní verze
-        const savedSpd = song.scrollSpeed !== undefined ? song.scrollSpeed : 5;
-        currentScrollSpeed = savedSpd > 10 ? Math.max(1, Math.min(10, Math.round(savedSpd / 10))) : Math.max(1, Math.min(10, savedSpd));
+        currentScrollSpeed = normalizeScrollSpeed(song.scrollSpeed);
         updateSpeedDisplay();
         renderKeyButtons(); renderPlayerTags();
-        // Indikátor playlist verze
-        const plvIndicator = document.getElementById('plvIndicator');
-        const quickPromoteBtn = document.getElementById('quickPromoteBtn');
-        if (plvIndicator) {
-            const pl2 = activePlaylistIdx !== null ? db.playlists[activePlaylistIdx] : null;
-            const hasPlv2 = songBase && pl2 && pl2.id && songBase.plv && songBase.plv[pl2.id];
-            const plvHasDiff = hasPlv2 && plvDiffersFromMain(songBase, pl2.id);
-            plvIndicator.textContent = hasPlv2 ? '★ Playlist verze' : '';
-            if (quickPromoteBtn) quickPromoteBtn.style.display = plvHasDiff ? 'inline-flex' : 'none';
-            const revertPlvBtn = document.getElementById('revertPlvBtn');
-            if (revertPlvBtn) revertPlvBtn.style.display = plvHasDiff ? 'inline-flex' : 'none';
-        }
+        updatePlvIndicator(songBase);
         chordTooltip.style.display = 'none';
         const prevBtn = document.getElementById('prevSongBtn'); const nextBtn = document.getElementById('nextSongBtn');
         if (currentQueue && currentQueue.length > 1) {
@@ -2525,6 +2782,10 @@ Když jsem já šel</pre>
     }
 
     function getChordSVG(chordName) {
+        // Zobrazujeme původní název, hmat hledáme pod křížkovým názvem (Eb → D#)
+        const displayName = chordName;
+        const FLAT_TO_SHARP = { 'Cb': 'H', 'Db': 'C#', 'Eb': 'D#', 'Fb': 'E', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'B' };
+        chordName = chordName.replace(/^[A-H]b/, m => FLAT_TO_SHARP[m] || m);
         if (!chordDB[currentInstrument]) currentInstrument = 'guitar';
         let currentDB = chordDB[currentInstrument];
         // Zkusíme přesnou shodu jako první
@@ -2555,11 +2816,11 @@ Když jsem já šel</pre>
             }
         }
         if (!chordData) { let match = chordName.match(/^[A-H][#b]?(mi|m)?/); if(match) chordData = currentDB[match[0]]; }
-        if (!chordData) return `<div style="padding:10px; font-size:14px; text-align:center;">Akord<br><b style="color:var(--primary)">${escapeHtml(chordName)}</b><br>nenalezen pro tento nástroj</div>`;
+        if (!chordData) return `<div style="padding:10px; font-size:14px; text-align:center;">Akord<br><b style="color:var(--primary)">${escapeHtml(displayName)}</b><br>nenalezen pro tento nástroj</div>`;
         let numStrings = chordData.f.length; let spacing = 50 / (numStrings - 1);
         let isDark = document.body.getAttribute('data-theme') === 'dark';
         let strokeColor = isDark ? '#f8fafc' : '#202124'; let dotColor = 'var(--primary)';
-        let svg = `<div style="text-align:center; font-weight:600; margin-bottom:8px; color:${strokeColor}">${escapeHtml(chordName)}</div>`;
+        let svg = `<div style="text-align:center; font-weight:600; margin-bottom:8px; color:${strokeColor}">${escapeHtml(displayName)}</div>`;
         svg += `<svg width="70" height="90" viewBox="0 0 70 90" xmlns="http://www.w3.org/2000/svg" style="font-family:sans-serif;">`;
         if (chordData.b && chordData.b > 1) svg += `<text x="0" y="24" font-size="12" fill="${strokeColor}">${chordData.b}</text>`;
         svg += `<path d="M 15 15 L 65 15 L 65 85 L 15 85 Z" fill="none" stroke="${strokeColor}" stroke-width="1.5"/>`;
@@ -2760,7 +3021,7 @@ V aplikaci ho importuj přes ikonu diskety → Importovat píseň.`
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
-            if (line.trim() === '[konec stránky]') {
+            if (isPageBreakLine(line)) {
                 flushGroup();
                 groups.push(['__PAGEBREAK__']);
                 continue;
@@ -2806,12 +3067,14 @@ V aplikaci ho importuj přes ikonu diskety → Importovat píseň.`
         }).join('');
     }
 
-    function buildPrintSongHTML(songBase, songNumber) {
+    // toKeyOverride: tónina, ve které se má píseň vytisknout (z přehrávače = právě zobrazená)
+    function buildPrintSongHTML(songBase, songNumber, toKeyOverride) {
         const song = getSongVersion(songBase);
         const title = song.title || songBase.title || '';
         const artist = song.artist || songBase.artist || '';
         const fromKey = song.baseKey || 0;
-        const toKey = song.preferredKey !== undefined ? song.preferredKey : fromKey;
+        const toKey = toKeyOverride !== undefined ? toKeyOverride
+            : (song.preferredKey !== undefined ? song.preferredKey : fromKey);
         const renderedHTML = renderPrintLyrics(song.lyrics || '', fromKey, toKey);
 
         const numberBadge = songNumber !== undefined
@@ -2832,11 +3095,11 @@ V aplikaci ho importuj přes ikonu diskety → Importovat píseň.`
         setTimeout(() => { document.getElementById('printArea').innerHTML = ''; }, 1000);
     }
 
-    // Tisk jedné písně z přehrávače
+    // Tisk jedné písně z přehrávače — v tónině, která je právě zobrazená (stejně jako sdílení)
     function printCurrentSong() {
         const songBase = db.songs.find(s => s.id === currentSongIndex);
         if (!songBase) return;
-        doPrint(buildPrintSongHTML(songBase));
+        doPrint(buildPrintSongHTML(songBase, undefined, targetKeyIndex));
     }
 
     // Tisk celého playlistu
@@ -3018,7 +3281,8 @@ V aplikaci ho importuj přes ikonu diskety → Importovat píseň.`
             libraryScrollPos = 0;
             activePlaylistIdx = null;
             document.getElementById('floatingBar').classList.remove('visible');
-            document.getElementById('floatingBarInput').value = '';
+            // Plovoucí lišta musí ukazovat totéž hledání jako hlavní pole (seznam zůstává vyfiltrovaný)
+            document.getElementById('floatingBarInput').value = document.getElementById('searchInput').value;
             showView('library');
         };
         document.getElementById('nav-playlists').onclick = () => showView('playlists');
@@ -3091,18 +3355,28 @@ V aplikaci ho importuj přes ikonu diskety → Importovat píseň.`
         document.getElementById('footerScrollTopBtn').onclick = () => {
             scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
         };
-        document.getElementById('fontPlusBtn').onclick = () => {
-            currentFontSize += 2;
+        // Změna velikosti písma (A+ / A−)
+        // — vychází z AKTUÁLNĚ ZOBRAZENÉ velikosti (stejná logika jako renderPlayer),
+        //   ne z globální hodnoty → A+ vždy zvětší, A− vždy zmenší
+        // — v playlistu ukládá do PLV, v knihovně do písně (pokud má vlastní velikost)
+        // — renderPlayer(true) zachová aktuální (i neuloženou) transpozici
+        function changeFontSize(delta) {
+            const songBase = db.songs.find(s => s.id === currentSongIndex);
+            if (!songBase) return;
+            const shownSize = getSongVersion(songBase).fontSize || currentFontSize;
+            const newSize = Math.max(10, shownSize + delta);
+            currentFontSize = newSize;
             localStorage.setItem('muzikant_font_size', currentFontSize);
-            if (activePlaylistIdx !== null) savePlv(currentSongIndex, { fontSize: currentFontSize });
-            renderPlayer();
-        };
-        document.getElementById('fontMinusBtn').onclick = () => {
-            currentFontSize = Math.max(10, currentFontSize - 2);
-            localStorage.setItem('muzikant_font_size', currentFontSize);
-            if (activePlaylistIdx !== null) savePlv(currentSongIndex, { fontSize: currentFontSize });
-            renderPlayer();
-        };
+            if (activePlaylistIdx !== null) {
+                savePlv(currentSongIndex, { fontSize: newSize });
+            } else if (songBase.fontSize) {
+                songBase.fontSize = newSize;
+                saveData();
+            }
+            renderPlayer(true);
+        }
+        document.getElementById('fontPlusBtn').onclick = () => changeFontSize(2);
+        document.getElementById('fontMinusBtn').onclick = () => changeFontSize(-2);
         document.getElementById('playerAddToPlaylistBtn').onclick = () => { if (currentSongIndex !== null) openAddToPlaylistModal(currentSongIndex); }; // currentSongIndex je ID
         document.getElementById('playerShareBtn').onclick = () => {
             const song = db.songs.find(s => s.id === currentSongIndex);
@@ -3136,9 +3410,9 @@ V aplikaci ho importuj přes ikonu diskety → Importovat píseň.`
         document.getElementById('themeToggle').onclick = () => { const isDark = document.body.getAttribute('data-theme') === 'dark'; isDark ? document.body.removeAttribute('data-theme') : document.body.setAttribute('data-theme', 'dark'); localStorage.setItem('muzikant_theme', isDark ? 'light' : 'dark'); };
         
         document.getElementById('exportAllBtn').onclick = () => {
-            // Export pro ostatní: bez štítků a bez rychlosti scrollu, tónina zůstává
+            // Úplná záloha celé knihovny (včetně štítků a rychlostí) — pro kapelu slouží export playlistu
             const exportDb = {
-                songs: db.songs.map(s => { const { tags, scrollSpeed, ...rest } = s; return rest; }),
+                songs: db.songs,
                 playlists: db.playlists
             };
             const a = document.createElement('a');
@@ -3276,15 +3550,18 @@ V aplikaci ho importuj přes ikonu diskety → Importovat píseň.`
                 try {
                     const data = JSON.parse(ev.target.result);
                     if (!data.songs) { notify('Chybný soubor zálohy'); return; }
-                    const { added: addedSongs, updated: updatedSongs } = mergeSongs(data.songs, true); // JSON import = může být cizí, štítky zachovat
+                    const { added: addedSongs, updated: updatedSongs, idMap } = mergeSongs(data.songs, true); // JSON import = může být cizí, štítky zachovat
                     // Merge: přidáme jen playlisty jejichž název ještě není v seznamu
+                    // (ID písní se přemapují na ID v této knihovně)
                     (data.playlists || []).forEach(incoming => {
+                        if (!incoming || typeof incoming.name !== 'string') return;
                         const exists = db.playlists.some(p => p.name.toLowerCase() === incoming.name.toLowerCase());
-                        if (!exists) { db.playlists.push(incoming); }
+                        if (!exists) { addImportedPlaylist(incoming, idMap); }
                     });
                     saveData();
                     renderLibrary(document.getElementById('searchInput').value);
                     renderPlaylistsFolders();
+                    refreshCurrentView();
                     const impMsg = [addedSongs ? addedSongs + ' nových' : '', updatedSongs ? updatedSongs + ' doplněno' : ''].filter(Boolean).join(', ');
                     notify('Importováno' + (impMsg ? ' — ' + impMsg : ' — vše aktuální'));
                 } catch(err) { notify('Chybný soubor zálohy'); }
@@ -3316,28 +3593,34 @@ V aplikaci ho importuj přes ikonu diskety → Importovat píseň.`
                     if (data.playlistName && data.songs) {
                         const newPlId = generateId();
                         let newIds = [];
+                        const plvSongs = []; // existující písně s nově vytvořenou playlist verzí
                         data.songs.forEach(importedSong => {
+                            if (!importedSong || typeof importedSong.title !== 'string' || !importedSong.title.trim()) return;
                             const existIdx = db.songs.findIndex(s => s.title.toLowerCase() === importedSong.title.toLowerCase());
                             if (existIdx !== -1) {
                                 // Píseň existuje — uložit jako playlist verzi, hlavní verze nedotčena
-                                const songId = db.songs[existIdx].id;
-                                if (!db.songs[existIdx].plv) db.songs[existIdx].plv = {};
-                                db.songs[existIdx].plv[newPlId] = {
-                                    lyrics: normalizeChords(importedSong.lyrics),
-                                    baseKey: importedSong.baseKey,
-                                    preferredKey: importedSong.preferredKey,
-                                    scrollSpeed: importedSong.scrollSpeed,
-                                    fontSize: importedSong.fontSize,
-                                };
-                                newIds.push(songId);
+                                const song = db.songs[existIdx];
+                                if (newIds.includes(song.id)) return; // stejná píseň v souboru dvakrát
+                                if (!song.plv) song.plv = {};
+                                // Jen hodnoty, které soubor opravdu obsahuje — chybějící se převezmou z knihovny
+                                const plv = {};
+                                if (importedSong.lyrics !== undefined) plv.lyrics = normalizeChords(importedSong.lyrics);
+                                ['baseKey', 'preferredKey', 'scrollSpeed', 'fontSize'].forEach(k => {
+                                    if (importedSong[k] !== undefined && importedSong[k] !== null) plv[k] = importedSong[k];
+                                });
+                                song.plv[newPlId] = plv;
+                                plvSongs.push(song);
+                                newIds.push(song.id);
                             } else {
                                 // Nová píseň — přidej do knihovny jako hlavní verzi
-                                const newSong = { ...importedSong, id: generateId(), lyrics: normalizeChords(importedSong.lyrics), plv: {} };
+                                const newSong = { ...importedSong, id: generateId(), lyrics: normalizeChords(importedSong.lyrics || ''), tags: importedSong.tags || [], plv: {} };
                                 db.songs.push(newSong);
                                 newIds.push(newSong.id);
                             }
                         });
                         db.playlists.push({ id: newPlId, name: data.playlistName, songIds: newIds });
+                        // Playlist verze shodné s knihovnou nejsou potřeba (žádná ★ bez rozdílu)
+                        plvSongs.forEach(song => cleanupRedundantPlv(song, newPlId));
                         saveData(); renderLibrary(document.getElementById('searchInput').value); renderPlaylistsFolders(); showView('playlists'); notify('Playlist importován');
                     } else { notify('Toto není správný formát playlistu'); }
                 } catch(err) { notify('Chyba při čtení souboru'); }
@@ -3393,6 +3676,7 @@ V aplikaci ho importuj přes ikonu diskety → Importovat píseň.`
                 } else {
                     notify('Tónina uložena pro playlist');
                 }
+                updatePlvIndicator(s); // ★ indikátor ihned, bez překreslení písně
             } else {
                 s.preferredKey = targetKeyIndex; saveData();
                 notify('Tónina uložena do knihovny');
@@ -3448,10 +3732,13 @@ V aplikaci ho importuj přes ikonu diskety → Importovat píseň.`
         document.getElementById('saveEditBtn').onclick = () => {
             const song = db.songs.find(s => s.id === currentSongIndex);
             if (!song) return;
+            const newTitle = document.getElementById('editTitleInput').value.trim();
+            if (!newTitle) { notify('Zadej prosím název písně'); return; }
             const newLyrics = normalizeChords(document.getElementById('editArea').value);
             const newBaseKey = parseInt(document.getElementById('editBaseKey').value);
+            const prevBaseKey = getSongVersion(song).baseKey || 0;
             // Titul a interpret se vždy ukládají do hlavní verze
-            song.title = document.getElementById('editTitleInput').value;
+            song.title = newTitle;
             song.artist = document.getElementById('editArtistInput').value.trim();
             if (activePlaylistIdx !== null) {
                 // Jsme v playlistu — uložit jako playlist verzi
@@ -3470,7 +3757,9 @@ V aplikaci ho importuj přes ikonu diskety → Importovat píseň.`
                 saveData();
                 notify('Uloženo do knihovny');
             }
-            renderPlayer(true);
+            // Změnila se tónina zapsaného textu → zobrazit tak, jak se píseň otevře příště
+            // (jinak zachovat i neuloženou transpozici)
+            renderPlayer(newBaseKey === prevBaseKey);
             // Zavřít editor přímo bez volání click() aby se nespustil onclick znovu
             isEditMode = false;
             document.getElementById('playerViewContent').style.display = 'block';
@@ -3547,7 +3836,8 @@ V aplikaci ho importuj přes ikonu diskety → Importovat píseň.`
     });
 
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && window.location.search.includes('song=')) { checkSharedSong(); } });
-    setTimeout(gdriveInit, 1200);
+    gdriveWaitForGsi();
+    window.addEventListener('online', () => { if (gConnected && !window._gClient) gdriveLoadGsi(); });
     if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(err => console.error('SW Error:', err)); }); }
 
 </script>
