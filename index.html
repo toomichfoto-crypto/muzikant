@@ -12,7 +12,10 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inconsolata:wght@400;500&display=swap');
 
-        /* --- BAREVNÁ TÉMATA - MATERIAL DESIGN (v27.0) --- */
+        /* ═══════════════════════════════════════════════════════════════
+           1. BAREVNÁ TÉMATA
+           ═══════════════════════════════════════════════════════════════ */
+
         :root { --player-font: 'Inconsolata', 'ui-monospace', monospace; }
 
         :root {
@@ -105,21 +108,37 @@
             --card-border: 1px solid #3c4043;
         }
 
+
+        /* ═══════════════════════════════════════════════════════════════
+           2. GLOBÁLNÍ RESET A ZÁKLADNÍ LAYOUT
+           ═══════════════════════════════════════════════════════════════ */
+
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { 
+        body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background: var(--bg); color: var(--text);
-            margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; 
+            margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden;
             transition: background 0.3s, color 0.3s;
         }
-
         svg { fill: currentColor; display: block; }
 
-        .top-nav { 
+        .main-content { flex-grow: 1; overflow-y: auto; padding: 20px 15px; position: relative; -webkit-overflow-scrolling: touch; scroll-behavior: auto; }
+        .view { display: none; max-width: 900px; margin: 0 auto; padding-bottom: 120px; }
+        .view.active { display: block; }
+
+        h1, h2, h3 { font-weight: 600; margin-top: 0; color: var(--text); letter-spacing: -0.5px; }
+        h1 { font-size: 1.5rem; margin-bottom: 20px; }
+
+
+        /* ═══════════════════════════════════════════════════════════════
+           3. NAVIGACE
+           ═══════════════════════════════════════════════════════════════ */
+
+        .top-nav {
             display: flex;
-            justify-content: space-between; align-items: center; 
-            background: var(--nav-bg); color: var(--nav-text); 
-            padding: 25px 20px 15px 20px; 
+            justify-content: space-between; align-items: center;
+            background: var(--nav-bg); color: var(--nav-text);
+            padding: 25px 20px 15px 20px;
             z-index: 1000; flex-shrink: 0;
             box-shadow: 0 2px 6px rgba(0,0,0,0.15);
             transition: transform 0.3s ease-in-out, margin-top 0.3s, background 0.3s;
@@ -131,42 +150,52 @@
 
         .app-title { font-weight: 600; font-size: 1.2rem; display: flex; align-items: center; gap: 8px; min-width: 0; overflow: hidden; white-space: nowrap; }
         .nav-icons { display: flex; gap: 4px; align-items: center; flex-shrink: 0; }
-        
-        .nav-btn { 
+
+        .nav-btn {
             background: transparent;
-            color: var(--nav-text); border: none; 
-            width: 44px; height: 44px; border-radius: 50%; 
+            color: var(--nav-text); border: none;
+            width: 44px; height: 44px; border-radius: 50%;
             cursor: pointer; display: flex; align-items: center; justify-content: center;
             transition: background 0.2s, color 0.2s;
         }
         .nav-btn:hover { background: rgba(255,255,255,0.1); }
         .nav-btn.active { background: var(--nav-active-bg); color: var(--nav-active-text); }
 
-        .main-content { flex-grow: 1; overflow-y: auto; padding: 20px 15px; position: relative; -webkit-overflow-scrolling: touch; scroll-behavior: auto; }
-        .view { display: none; max-width: 900px; margin: 0 auto; padding-bottom: 120px; }
-        .view.active { display: block; }
+        #appLogoBtn {
+            background: none; border: none; cursor: pointer;
+            color: var(--nav-text); display: flex; align-items: center;
+            gap: 8px; padding: 0; font-family: inherit;
+            font-weight: 600; font-size: 1.2rem;
+        }
+        #appLogoBtn:hover { opacity: 0.85; }
+        #appLogoBtn svg { transition: transform 0.1s; }
 
-        .card { 
+
+        /* ═══════════════════════════════════════════════════════════════
+           4. KARTY, TLAČÍTKA A FORMULÁŘE
+           ═══════════════════════════════════════════════════════════════ */
+
+        .card {
             background: var(--card-bg);
-            padding: 16px 20px; border-radius: 12px; margin-bottom: 12px; 
-            display: flex; justify-content: space-between; align-items: center; 
-            box-shadow: var(--card-shadow); border: var(--card-border); 
+            padding: 16px 20px; border-radius: 12px; margin-bottom: 12px;
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: var(--card-shadow); border: var(--card-border);
             cursor: pointer;
             transition: box-shadow 0.2s, background 0.2s, transform 0.1s;
             overflow: hidden;
         }
         .card:hover { box-shadow: var(--shadow); transform: translateY(-1px); }
-        
-        .btn { 
+
+        .btn {
             padding: 10px 20px;
-            border-radius: 24px; border: none; cursor: pointer; 
-            font-weight: 500; font-family: inherit; color: white; font-size: 14px; 
+            border-radius: 24px; border: none; cursor: pointer;
+            font-weight: 500; font-family: inherit; color: white; font-size: 14px;
             display: inline-flex; align-items: center; justify-content: center;
-            gap: 8px; 
+            gap: 8px;
             box-shadow: 0 1px 2px 0 rgba(0,0,0,0.15); transition: background 0.2s, box-shadow 0.2s, color 0.2s;
         }
         .btn:hover { box-shadow: var(--shadow); }
-        .btn-green { background: var(--accent); } .btn-red { background: #ea4335; } 
+        .btn-green { background: var(--accent); } .btn-red { background: #ea4335; }
         .btn-gray { background: var(--muted); } .btn-blue { background: var(--primary); }
         .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); box-shadow: none; }
         .btn-outline:hover { background: rgba(128,128,128,0.05); }
@@ -180,55 +209,58 @@
         }
         .btn-cancel:hover { background: rgba(234, 67, 53, 0.2); }
 
-        input, textarea, select { 
+        input, textarea, select {
             width: 100%;
-            padding: 14px 16px; margin-bottom: 12px; border-radius: 8px; 
-            border: 1px solid var(--border); background: var(--card-bg); color: var(--text); 
+            padding: 14px 16px; margin-bottom: 12px; border-radius: 8px;
+            border: 1px solid var(--border); background: var(--card-bg); color: var(--text);
             font-size: 16px; font-family: inherit;
-            transition: border 0.2s, box-shadow 0.2s, background 0.3s, color 0.3s; 
+            transition: border 0.2s, box-shadow 0.2s, background 0.3s, color 0.3s;
         }
-        
-        /* MODERNÍ MONOSPACE FONT PRO ZACHOVÁNÍ ZAROVNÁNÍ */
         textarea {
             font-family: var(--player-font) !important;
             line-height: 1.5;
         }
-
         input:focus, textarea:focus, select:focus { outline: none; border-color: var(--primary); box-shadow: inset 0 0 0 1px var(--primary); }
 
-        .tag-btn { 
+        .tag-btn {
             padding: 8px 16px;
-            border-radius: 20px; border: 1px solid var(--border); 
-            background: transparent; color: var(--text); cursor: pointer; font-size: 14px; 
+            border-radius: 20px; border: 1px solid var(--border);
+            background: transparent; color: var(--text); cursor: pointer; font-size: 14px;
             font-weight: 500; transition: 0.2s;
         }
         .tag-btn:hover { background: rgba(128,128,128,0.05); }
         .tag-btn.active { background: rgba(26,115,232,0.1); color: var(--primary); border-color: var(--primary); }
-        
-        .song-tag-badge { 
+
+        .song-tag-badge {
             font-size: 11px;
-            background: var(--border); color: var(--text); padding: 4px 10px; 
+            background: var(--border); color: var(--text); padding: 4px 10px;
             border-radius: 12px; margin-right: 6px; font-weight: 500; display: inline-block;
         }
 
-        #displayAreaWrapper { 
+        .hidden-file { display: none; }
+
+
+        /* ═══════════════════════════════════════════════════════════════
+           5. PŘEHRÁVAČ PÍSNĚ
+           ═══════════════════════════════════════════════════════════════ */
+
+        #displayAreaWrapper {
             width: 100%;
-            border-radius: 12px; border: var(--card-border); 
-            background: var(--card-bg); padding: 20px 80px 40px 20px; box-sizing: border-box; 
+            border-radius: 12px; border: var(--card-border);
+            background: var(--card-bg); padding: 20px 80px 40px 20px; box-sizing: border-box;
             overflow-x: auto; transition: background 0.3s; box-shadow: var(--card-shadow);
         }
-        
-        /* MODERNÍ MONOSPACE FONT PRO ZACHOVÁNÍ ZAROVNÁNÍ */
-        #displayArea { 
+        #displayArea {
             font-family: var(--player-font);
-            line-height: 1.5; 
-            letter-spacing: 0; 
+            line-height: 1.5;
+            letter-spacing: 0;
         }
-        
+
         .magnet-line { display: flex; flex-wrap: wrap; }
         .magnet-block { display: inline-flex; flex-direction: column; justify-content: flex-end; }
         .magnet-chord { min-height: 1.2em; white-space: pre; }
         .magnet-text { white-space: pre; }
+
         /* Značka konce stránky — viditelná v přehrávači, při tisku způsobí zlom */
         .page-break-marker {
             display: flex; align-items: center; gap: 8px;
@@ -243,18 +275,48 @@
 
         .chord { color: var(--chord); font-weight: 700; cursor: pointer; border-radius: 4px; padding: 0 2px; margin: 0 -2px; transition: background 0.2s; }
         .chord:active, .chord:hover { background: rgba(128,128,128,0.15); }
-        
+
         #chordTooltip { position: fixed; display: none; z-index: 5000; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); padding: 12px; transform: translate(-50%, -100%); margin-top: -15px; pointer-events: none; }
 
-        /* Panel pro posuvník */
+        .key-btn { transition: all 0.2s; }
+        .key-btn.active {
+            background-color: var(--text) !important; color: var(--bg) !important;
+            border-color: var(--text) !important; font-weight: bold;
+        }
+
+        .font-controls { display: flex; gap: 5px; background: var(--card-bg); border: var(--card-border); padding: 4px 6px; border-radius: 20px; align-items: center; transition: background 0.3s; box-shadow: var(--card-shadow); }
+        .font-btn { background: transparent; color: var(--text); border: none; padding: 6px 12px; border-radius: 16px; font-weight: 600; display: flex; align-items: center; justify-content: center; transition: background 0.2s; cursor: pointer;}
+        .font-btn:hover { background: rgba(128,128,128,0.1); }
+
+        .song-footer {
+            display: flex; gap: 12px; justify-content: center;
+            margin-top: 40px; padding-top: 24px;
+            border-top: 1px solid var(--border);
+        }
+        .song-footer-btn {
+            display: flex; align-items: center; gap: 8px;
+            padding: 12px 20px; border-radius: 24px;
+            border: 1px solid var(--border); background: var(--card-bg);
+            color: var(--text); cursor: pointer; font-size: 14px;
+            font-weight: 500; font-family: inherit;
+            box-shadow: var(--card-shadow);
+            transition: box-shadow 0.2s, transform 0.1s;
+        }
+        .song-footer-btn:hover { box-shadow: var(--shadow); transform: translateY(-1px); }
+        .song-footer-btn:active { transform: scale(0.97); }
+
+
+        /* ═══════════════════════════════════════════════════════════════
+           6. OVLÁDACÍ PANEL SCROLLU
+           ═══════════════════════════════════════════════════════════════ */
+
         .scroll-panel { position: fixed; right: 15px; top: 60%; transform: translateY(-50%); will-change: opacity; background: var(--card-bg); border-radius: 40px; width: 56px; display: flex; flex-direction: column; align-items: center; padding: 12px 0; gap: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100; border: none; transition: opacity 0.4s ease, background 0.3s; }
         .scroll-panel.faded { opacity: 0.15; pointer-events: none; }
         .speed-display { font-size: 18px; font-weight: 700; color: var(--primary); min-width: 24px; text-align: center; line-height: 1; padding: 4px 0; }
-        
-        /* Tlačítka rychlosti (+/-) */
+
         .speed-btn {
-            width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border); 
-            background: var(--card-bg); color: var(--text); font-weight: bold; font-size: 20px; 
+            width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border);
+            background: var(--card-bg); color: var(--text); font-weight: bold; font-size: 20px;
             cursor: pointer; display: flex; align-items: center; justify-content: center;
             transition: background 0.2s, transform 0.1s; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
@@ -268,11 +330,10 @@
         .nav-arrow-btn { width: 56px; height: 56px; border-radius: 50%; background: var(--primary); color: white; border: none; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.2); cursor: pointer; transition: transform 0.1s; }
         .nav-arrow-btn:active { transform: scale(0.95); }
 
-        .font-controls { display: flex; gap: 5px; background: var(--card-bg); border: var(--card-border); padding: 4px 6px; border-radius: 20px; align-items: center; transition: background 0.3s; box-shadow: var(--card-shadow); }
-        .font-btn { background: transparent; color: var(--text); border: none; padding: 6px 12px; border-radius: 16px; font-weight: 600; display: flex; align-items: center; justify-content: center; transition: background 0.2s; cursor: pointer;}
-        .font-btn:hover { background: rgba(128,128,128,0.1); }
 
-        .key-btn { transition: all 0.2s; }
+        /* ═══════════════════════════════════════════════════════════════
+           7. KNIHOVNA A VYHLEDÁVÁNÍ
+           ═══════════════════════════════════════════════════════════════ */
 
         #artistFilterSelect {
             padding: 0 32px 0 14px;
@@ -298,35 +359,108 @@
         #artistFilterSelect:focus { outline: none; border-color: var(--primary); }
         #artistFilterSelect.active { border-color: var(--primary); color: var(--primary); font-weight: 500; }
 
-        .song-footer {
-            display: flex; gap: 12px; justify-content: center;
-            margin-top: 40px; padding-top: 24px;
-            border-top: 1px solid var(--border);
+        /* Plovoucí vyhledávací lišta — knihovna */
+        #floatingBar {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 990;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 15px;
+            background: var(--card-bg);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transform: translateY(-110%);
+            transition: transform 0.25s ease, background 0.3s;
         }
-        .song-footer-btn {
-            display: flex; align-items: center; gap: 8px;
-            padding: 12px 20px; border-radius: 24px;
-            border: 1px solid var(--border); background: var(--card-bg);
-            color: var(--text); cursor: pointer; font-size: 14px;
-            font-weight: 500; font-family: inherit;
-            box-shadow: var(--card-shadow);
-            transition: box-shadow 0.2s, transform 0.1s;
+        #floatingBar.visible { transform: translateY(0); }
+        #floatingBar input {
+            flex-grow: 1;
+            margin-bottom: 0;
+            border-radius: 24px;
+            padding: 10px 18px;
+            font-size: 15px;
         }
-        .song-footer-btn:hover { box-shadow: var(--shadow); transform: translateY(-1px); }
-        .song-footer-btn:active { transform: scale(0.97); }
-        .key-btn.active {
-            background-color: var(--text) !important; color: var(--bg) !important;
-            border-color: var(--text) !important; font-weight: bold;
+        #floatingBarTopBtn {
+            width: 42px; height: 42px;
+            border-radius: 50%;
+            border: 1px solid var(--border);
+            background: var(--primary);
+            color: white;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
         }
 
-        #toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #323232; color: white; padding: 14px 24px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.2); display: none; z-index: 4000; font-weight: 500; font-size: 14px; letter-spacing: 0.3px;}
-        
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.65); z-index: 3000; align-items: center; justify-content: center; cursor: pointer; }
-        .modal-content { cursor: default; }
-        .modal-content { background: var(--card-bg); color: var(--text); padding: 30px 25px; border-radius: 16px; max-width: 360px; width: 90%; text-align: center; transition: background 0.3s; max-height: 90vh; overflow-y: auto; box-shadow: 0 24px 38px 3px rgba(0,0,0,0.14), 0 9px 46px 8px rgba(0,0,0,0.12), 0 11px 15px -7px rgba(0,0,0,0.2);}
+        /* Plovoucí vyhledávací lišta — detail playlistu */
+        #floatingPlaylistBar {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 990;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 15px;
+            background: var(--card-bg);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transform: translateY(-110%);
+            transition: transform 0.25s ease, background 0.3s;
+        }
+        #floatingPlaylistBar.visible { transform: translateY(0); }
+        #floatingPlaylistBar input {
+            flex-grow: 1;
+            margin-bottom: 0;
+            border-radius: 24px;
+            padding: 10px 18px;
+            font-size: 15px;
+        }
+        #floatingPlaylistTopBtn {
+            width: 42px; height: 42px;
+            border-radius: 50%;
+            border: 1px solid var(--border);
+            background: var(--primary);
+            color: white;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
 
 
-        /* --- Google Drive a font selector --- */
+        /* ═══════════════════════════════════════════════════════════════
+           8. ZÁLOHA A NASTAVENÍ
+           ═══════════════════════════════════════════════════════════════ */
+
+        #backupMenuWrapper { position: relative; }
+        #backupMenu {
+            display: none;
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+            border: var(--card-border);
+            min-width: 240px;
+            z-index: 500;
+            overflow: hidden;
+        }
+        #backupMenu.visible { display: block; }
+        .backup-menu-item {
+            display: flex; align-items: center; gap: 12px;
+            padding: 12px 16px;
+            cursor: pointer;
+            background: none; border: none; width: 100%;
+            text-align: left; font-family: inherit;
+            color: var(--text); font-size: 14px;
+            transition: background 0.15s;
+        }
+        .backup-menu-item:hover { background: rgba(128,128,128,0.08); }
+        .backup-menu-item svg { flex-shrink: 0; opacity: 0.75; }
+        .backup-menu-item-text { display: flex; flex-direction: column; gap: 2px; }
+        .backup-menu-item-title { font-weight: 500; }
+        .backup-menu-item-sub { font-size: 11.5px; color: var(--muted); }
+        .backup-menu-divider { height: 1px; background: var(--border); margin: 4px 0; }
+
         .settings-block { text-align:left; margin-bottom:20px; padding-bottom:20px; border-bottom:1px solid var(--border); }
         .settings-label { font-weight:500; display:block; margin-bottom:10px; color:var(--text); font-size:14px; }
         .gdrive-status { font-size:12px; color:var(--muted); margin-bottom:10px; display:flex; align-items:center; gap:6px; }
@@ -335,18 +469,35 @@
         .gdrive-btns { display:flex; gap:8px; flex-wrap:wrap; }
 
 
-        .hidden-file { display: none; }
-        
-        h1, h2, h3 { font-weight: 600; margin-top: 0; color: var(--text); letter-spacing: -0.5px; }
-        h1 { font-size: 1.5rem; margin-bottom: 20px; }
+        /* ═══════════════════════════════════════════════════════════════
+           9. TOASTY A MODÁLY
+           ═══════════════════════════════════════════════════════════════ */
 
-        
-        /* Speciální přizpůsobení pro velmi úzká okna (split screen na PC) — viz blok 400px níže */
+        #toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #323232; color: white; padding: 14px 24px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.2); display: none; z-index: 4000; font-weight: 500; font-size: 14px; letter-spacing: 0.3px;}
+
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.65); z-index: 3000; align-items: center; justify-content: center; cursor: pointer; }
+        .modal-content { cursor: default; }
+        .modal-content { background: var(--card-bg); color: var(--text); padding: 30px 25px; border-radius: 16px; max-width: 360px; width: 90%; text-align: center; transition: background 0.3s; max-height: 90vh; overflow-y: auto; box-shadow: 0 24px 38px 3px rgba(0,0,0,0.14), 0 9px 46px 8px rgba(0,0,0,0.12), 0 11px 15px -7px rgba(0,0,0,0.2);}
 
 
         /* ═══════════════════════════════════════════════════════════════
-           RESPONZIVNÍ DESIGN — přizpůsobení menším oknům na PC
-        ═══════════════════════════════════════════════════════════════ */
+           10. ANIMACE
+           ═══════════════════════════════════════════════════════════════ */
+
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        @keyframes noteSpinFull {
+            0%   { transform: rotate(0deg) scale(1); }
+            30%  { transform: rotate(180deg) scale(1.3); }
+            70%  { transform: rotate(320deg) scale(1.15); }
+            100% { transform: rotate(360deg) scale(1); }
+        }
+        .note-spinning { animation: noteSpinFull 0.7s ease-in-out; }
+
+
+        /* ═══════════════════════════════════════════════════════════════
+           11. RESPONZIVNÍ DESIGN
+           ═══════════════════════════════════════════════════════════════ */
 
         @media (max-width: 700px) {
             .top-nav { padding: 20px 10px 12px 10px; }
@@ -381,46 +532,6 @@
             #displayAreaWrapper { padding: 10px 52px 20px 10px; }
         }
 
-
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-
-
-
-        #floatingBar {
-            position: fixed;
-            top: 0; left: 0; right: 0;
-            z-index: 990;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 15px;
-            background: var(--card-bg);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            transform: translateY(-110%);
-            transition: transform 0.25s ease, background 0.3s;
-        }
-        #floatingBar.visible {
-            transform: translateY(0);
-        }
-        #floatingBar input {
-            flex-grow: 1;
-            margin-bottom: 0;
-            border-radius: 24px;
-            padding: 10px 18px;
-            font-size: 15px;
-        }
-        #floatingBarTopBtn {
-            width: 42px; height: 42px;
-            border-radius: 50%;
-            border: 1px solid var(--border);
-            background: var(--primary);
-            color: white;
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer; flex-shrink: 0;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-        }
-
-
         /* Scroll panel — přizpůsobení velikosti obrazovky */
         @media (min-width: 481px) and (max-width: 1024px) {
             /* Tablet */
@@ -440,96 +551,6 @@
             .play-btn svg { width: 40px; height: 40px; }
         }
 
-
-        /* Animace noty při náhodné písni */
-        @keyframes noteSpinFull {
-            0%   { transform: rotate(0deg) scale(1); }
-            30%  { transform: rotate(180deg) scale(1.3); }
-            70%  { transform: rotate(320deg) scale(1.15); }
-            100% { transform: rotate(360deg) scale(1); }
-        }
-        .note-spinning {
-            animation: noteSpinFull 0.7s ease-in-out;
-        }
-        #appLogoBtn {
-            background: none; border: none; cursor: pointer;
-            color: var(--nav-text); display: flex; align-items: center;
-            gap: 8px; padding: 0; font-family: inherit;
-            font-weight: 600; font-size: 1.2rem;
-        }
-        #appLogoBtn:hover { opacity: 0.85; }
-        #appLogoBtn svg { transition: transform 0.1s; }
-
-
-        /* Menu zálohy v knihovně */
-        #backupMenuWrapper { position: relative; }
-        #backupMenu {
-            display: none;
-            position: absolute;
-            top: calc(100% + 8px);
-            right: 0;
-            background: var(--card-bg);
-            border-radius: 12px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.18);
-            border: var(--card-border);
-            min-width: 240px;
-            z-index: 500;
-            overflow: hidden;
-        }
-        #backupMenu.visible { display: block; }
-        .backup-menu-item {
-            display: flex; align-items: center; gap: 12px;
-            padding: 12px 16px;
-            cursor: pointer;
-            background: none; border: none; width: 100%;
-            text-align: left; font-family: inherit;
-            color: var(--text); font-size: 14px;
-            transition: background 0.15s;
-        }
-        .backup-menu-item:hover { background: rgba(128,128,128,0.08); }
-        .backup-menu-item svg { flex-shrink: 0; opacity: 0.75; }
-        .backup-menu-item-text { display: flex; flex-direction: column; gap: 2px; }
-        .backup-menu-item-title { font-weight: 500; }
-        .backup-menu-item-sub { font-size: 11.5px; color: var(--muted); }
-        .backup-menu-divider { height: 1px; background: var(--border); margin: 4px 0; }
-
-
-        /* Plovoucí vyhledávací lišta v detailu playlistu */
-        #floatingPlaylistBar {
-            position: fixed;
-            top: 0; left: 0; right: 0;
-            z-index: 990;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 15px;
-            background: var(--card-bg);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            transform: translateY(-110%);
-            transition: transform 0.25s ease, background 0.3s;
-        }
-        #floatingPlaylistBar.visible {
-            transform: translateY(0);
-        }
-        #floatingPlaylistBar input {
-            flex-grow: 1;
-            margin-bottom: 0;
-            border-radius: 24px;
-            padding: 10px 18px;
-            font-size: 15px;
-        }
-        #floatingPlaylistTopBtn {
-            width: 42px; height: 42px;
-            border-radius: 50%;
-            border: 1px solid var(--border);
-            background: var(--primary);
-            color: white;
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer; flex-shrink: 0;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-        }
-
-
         /* Optimalizace pro starší zařízení a uživatelé s prefers-reduced-motion */
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after {
@@ -547,13 +568,14 @@
             .modal-content { box-shadow: none; }
         }
 
-        /* =================================================================
-           TISK / PDF EXPORT
-           ================================================================= */
+
+        /* ═══════════════════════════════════════════════════════════════
+           12. TISK / PDF EXPORT
+           ═══════════════════════════════════════════════════════════════ */
+
         #printArea { display: none; }
 
         @media print {
-            /* Skryj záhlaví a zápatí prohlížeče */
             @page {
                 margin: 12mm 14mm 12mm 14mm;
                 size: A4;
