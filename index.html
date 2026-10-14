@@ -1250,7 +1250,7 @@ přes ty hory zelený</pre>
     // 4. Authorized JavaScript origins → URL tvé aplikace (např. https://uzivatel.github.io)
     // 5. Zkopíruj Client ID sem:
     // =====================================================================
-    const APP_VERSION = 'v34.13';
+    const APP_VERSION = 'v34.14';
 
     const GDRIVE_CLIENT_ID = '917333597478-88g2m8u0hgm8650ubtcshka5dqr1sep7.apps.googleusercontent.com';
     const GDRIVE_FILE_NAME = 'muzikant_db.json';
@@ -3198,11 +3198,25 @@ V aplikaci ho importuj přes ikonu diskety → Importovat píseň.`
             if (_scrollThrottleTimer) return;
             _scrollThrottleTimer = requestAnimationFrame(() => {
                 _scrollThrottleTimer = null;
-                const st = scrollContainer.scrollTop;
+                let st = scrollContainer.scrollTop;
 
                 // Horní navigace
-                if (st > 50) mainHeader.classList.add('hidden');
-                else mainHeader.classList.remove('hidden');
+                // Skrytá lišta uvolní své místo obsahu → oblast scrollu se zvětší o výšku lišty
+                // a maximální scroll se o tutéž výšku zmenší. U krátkého obsahu (např. pár
+                // vyfiltrovaných písní) by prohlížeč stáhl scroll zpět pod 50 px, lišta by se
+                // znovu ukázala a stránka by dokola poskakovala. Lištu proto skryjeme jen tehdy,
+                // když i po jejím skrytí zůstane scroll nad 50 px (+ rezerva na zaokrouhlení).
+                const headerHidden = mainHeader.classList.contains('hidden');
+                const maxScroll = scrollContainer.scrollHeight - scrollContainer.clientHeight;
+                const maxScrollHidden = headerHidden ? maxScroll : maxScroll - mainHeader.offsetHeight;
+                const hideHeader = st > 50 && maxScrollHidden > 60;
+                if (hideHeader !== headerHidden) {
+                    mainHeader.classList.toggle('hidden', hideHeader);
+                    // Prohlížeč mohl scroll kvůli změně výšky posunout — to není pohyb uživatele,
+                    // takže se nesmí počítat jako scroll nahoru (plovoucí lišta hledání)
+                    st = scrollContainer.scrollTop;
+                    _prevScrollTop = st;
+                }
 
                 // Plovoucí panel — pouze v knihovně
                 if (_viewLibrary && _floatingBar) {
