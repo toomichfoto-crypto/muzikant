@@ -1250,7 +1250,7 @@ přes ty hory zelený</pre>
     // 4. Authorized JavaScript origins → URL tvé aplikace (např. https://uzivatel.github.io)
     // 5. Zkopíruj Client ID sem:
     // =====================================================================
-    const APP_VERSION = 'v34.18';
+    const APP_VERSION = 'v34.19';
 
     const GDRIVE_CLIENT_ID = '917333597478-88g2m8u0hgm8650ubtcshka5dqr1sep7.apps.googleusercontent.com';
     const GDRIVE_FILE_NAME = 'muzikant_db.json';
@@ -3341,9 +3341,13 @@ V aplikaci ho importuj přes ikonu diskety → Importovat píseň.`
         });
 
         // Listener pro zprávu ze service workeru o nové verzi
+        // Hlášku ukážeme jen tehdy, když stránku načetl service worker z cache — jen tehdy
+        // může běžet starší verze. Po „Zkontrolovat aktualizaci“ (nebo při první návštěvě)
+        // se stránka načetla přímo ze serveru, je aktuální a hláška by jen mátla.
         if ('serviceWorker' in navigator) {
+            const pageFromCache = !!navigator.serviceWorker.controller;
             navigator.serviceWorker.addEventListener('message', (e) => {
-                if (e.data && e.data.type === 'NEW_VERSION') {
+                if (e.data && e.data.type === 'NEW_VERSION' && pageFromCache) {
                     notify('Nová verze je připravena — klikni Zkontrolovat aktualizaci');
                 }
             });
