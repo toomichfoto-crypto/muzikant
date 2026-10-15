@@ -1250,7 +1250,7 @@ přes ty hory zelený</pre>
     // 4. Authorized JavaScript origins → URL tvé aplikace (např. https://uzivatel.github.io)
     // 5. Zkopíruj Client ID sem:
     // =====================================================================
-    const APP_VERSION = 'v34.15';
+    const APP_VERSION = 'v34.16';
 
     const GDRIVE_CLIENT_ID = '917333597478-88g2m8u0hgm8650ubtcshka5dqr1sep7.apps.googleusercontent.com';
     const GDRIVE_FILE_NAME = 'muzikant_db.json';
@@ -1378,11 +1378,11 @@ přes ty hory zelený</pre>
     const navButtonsPanel = document.getElementById('navButtonsPanel');
     const scrollPanel = document.getElementById('scrollPanel');
     const chordTooltip = document.getElementById('chordTooltip');
-    // Autoscroll — 5 stupňů. Stupeň 1 = dřívější stupeň 1, stupeň 5 = dřívější stupeň 10,
-    // mezi nimi rovnoměrně. Rychlost se ukládá ve stejných jednotkách jako dřív (stará
-    // stupnice 1–10, skutečná rychlost = hodnota × 1,966 px/s), takže zálohy, Drive
+    // Autoscroll — 5 stupňů. Stupeň 1 = dřívější stupeň 1,5, stupeň 5 = dřívější stupeň 7,5,
+    // mezi nimi rovnoměrně (krok 1,5). Rychlost se ukládá ve stejných jednotkách jako dřív
+    // (stará stupnice 1–10, skutečná rychlost = hodnota × 1,966 px/s), takže zálohy, Drive
     // i soubory od kapely zůstávají kompatibilní se staršími verzemi aplikace.
-    const SCROLL_SPEEDS = [1, 3.25, 5.5, 7.75, 10]; // uložená hodnota pro stupeň 1–5
+    const SCROLL_SPEEDS = [1.5, 3, 4.5, 6, 7.5]; // uložená hodnota pro stupeň 1–5
     const DEFAULT_SCROLL_LEVEL = 3;
     let currentScrollLevel = DEFAULT_SCROLL_LEVEL; // Stupeň 1–5, výchozí 3
     let keysHtml = ''; // HTML pro select tónin — definováno při init
@@ -2889,7 +2889,7 @@ Když jsem já šel</pre>
         lastTime = currentTime;
         if (delta > 100) { requestAnimationFrame(scrollStep); return; }
 
-        // Stupeň 1 = 1,966 px/s … stupeň 5 = 19,66 px/s (stejně jako dřívější stupně 1 a 10)
+        // Stupeň 1 = 2,95 px/s … stupeň 5 = 14,75 px/s (jako dřívější stupně 1,5 a 7,5)
         const speedPxPerSec = SCROLL_SPEEDS[currentScrollLevel - 1] * 1.966;
         scrollPos += speedPxPerSec * (delta / 1000);
 
