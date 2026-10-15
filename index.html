@@ -1183,7 +1183,7 @@ přes ty hory zelený</pre>
 
     <div id="scrollPanel" class="scroll-panel" style="display: none;">
         <button id="speedPlusBtn" class="speed-btn" title="Zrychlit">+</button>
-        <div class="speed-display" id="speedDisplay">5</div>
+        <div class="speed-display" id="speedDisplay">3</div>
         <button id="speedMinusBtn" class="speed-btn" title="Zpomalit">-</button>
         
         <button id="playPauseBtn" class="play-btn">
@@ -1250,7 +1250,7 @@ přes ty hory zelený</pre>
     // 4. Authorized JavaScript origins → URL tvé aplikace (např. https://uzivatel.github.io)
     // 5. Zkopíruj Client ID sem:
     // =====================================================================
-    const APP_VERSION = 'v34.14';
+    const APP_VERSION = 'v34.15';
 
     const GDRIVE_CLIENT_ID = '917333597478-88g2m8u0hgm8650ubtcshka5dqr1sep7.apps.googleusercontent.com';
     const GDRIVE_FILE_NAME = 'muzikant_db.json';
@@ -1378,7 +1378,13 @@ přes ty hory zelený</pre>
     const navButtonsPanel = document.getElementById('navButtonsPanel');
     const scrollPanel = document.getElementById('scrollPanel');
     const chordTooltip = document.getElementById('chordTooltip');
-    let currentScrollSpeed = 5; // Rychlost 1-10, výchozí 5
+    // Autoscroll — 5 stupňů. Stupeň 1 = dřívější stupeň 1, stupeň 5 = dřívější stupeň 10,
+    // mezi nimi rovnoměrně. Rychlost se ukládá ve stejných jednotkách jako dřív (stará
+    // stupnice 1–10, skutečná rychlost = hodnota × 1,966 px/s), takže zálohy, Drive
+    // i soubory od kapely zůstávají kompatibilní se staršími verzemi aplikace.
+    const SCROLL_SPEEDS = [1, 3.25, 5.5, 7.75, 10]; // uložená hodnota pro stupeň 1–5
+    const DEFAULT_SCROLL_LEVEL = 3;
+    let currentScrollLevel = DEFAULT_SCROLL_LEVEL; // Stupeň 1–5, výchozí 3
     let keysHtml = ''; // HTML pro select tónin — definováno při init
     
     // Tlačítka pro jemné ladění rychlosti (+/-)
@@ -1727,7 +1733,7 @@ přes ty hory zelený</pre>
         if (plv.baseKey !== undefined && (plv.baseKey || 0) !== mainBase) return true;
         const mainTarget = song.preferredKey !== undefined ? song.preferredKey : mainBase;
         if (plv.preferredKey !== undefined && plv.preferredKey !== mainTarget) return true;
-        if (plv.scrollSpeed !== undefined && normalizeScrollSpeed(plv.scrollSpeed) !== normalizeScrollSpeed(song.scrollSpeed)) return true;
+        if (plv.scrollSpeed !== undefined && scrollLevelFromSpeed(plv.scrollSpeed) !== scrollLevelFromSpeed(song.scrollSpeed)) return true;
         if (plv.fontSize !== undefined && plv.fontSize !== song.fontSize) return true;
         return false;
     }
@@ -2047,34 +2053,41 @@ přes ty hory zelený</pre>
     }
 
     document.getElementById('speedPlusBtn').onclick = () => {
-        if (currentScrollSpeed < 10) { currentScrollSpeed++; updateSpeedDisplay(); saveSpeed(); }
+        if (currentScrollLevel < SCROLL_SPEEDS.length) { currentScrollLevel++; updateSpeedDisplay(); saveSpeed(); }
     };
 
     document.getElementById('speedMinusBtn').onclick = () => {
-        if (currentScrollSpeed > 1) { currentScrollSpeed--; updateSpeedDisplay(); saveSpeed(); }
+        if (currentScrollLevel > 1) { currentScrollLevel--; updateSpeedDisplay(); saveSpeed(); }
     };
 
     function updateSpeedDisplay() {
         const el = document.getElementById('speedDisplay');
-        if (el) el.textContent = currentScrollSpeed;
+        if (el) el.textContent = currentScrollLevel;
     }
 
-    function normalizeScrollSpeed(value) {
-        const v = value !== undefined ? value : 5;
-        return v > 10 ? Math.max(1, Math.min(10, Math.round(v / 10))) : Math.max(1, Math.min(10, v));
+    // Uložená rychlost → stupeň 1–5 (nejbližší rychlostí)
+    // Zvládá i hodnoty ze starších verzí: stupnici 1–10 i velmi starou 10–100
+    function scrollLevelFromSpeed(value) {
+        let v = Number(value);
+        if (value === undefined || value === null || !isFinite(v)) return DEFAULT_SCROLL_LEVEL;
+        if (v > 10) v = v / 10; // velmi stará stupnice 10–100
+        v = Math.max(1, Math.min(10, v));
+        let best = 0;
+        SCROLL_SPEEDS.forEach((s, i) => { if (Math.abs(s - v) < Math.abs(SCROLL_SPEEDS[best] - v)) best = i; });
+        return best + 1;
     }
 
     function saveSpeed() {
         if (currentSongIndex !== null) {
             if (activePlaylistIdx !== null) {
-                savePlv(currentSongIndex, { scrollSpeed: currentScrollSpeed });
+                savePlv(currentSongIndex, { scrollSpeed: SCROLL_SPEEDS[currentScrollLevel - 1] });
                 // Shodné s knihovnou → zbytečnou playlist verzi smazat; ★ ukázat/schovat hned
                 const s = db.songs.find(x => x.id === currentSongIndex);
                 const pl = db.playlists[activePlaylistIdx];
                 if (s && pl) { cleanupRedundantPlv(s, pl.id); updatePlvIndicator(s); }
             } else {
                 const s = db.songs.find(s => s.id === currentSongIndex);
-                if (s) { s.scrollSpeed = currentScrollSpeed; saveData(); }
+                if (s) { s.scrollSpeed = SCROLL_SPEEDS[currentScrollLevel - 1]; saveData(); }
             }
         }
     }
@@ -2757,7 +2770,7 @@ Když jsem já šel</pre>
         const activeFontSize = song.fontSize || currentFontSize;
         document.getElementById('displayArea').style.fontSize = activeFontSize + 'px';
         // Načtení rychlosti z aktivní verze
-        currentScrollSpeed = normalizeScrollSpeed(song.scrollSpeed);
+        currentScrollLevel = scrollLevelFromSpeed(song.scrollSpeed);
         updateSpeedDisplay();
         renderKeyButtons(); renderPlayerTags();
         updatePlvIndicator(songBase);
@@ -2876,8 +2889,8 @@ Když jsem já šel</pre>
         lastTime = currentTime;
         if (delta > 100) { requestAnimationFrame(scrollStep); return; }
 
-        // Stupnice 1-10: level 10 = 19.66px/s, level 1 = 1.966px/s
-        const speedPxPerSec = currentScrollSpeed * 1.966;
+        // Stupeň 1 = 1,966 px/s … stupeň 5 = 19,66 px/s (stejně jako dřívější stupně 1 a 10)
+        const speedPxPerSec = SCROLL_SPEEDS[currentScrollLevel - 1] * 1.966;
         scrollPos += speedPxPerSec * (delta / 1000);
 
         // Pokud uživatel posunul stránku prstem, synchronizujeme scrollPos
