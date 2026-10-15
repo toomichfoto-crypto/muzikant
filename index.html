@@ -1250,7 +1250,7 @@ přes ty hory zelený</pre>
     // 4. Authorized JavaScript origins → URL tvé aplikace (např. https://uzivatel.github.io)
     // 5. Zkopíruj Client ID sem:
     // =====================================================================
-    const APP_VERSION = 'v34.17';
+    const APP_VERSION = 'v34.18';
 
     const GDRIVE_CLIENT_ID = '917333597478-88g2m8u0hgm8650ubtcshka5dqr1sep7.apps.googleusercontent.com';
     const GDRIVE_FILE_NAME = 'muzikant_db.json';
@@ -3449,12 +3449,14 @@ V aplikaci ho importuj přes ikonu diskety → Importovat píseň.`
 
         document.getElementById('triggerImportChordProBtn').onclick = () => document.getElementById('importChordProInput').click();
         document.getElementById('importChordProInput').onchange = (e) => {
-            const files = e.target.files;
-            if (!files || files.length === 0) return;
+            // Kopie seznamu souborů — e.target.value = '' níže seznam v prohlížeči vyprázdní,
+            // takže by se import nikdy nedokončil (neuložil by se a knihovna by se nepřekreslila)
+            const files = Array.from(e.target.files || []);
+            if (files.length === 0) return;
             let processed = 0;
             let added = 0;
             let updated = 0;
-            Array.from(files).forEach(file => {
+            files.forEach(file => {
                 const r = new FileReader();
                 r.onload = (ev) => {
                     try {
